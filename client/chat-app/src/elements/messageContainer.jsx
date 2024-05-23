@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 
 function MessageContainer({ message }) {
-    console.log(message)
+    console.log('message',message)
     return (
         <div>
             <div className="chatArea_message">

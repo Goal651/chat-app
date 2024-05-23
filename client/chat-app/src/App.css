@@ -5,7 +5,8 @@
   outline: none;
   border: 0;
   color: white;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
 body {
@@ -25,7 +26,7 @@ body {
   color: transparent;
   font-size: 2rem;
   padding: 1rem;
-  margin: 0
+  margin: 0;
 }
 
 .dashboard h2 {
@@ -36,7 +37,7 @@ body {
   font-size: 2rem;
   display: inline;
   padding: 1rem;
-  margin: 0
+  margin: 0;
 }
 
 .create-connection {
@@ -126,7 +127,6 @@ body {
   background-color: rgb(27, 133, 239);
 }
 
-
 .createGroup {
   background-color: #032739;
 
@@ -134,8 +134,6 @@ body {
   flex-direction: column;
   align-items: center;
   height: 100vh;
-
-
 }
 
 .createGroup form {
@@ -212,7 +210,6 @@ body {
   overflow-y: auto;
 }
 
-
 .chatArea_footer {
   background-color: transparent;
   color: aliceblue;
@@ -252,12 +249,66 @@ body {
   height: 60vh;
 }
 
-.chat-Sender {
-  background-color: #1183bc;
-  color: white;
+
+.history {
+  display: flex;
+  background: transparent;
+  display: block;
+  margin: 1rem 0;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
 }
 
 #chat-Receiver {
-  background-color: brown;
-  color: #032739;
+  background-color: #1183bc;
+  color: white;
+  width: 30%;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+}
+
+#chat-Sender {
+  position: relative;
+  background-color: rgb(67, 75, 114);
+  color: white;
+  width: 30%;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  left: 70%;
+}
+
+.header {
+  background-color: #032739;
+  padding: 1rem 1rem;
+  display: flex;
+  width: 100vw;
+}
+
+.header a {
+  width: 10rem;
+  display: inline-block;
+  text-align: center;
+  padding: 1rem 2rem;
+  margin: 0;
+
+
+}
+
+.header a:hover {
+  background-color: #053c57;
+
+}
+
+.header button {
+  background-color: #1183bc;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 30%;
+}
+
+.header button:hover{
+background-color: #055984;
 }

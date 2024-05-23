@@ -18,7 +18,7 @@ const DMArea = ({ chat }) => {
     const [user, setUser] = useState("");
     const [history, setHistory] = useState([]);
 
-    console.log(chat);
+
     useEffect(() => {
         const username = Cookies.get('username');
         setUser(username);
@@ -30,11 +30,11 @@ const DMArea = ({ chat }) => {
         }
         fetchMessage();
     }, [refresh, chat]);
+
     socket.on("receive_message", (data) => {
         setMessageReceived(data);
-        console.log(data);
     });
-
+    console.log(history)
     socket.on("joined_room", (data) => {
         setJoiner(data.sender);
     });
@@ -56,21 +56,24 @@ const DMArea = ({ chat }) => {
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
-                                message.username === user ? (
-                                    <div style={{ float: "right" }} className="chat-Sender" key={message._id} >{message.message}</div>
+                                message.sender === user ? (
+                                    <div className="history" key={message._id} >
+                                        <div id="chat-Sender">{message.message}</div>
+                                    </div>
                                 ) : (
-                                    <div key={message._id} id="chat_Receiver" >
-                                        {message.message}</div>
+                                    <div className="history" key={message._id}  >
+                                        <div id="chat-Receiver">
+                                            {message.message}
+                                        </div>
+                                    </div>
                                 )
 
                             ))
                         ) : (
-                            <div>No messages available</div>)
+                            <div style={{ textAlign: 'center', fontSize: '2rem',fontFamily:'700',background:'linear-gradient(to right,red,blue,white)',color:'transparent',backgroundClip:'text' }}>Say hey to your new friend</div>)
                         }
                     </div>
-                    <div className="chatArea_message">
-                        <div>{messageReceived.message}</div>
-                    </div>
+
                 </div>
 
                 <div className="chatArea_footer">

@@ -1,15 +1,10 @@
 const { Message } = require('../models/models');
 const rooms = {};
 
-function generateConversationId(userId1, userId2) {
-    // Sort user IDs to ensure the order is consistent
-    return [userId1, userId2].sort().join('_');
-}
 
 const handlerChat = (io) => {
     io.on('connection', (socket) => {
 
-        // Handle room creation
         socket.on('create_room', (roomName) => {
             if (!rooms[roomName]) {
                 rooms[roomName] = new Set(); // Use Set to avoid duplicate entries
