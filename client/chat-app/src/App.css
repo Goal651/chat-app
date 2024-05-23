@@ -1,0 +1,263 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+  border: 0;
+  color: white;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+  background-color: #242424;
+}
+
+.dashboard {
+  background-color: #091921;
+  height: auto;
+  padding: 0 2rem;
+}
+
+.dashboard h1 {
+  text-align: center;
+  background: linear-gradient(to right, rgb(101, 101, 241), #54b8f5, #ffffff);
+  background-clip: text;
+  color: transparent;
+  font-size: 2rem;
+  padding: 1rem;
+  margin: 0
+}
+
+.dashboard h2 {
+  text-align: center;
+  background: linear-gradient(to right, rgb(101, 101, 241), #2aa3ef, #a5e0f8);
+  background-clip: text;
+  color: transparent;
+  font-size: 2rem;
+  display: inline;
+  padding: 1rem;
+  margin: 0
+}
+
+.create-connection {
+  border-radius: 1rem;
+  background-color: transparent;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  float: right;
+  display: flex;
+  flex-direction: row;
+}
+
+#create-group {
+  background-color: #54b8f5;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+}
+
+#create-group:hover {
+  background-color: rgb(27, 193, 239);
+  cursor: pointer;
+  box-shadow: 0 0 0.7rem rgb(110, 107, 107);
+}
+
+#join-group {
+  background-color: #54b8f5;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  margin-left: 1rem;
+}
+
+#join-group:hover {
+  background-color: rgb(27, 193, 239);
+  cursor: pointer;
+  box-shadow: 0 0 0.7rem rgb(110, 107, 107);
+}
+
+.users {
+  overflow-y: scroll;
+  width: 30%;
+  height: 100vh;
+}
+
+.friends {
+  background-color: #243f4d;
+  margin: 1rem;
+  padding: 0.5rem 2rem;
+  width: 100%;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+}
+
+.friends div {
+  position: relative;
+  background-color: white;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 20rem;
+}
+
+.friends h3 {
+  margin: 0.5rem 0;
+  position: relative;
+}
+
+.friends button {
+  cursor: pointer;
+  background-color: #54b8f5;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  left: 90%;
+  border-radius: 1rem;
+}
+
+.friends button:hover {
+  background-color: rgb(27, 133, 239);
+}
+
+
+.createGroup {
+  background-color: #032739;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+
+
+}
+
+.createGroup form {
+  border: 0.2rem white solid;
+  padding: 1rem 2rem;
+  background-color: #053c57;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  width: 30%;
+  margin-top: 5rem;
+  margin-bottom: 5rem;
+}
+
+.createGroup form input {
+  padding: 1rem 2rem;
+  width: 80%;
+  display: inline-block;
+  margin-right: 2rem;
+  border: 1.5px solid white;
+  border-radius: 1rem;
+  background-color: #032739;
+  color: white;
+}
+
+.createGroup form label {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.createGroup form button {
+  padding: 1rem 2rem;
+  display: inline-block;
+  background-color: #091921;
+  font-size: 1rem;
+  margin-top: 1rem;
+  border-radius: 1rem;
+}
+
+.chat-screen {
+  float: right;
+  background-color: black;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 60%;
+  overflow-y: auto;
+  border-radius: 2rem;
+  padding: 2rem 1rem;
+}
+
+.chatArea_header h1 {
+  text-align: center;
+  background: linear-gradient(to bottom, #bef4fa, blue, #ffffff);
+  background-clip: text;
+  color: transparent;
+  font-size: 2rem;
+  padding: 1rem;
+  margin: 0;
+}
+
+.chatArea_message {
+  position: relative;
+  background-color: rgb(21, 55, 193);
+  margin: 1rem 0 1rem 0;
+  padding: 1rem 2rem;
+  left: 4rem;
+  border-radius: 2rem;
+  width: 30%;
+  overflow-y: auto;
+}
+
+
+.chatArea_footer {
+  background-color: transparent;
+  color: aliceblue;
+  padding: 1rem 2rem;
+  position: sticky;
+}
+
+.chatArea_footer input {
+  padding: 1rem 2rem;
+  width: 70%;
+  display: inline-block;
+  border: 1.5px solid white;
+  border-radius: 1rem;
+  background-color: #0c4bf7;
+}
+
+.chatArea_footer button {
+  padding: 1rem 2rem;
+  display: inline-block;
+  background-color: #091921;
+  font-size: 1rem;
+  border-radius: 1rem;
+  margin-left: 1rem;
+}
+
+.chatArea_footer button:hover {
+  cursor: pointer;
+  background-color: #132229;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.chatArea_body {
+  overflow-y: scroll;
+  height: 60vh;
+}
+
+.chat-Sender {
+  background-color: #1183bc;
+  color: white;
+}
+
+#chat-Receiver {
+  background-color: brown;
+  color: #032739;
+}
