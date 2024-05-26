@@ -3,7 +3,7 @@ const joi = require('joi');
 const signupSchema = joi.object({
     username: joi.string().required(),
     email: joi.string().required(),
-    image: joi.object().required(),
+    image: joi.string().required(),
     password: joi.string().required(),
     rePassword: joi.equal(joi.ref('password')).messages({ 'any.only': 'Passwords do not match' })
 });

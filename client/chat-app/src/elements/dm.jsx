@@ -70,16 +70,17 @@ const DMArea = ({ chat }) => {
 
                             ))
                         ) : (
-                            <div style={{ textAlign: 'center', fontSize: '2rem',fontFamily:'700',background:'linear-gradient(to right,red,blue,white)',color:'transparent',backgroundClip:'text' }}>Say hey to your new friend</div>)
+                            <div style={{ textAlign: 'center', fontSize: '2rem', fontFamily: '700', background: 'linear-gradient(to right,red,blue,white)', color: 'transparent', backgroundClip: 'text' }}>No friend selected!</div>)
                         }
                     </div>
 
                 </div>
 
-                <div className="chatArea_footer">
+                <div  className="chatArea_footer">
                     <form onSubmit={sendMessage}>
                         <input type="text" placeholder="Enter message" value={message} onChange={(e) => setMessage(e.target.value)} />
-                        <button type="submit">Send</button>
+                        <button type="submit">
+                            <img src="send.png" alt="hjk" width={'40rem'} /></button>
                     </form>
                 </div>
             </div>

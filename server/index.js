@@ -9,13 +9,17 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const routes = require('./routes/routes');
 const { handlerChat } = require('./controllers/chatController');
-
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' })
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors({ credentials: true, origin: "http://localhost:5173" })); // Ensure origin matches your frontend
 app.use('/', routes);
+
+
+
 
 const server = http.createServer(app);
 

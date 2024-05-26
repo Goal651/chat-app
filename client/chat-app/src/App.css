@@ -10,13 +10,13 @@
 }
 
 body {
-  background-color: #242424;
+  background-color: #091921;
 }
 
 .dashboard {
   background-color: #091921;
   height: auto;
-  padding: 0 2rem;
+  padding: 0 0rem;
 }
 
 .dashboard h1 {
@@ -212,32 +212,39 @@ body {
 
 .chatArea_footer {
   background-color: transparent;
+  border: 1.5px white solid;
   color: aliceblue;
-  padding: 1rem 2rem;
+  padding: 0rem 2rem;
+  width: 95%;
   position: sticky;
+  border-radius: 1.5rem;
+
 }
 
 .chatArea_footer input {
+  position: relative;
+  top: -0.3rem;
   padding: 1rem 2rem;
   width: 70%;
   display: inline-block;
-  border: 1.5px solid white;
+  font-size: 1rem;
   border-radius: 1rem;
-  background-color: #0c4bf7;
+  background-color: transparent;
 }
 
 .chatArea_footer button {
-  padding: 1rem 2rem;
+  padding: 0.2rem;
   display: inline-block;
-  background-color: #091921;
-  font-size: 1rem;
-  border-radius: 1rem;
-  margin-left: 1rem;
+  background-color: transparent;
+  position: relative;
+  top: 0.5rem;
+  right: -8rem;
+  transition: scale 0.4s;
 }
 
 .chatArea_footer button:hover {
   cursor: pointer;
-  background-color: #132229;
+  scale: 1.1;
 }
 
 ::-webkit-scrollbar {
@@ -278,10 +285,11 @@ body {
 }
 
 .header {
-  background-color: #032739;
+  background-color: #04202e;
   padding: 1rem 1rem;
   display: flex;
   width: 100vw;
+  position: sticky;
 }
 
 .header a {
@@ -289,8 +297,9 @@ body {
   display: inline-block;
   text-align: center;
   padding: 1rem 2rem;
-  margin: 0;
-
+  margin: 0 0.5rem;
+  border-radius: 1rem;
+  transition: background-color 0.5s;
 
 }
 
@@ -309,6 +318,40 @@ body {
   margin-left: 30%;
 }
 
-.header button:hover{
-background-color: #055984;
+.header button:hover {
+  background-color: #055984;
+}
+
+.construction {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 0;
+}
+
+.construction h1 {
+  background: radial-gradient(blue, white);
+  background-clip: text;
+  color: transparent;
+  font-size: 4rem;
+}
+
+.construction h2 {
+  font-size: 3rem;
+  background: linear-gradient(to right, rgb(255, 0, 234), blue, white);
+  background-clip: text;
+  color: transparent;
+}
+
+.construction button {
+  background-color: transparent;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+}
+
+.construction button:hover {
+  background-color: #032739;
+  cursor: pointer;
 }

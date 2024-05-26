@@ -13,7 +13,6 @@ const signUp = () => {
         image: null
     });
     const navigate = useNavigate();
-    console.log(formData.image)
     const handleChange = (e) => {
         const { name, value, files } = e.target;
         if (name === 'image') {
@@ -50,16 +49,12 @@ const signUp = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log(formData);
-
         try {
-
-
             const response = await fetch("http://localhost:3001/signup", {
                 method: "POST",
                 body: JSON.stringify(formData),
                 headers: { "Content-Type": "application/json" },
             });
-
             if (response.ok) {
                 navigate('/');
             }
@@ -88,7 +83,7 @@ const signUp = () => {
                 <label htmlFor="email">Email address:</label>
                 <input name="email" type="email" autoComplete="true" onChange={handleChange} />
                 <label htmlFor="image">Image profile:</label>
-                <input name="image" type="file" onChange={handleChange} />
+                <input name="image" type="file" accept='image/*' onChange={handleChange} />
                 <label htmlFor="password">Password:</label>
                 <input name="password" type="password" onChange={handleChange} />
                 <button type="submit">Submit</button>

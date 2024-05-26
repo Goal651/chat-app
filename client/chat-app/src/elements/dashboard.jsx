@@ -1,15 +1,13 @@
-import React from "react";
 import Header from "../components/header"
-function Dashboard(){
+function Dashboard() {
 
     return (
         <div className="dashboard">
-            <Header/>
+            <Header />
             <h1>Chat App</h1>
-            <div>
-                
-
-            </div>
+            <h2>
+                New feeds
+            </h2>
         </div>
     )
 }

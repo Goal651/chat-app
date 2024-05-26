@@ -1,4 +1,4 @@
-const { string } = require('joi')
+const { string, required } = require('joi')
 const { Timestamp } = require('mongodb')
 const mongoose = require('mongoose')
 
@@ -7,7 +7,7 @@ const userSchema = mongoose.Schema(
         username: { type: String, require: [true, "Please enter username"] },
         email: { type: String, require: [true, "please enter email"] },
         password: { type: String, require: [true, "please enter your password"] },
-        profile: [{ type: mongoose.Schema.Types.ObjectId, ref: "Profile" }],
+        image: { type: String, required: [true, "please upload image"] },
         createdAt: { type: Date, default: Date.now }
     },
     {
@@ -33,14 +33,9 @@ const messageSchema = mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 })
 
-const imageSchema = mongoose.Schema({
-    image: { type: String, require: [true, "Please enter image"] },
-    timestamp: { type: Date, default: Date.now }
-})
 
-const Profile = mongoose.model("profile", imageSchema)
 const User = mongoose.model("users", userSchema)
 const Tokens = mongoose.model("tokens", tokenSchema)
 const Message = mongoose.model("messages", messageSchema)
 
-module.exports = { User, Tokens, Message, Profile };
+module.exports = { User, Tokens, Message };
