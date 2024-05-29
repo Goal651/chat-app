@@ -1,11 +1,21 @@
 /* eslint-disable no-unused-vars */
 import { Link, useNavigate } from 'react-router-dom';
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import '../css/login.css';
 import Cookies from 'js-cookie';
 
 
 function App() {
+
+  useEffect(() => {
+    const username = Cookies.get('username');
+    if (username) {
+        window.location.href = '/';
+    }
+}, []);
+
+
+
   const [formData, setFormData] = useState({
     email: "",
     password: ""

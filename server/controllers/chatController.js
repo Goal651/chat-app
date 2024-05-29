@@ -1,63 +1,53 @@
 const { Message } = require('../models/models');
-const rooms = {};
+const userSockets = new Map;
+const cookie = require('cookie');
 
 
 const handlerChat = (io) => {
+  
+
+
+    io.use((socket, next) => {
+        const cookies = cookie.parse(socket.handshake.headers.cookie || '');
+       
+        const username = cookies['username'];
+        if (!username) {
+            return next(new Error('invalid username'));
+        }
+        socket.username = username;
+        next();
+    });
+
+
     io.on('connection', (socket) => {
+        console.log(socket.username);
+        userSockets.set(socket.username, socket.id);
+        console.log(userSockets);
+        socket.on("connected", (socket) => {
+        })
 
-        socket.on('create_room', (roomName) => {
-            if (!rooms[roomName]) {
-                rooms[roomName] = new Set(); // Use Set to avoid duplicate entries
-                socket.emit('room_created', roomName);
-                console.log(`Room ${roomName} created`);
-            } else {
-                socket.emit('room_exists', roomName);
-                console.log(`Room ${roomName} already exists.`);
+        socket.on("send_message", async ({ receiver, message, sender }) => {
+
+            const targetSocketId = userSockets.get(receiver);
+            console.log(targetSocketId)
+            if (!targetSocketId) {
+                return;
             }
-        });
+            io.to(targetSocketId).emit("receive_message", { sender, message });
+            //     try {
+            //         const newMessage = new Message({
+            //             sender: sender,
+            //             message: message,
+            //             receiver: receiver
+            //         });
+            //         await newMessage.save();
 
-        // Handle room joining
-        socket.on("join_room", (data) => {
-            const { joiner, roomName } = data;
-            if (rooms[roomName]) {
-                rooms[roomName].add(joiner); // Add joiner to the room's Set
-                socket.join(roomName);
-                socket.emit('joined_room', roomName);
-                console.log(`Socket ${joiner} joined room ${roomName}.`);
-            } else {
-                socket.emit('roomNotFound', roomName);
-                console.log(`Room ${roomName} not found.`);
-            }
-        });
-
-        // Handle sending messages
-        socket.on("send_message", async (data) => {
-            const { receiver, message, sender } = data;
-
-            // Ensure rooms are properly initialized
-            if (!rooms[receiver]) { rooms[receiver] = new Set(); }
-            if (!rooms[sender]) {
-                rooms[sender] = new Set();
-            }
-            rooms[receiver].add(socket.id);
-            rooms[sender].add(socket.id);
-            console.log(rooms.wigo);
-            socket.join(receiver);
-
-            try {
-                const newMessage = new Message({
-                    sender: sender,
-                    message: message,
-                    receiver: receiver
-                });
-                await newMessage.save();
-
-                // Emit the message to the receiver's room
-                console.log(receiver)
-                socket.to(receiver).emit("receive_message", { sender, message });
-            } catch (error) {
-                console.error('Error saving message:', error);
-            }
+            // Emit the message to the receiver's room
+            //         console.log(receiver)
+            //         socket.to(receiver).emit("receive_message", { sender, message });
+            //     } catch (error) {
+            //         console.error('Error saving message:', error);
+            //     }
         });
 
     });

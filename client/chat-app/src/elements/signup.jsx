@@ -85,7 +85,6 @@ const signUp = () => {
                 <div className="file-input-container">
                     <label htmlFor="file" className="file-input-label">Choose File</label>
                     <input type="file" id="file" className="file-input" onChange={handleChange} />
-                    
                 </div>
                 <label htmlFor="password">Password:</label>
                 <input name="password" type="password" onChange={handleChange} />
