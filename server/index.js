@@ -8,9 +8,13 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const routes = require('./routes/routes');
+const Grid = require('gridfs-stream');
 const { handlerChat } = require('./controllers/chatController');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' })
+const { GridFsStorage } = require('multer-gridfs-storage');
+const path = require('path');
+
+
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -35,7 +39,7 @@ const io = new Server(server, {
 handlerChat(io);
 
 // Database connection
-mongoose.connect('mongodb://localhost:27017/chat-app')
+mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('Connected to database');
         server.listen(3001, () => {
@@ -45,3 +49,27 @@ mongoose.connect('mongodb://localhost:27017/chat-app')
     .catch((error) => {
         console.log(error);
     });
+const conn = mongoose.connection;
+let gfs;
+conn.once('open', () => {
+    gfs = Grid(conn.db, mongoose.mongo);
+    gfs.collection('uploads');
+
+
+
+    const storage = new GridFsStorage({
+        url: process.env.MONGO_URI,
+        file: (req, file) => {
+            return {
+                filename: file.originalname,
+                bucketName: 'uploads'
+            }
+        }
+    })
+
+    const upload = multer({ storage });
+
+    app.post('/test1', upload.single('file'), (req, res) => {
+        res.json({ file: req.file })
+    })
+})

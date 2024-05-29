@@ -1,11 +1,13 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, checkUser, getUsers } = require('../controllers/userController');
+const { login, signup, checkUser, getUsers,test } = require('../controllers/userController');
 const { getMessage } = require('../controllers/messageController');
 const multer = require('multer');
+const path = require('path')
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'D:\beginner\chat-app\client\chat-app\src\profiles')
+       
+        cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now();
@@ -17,12 +19,12 @@ const upload = multer({ storage: storage })
 
 
 router.post('/login', login);
-router.post('/signup', signup);
-router.get('/checkUser', upload.single('image'), checkUser);
+router.post('/signup', upload.single('image'),signup);
+router.get('/checkUser',  checkUser);
 router.get('/message', getMessage);
 router.get('/allFriends', getUsers)
 router.get('/logout', (req, res) => { res.clearCookie('accessToken') })
-
+router.post('/test',test);
 
 
 module.exports = router;

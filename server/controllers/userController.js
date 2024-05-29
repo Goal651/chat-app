@@ -1,20 +1,19 @@
-const { User} = require('../models/models');
+const { User } = require('../models/models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validator } = require('../schema/dataModels');
 
 
 const signup = async (req, res) => {
-    console.log('signing in.....')
-    console.log(req.file.filename);
-    const { username, email, password } = req.body;
-    const image = req.file.filename;
+    console.log('signing in.....');
+    console.log(req);
+    const { username, email, password, image } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
     try {
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ message: "User already exists" });
-        const newUser = new User({ username, email, password: hash,image });
+        const newUser = new User({ username, email, password: hash, image });
         const savedUser = await newUser.save();
         if (!savedUser) return res.status(500).json({ message: "Failed to save user" });
         res.status(201).json(savedUser);
@@ -56,5 +55,10 @@ const getUsers = async (req, res) => {
     }
 }
 
+const test = (req, res) => {
+    console.log(req.body.image);
+    res.status(202).send('Wow finally');
+}
 
-module.exports = { signup, login, checkUser, getUsers };
+
+module.exports = { signup, login, checkUser, getUsers, test };

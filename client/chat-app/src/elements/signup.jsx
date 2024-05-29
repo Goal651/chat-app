@@ -10,15 +10,15 @@ const signUp = () => {
         username: "",
         email: "",
         password: "",
-        image: null
+        image: "",
     });
     const navigate = useNavigate();
     const handleChange = (e) => {
-        const { name, value, files } = e.target;
         if (name === 'image') {
-            const file = files[0];
+            const file = e.target.files[0];
             setFormData({ ...formData, [name]: file });
         } else {
+            const { name, value, files } = e.target;
             setFormData({ ...formData, [name]: value });
         }
     };
@@ -82,8 +82,11 @@ const signUp = () => {
                 <input name="username" type="text" autoComplete="true" onChange={handleChange} />
                 <label htmlFor="email">Email address:</label>
                 <input name="email" type="email" autoComplete="true" onChange={handleChange} />
-                <label htmlFor="image">Image profile:</label>
-                <input name="image" type="file" accept='image/*' onChange={handleChange} />
+                <div className="file-input-container">
+                    <label htmlFor="file" className="file-input-label">Choose File</label>
+                    <input type="file" id="file" className="file-input" onChange={handleChange} />
+                    
+                </div>
                 <label htmlFor="password">Password:</label>
                 <input name="password" type="password" onChange={handleChange} />
                 <button type="submit">Submit</button>
