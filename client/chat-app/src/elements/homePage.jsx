@@ -11,7 +11,7 @@ const Chat = () => {
     const [friends, setFriends] = useState([]);
     const [chat, setChat] = useState(null);
 
-   
+
 
     const chatNow = (friend) => {
         setChat(friend);
@@ -36,7 +36,7 @@ const Chat = () => {
     return (
         <div className="dashboard">
             <div className="users">
-                {friends
+                {friends.length > 0 ? friends
                     .filter((friend) => friend.username !== Cookies.get('username'))
                     .map((friend) => {
                         return (
@@ -46,9 +46,12 @@ const Chat = () => {
                                 <button onClick={() => { chatNow(friend) }}>Chat</button>
                             </div>
                         )
-                    })}
+                    }) : ("No Friends")}
                 <div className='chat-screen'>
-                    {chat && <ChatArea chat={chat.username} />}
+                    {chat === null ? ( <h2>No friend selected </h2>
+                       
+                        
+                    ) : <ChatArea chat={chat.username} />}
                 </div>
             </div>
         </div>

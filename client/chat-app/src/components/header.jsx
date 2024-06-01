@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "react-router-dom"
+import Cookies from 'js-cookie';
 
 
 function Header() {
     const navigate = useNavigate();
     const logOut = () => {
+        Cookies.remove('username');
         navigate('/login');
     }
 
