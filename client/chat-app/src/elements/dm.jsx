@@ -4,44 +4,41 @@
 import { useState, useEffect, useRef } from "react";
 import io from 'socket.io-client';
 import Cookies from 'js-cookie';
+import { useParams } from "react-router-dom";
 
 const DMArea = ({ chat }) => {
+    const { receiver } = useParams();
     const [socket, setSocket] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
     const [scrollToBottom, setScrollToBottom] = useState(false);
-    const [messageReceived, setMessageReceived] = useState([]);
     const [user, setUser] = useState("");
     const [history, setHistory] = useState([]);
+    const username = Cookies.get('username');
 
     useEffect(() => {
         const newSocket = io("http://localhost:3001", { withCredentials: true });
         setSocket(newSocket);
-        return () => {
-            if (socket) {
-                socket.disconnect();
-            }
-        };
+        return () => { if (socket) socket.disconnect(); };
     }, []);
 
     const messagesEndRef = useRef(null);
-
     const handleScrollToBottom = () => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
             setScrollToBottom(false);
         }
     };
+
     useEffect(() => {
         handleScrollToBottom();
     }, [scrollToBottom]);
+
     useEffect(() => {
         if (!socket) return;
-        const username = Cookies.get('username');
         setUser(username);
-        socket.on("receive_message", (data) => {
+        socket.on("receive_message", () => {
             setRefresh(!refresh);
-            setMessageReceived(data.message);
             setScrollToBottom(true);
         });
 
@@ -55,19 +52,18 @@ const DMArea = ({ chat }) => {
 
     useEffect(() => {
         const fetchMessage = async () => {
-            const username = Cookies.get('username');
-            const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${chat}`);
+            const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${receiver||chat}`);
             const data = await response.json();
             const message = data.messages;
             setHistory(message);
             setScrollToBottom(true);
         };
         fetchMessage();
-
     }, [chat, refresh]);
 
     const sendMessage = (e) => {
         e.preventDefault();
+        if(message === "") return;
         socket.emit("send_message", { receiver: chat, message, sender: user });
         setScrollToBottom(true);
         setMessage("");
@@ -80,7 +76,6 @@ const DMArea = ({ chat }) => {
             <div className="chatArea_container">
                 <div className="chatArea_header">
                     <h1>{chat}</h1>
-
                 </div>
                 <div className="chatArea_body">
                     <div className="chatArea_history">
@@ -106,7 +101,7 @@ const DMArea = ({ chat }) => {
                             <form onSubmit={sendMessage}>
                                 <input type="text" placeholder="Enter message" value={message} onChange={(e) => setMessage(e.target.value)} />
                                 <button type="submit">
-                                    <img src="send.png" alt="hjk" width={'40rem'} /></button>
+                                    <img src="/send.png" alt="Send" width={'40rem'} /></button>
                             </form>
                         </div>
                     </div>

@@ -1,27 +1,24 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ChatArea from "./dm";
 import Cookies from 'js-cookie';
-import io from 'socket.io-client';
+// import io from 'socket.io-client';
+// const socket = io.connect("http://localhost:3001", { withCredentials: true });
 
 const Chat = () => {
     const navigate = useNavigate();
     const [friends, setFriends] = useState([]);
     const [chat, setChat] = useState(null);
-
-
-
-    const chatNow = (friend) => {
-        setChat(friend);
+    const chatNow = ({ username }) => {
+        setChat(username);
+        navigate(`/chat/${username}`);
     }
 
     useEffect(() => {
         const username = Cookies.get('username');
-        if (!username) {
-            navigate('/login');
-        }
+        if (!username) return navigate('/login');
     }, [navigate]);
 
     useEffect(() => {
@@ -32,6 +29,7 @@ const Chat = () => {
         };
         fetchMessage();
     }, []);
+
 
     return (
         <div className="dashboard">
@@ -48,10 +46,7 @@ const Chat = () => {
                         )
                     }) : ("No Friends")}
                 <div className='chat-screen'>
-                    {chat === null ? ( <h2>No friend selected </h2>
-                       
-                        
-                    ) : <ChatArea chat={chat.username} />}
+                    <ChatArea chat={chat} />
                 </div>
             </div>
         </div>

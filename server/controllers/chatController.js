@@ -15,6 +15,18 @@ const handlerChat = (io) => {
         userSockets.set(socket.username, socket.id);
         console.log(userSockets);
         socket.broadcast.emit("connected", socket.username);
+
+
+        socket.on('join', (data) => {
+            console.log('joined',data.joiner);
+            socket.join(data.room);
+            socket.emit('joined', data.joiner);
+        });
+        socket.on('send', (data) => {
+            console.log(data)
+            socket.to(data.receiver).emit('receive', data.message);
+        })
+
         socket.on("connected", (socket) => {
             socket.broadcast.emit("connected", socket.username);
         });

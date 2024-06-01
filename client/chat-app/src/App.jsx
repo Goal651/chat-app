@@ -3,8 +3,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import DMArea from './elements/dm';
-import Chat from './elements/homePage';
+import Chat from './elements/chatF';
 import Login from './elements/login';
 import CreateGroup from './components/createGroup';
 import JoinGroup from './components/joinGroup';
@@ -22,9 +21,8 @@ function App() {
           <Route path='/login' element={<Login />} />
           <Route path='/signup' element={<Signup />} />
           <Route path='/' element={<Dashboard />} />
+          <Route path='/chat/:receiver' element={<Chat />} />
           <Route path='/chat/' element={<Chat />} />
-          <Route path='/joinGroup' element={<JoinGroup />} />
-          <Route path='/createGroup' element={<CreateGroup />} />
           <Route path='/group' element={<GroupArea />} />
           <Route path='*' element={<NotFound/>}></Route>
         </Routes>

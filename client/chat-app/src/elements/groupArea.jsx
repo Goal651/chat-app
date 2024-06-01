@@ -1,20 +1,47 @@
 /* eslint-disable no-undef */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MessageContainer from "./messageContainer";
+import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import Cookies from 'js-cookie'
 
 const GroupArea = () => {
-    const navigate = useNavigate();
-    const [message, setMessage] = useState("");
-    const [friend, setFriend] = useState("");
-    const [joiner, setJoiner] = useState("");
-    const [user, setUser] = useState("");
-    const [history, setHistory] = useState([]);
+    const username = Cookies.get('username');
+    const [socket, setSocket] = useState(null);
+    const [message, setMessage] = useState(null);
+    const [messageReceived, setMessageReceived] = useState(null);
+    const [joiner, setJoiner] = useState(null);
+    const [friend, setFriend] = useState(null);
+    useEffect(() => {
+        const newSocket = io("http://localhost:3001", { withCredentials: true });
+        setSocket(newSocket);
+        return () => { if (socket) socket.disconnect(); };
+    }, []);
 
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("receive", (data) => {
+            setMessageReceived(data);
+        });
 
-  
+        socket.on("joined", (data) => {
+            setJoiner(data);
+        });
+        return () => {
+            socket.off('receive_message');
+            socket.off('joined_room');
+        };
+    }, [socket]);
+
+    const joinRoom = () => {
+        socket.emit("join", { joiner: username, room: friend });
+    };
+
+    const sendMessage = () => {
+        socket.emit("send", { sender: username, receiver: friend, message });
+    };
     return (
         <div id="chatArea">
             <div className="chatArea_container">
@@ -24,9 +51,7 @@ const GroupArea = () => {
                 </div>
                 <div className="chatArea_body">
                     <div className="chatArea_history">
-                        {history.map((message) => (
-                            <MessageContainer key={message._id} history={message} />
-                        ))}
+                        {messageReceived}
                     </div>
                 </div>
                 <div className="chatArea_footer">
