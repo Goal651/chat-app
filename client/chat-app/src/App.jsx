@@ -3,14 +3,14 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import Chat from './elements/chatF';
-import Login from './elements/login';
+import Chat from './pages/chatF';
+import Login from './pages/login';
 import CreateGroup from './components/createGroup';
 import JoinGroup from './components/joinGroup';
-import Signup from './elements/signup';
-import GroupArea from './elements/groupArea';
-import Dashboard from './elements/dashboard';
-import NotFound from './elements/construction';
+import Signup from './pages/signup';
+import GroupArea from './pages/groupArea';
+import Dashboard from './pages/dashboard';
+import NotFound from './pages/construction';
 
 
 function App() {
