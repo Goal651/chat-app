@@ -35,7 +35,7 @@ const checkUser = (req, res) => {
 const login = async (req, res) => {
     try {
         const user = await User.findOne({ email: req.body.email });
-        if (!user) return res.status(401).json({ message: "Wrong email!" });
+        if (!user) return res.status(404).json({ message: "Wrong email!" });
         const validated = await bcrypt.compare(req.body.password, user.password);
         if (!validated) return res.status(401).json({ message: "Wrong credentials!" });
         const accessToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });

@@ -39,26 +39,31 @@ const GroupArea = () => {
         socket.emit("join", { joiner: username, room: friend });
     };
 
-    const sendMessage = () => {
+    const sendMessage = (e) => {
+        e.preventDefault();
         socket.emit("send", { sender: username, receiver: friend, message });
     };
     return (
-        <div id="chatArea">
-            <div className="chatArea_container">
-                <div>{joiner}</div>
-                <div className="chatArea_header">
-                    <h1>Chat App</h1>
+        <div id="chatArea" className="groupArea">
+            <div className="joinGroup">
+                <input type="text" placeholder="Enter username" onChange={(e) => setFriend(e.target.value)} />
+                <button onClick={joinRoom}>Join room</button>
+            </div>
+            <div className="groupArea_container">
+                <div className="newJoiner">{joiner}</div>
+                <div className="">
+                    <h2>Chat App</h2>
                 </div>
-                <div className="chatArea_body">
-                    <div className="chatArea_history">
+                <div className="">
+                    <div className="messageReceived">
                         {messageReceived}
                     </div>
                 </div>
-                <div className="chatArea_footer">
-                    <input type="text" placeholder="Enter username" onChange={(e) => setFriend(e.target.value)} />
-                    <button onClick={joinRoom}>Join room</button>
-                    <input type="text" placeholder="Enter message" onChange={(e) => setMessage(e.target.value)} />
-                    <button onClick={sendMessage}>Send</button>
+                <div className="groupArea_footer">
+                    <form onSubmit={sendMessage}>
+                        <input type="text" placeholder="Enter message" onChange={(e) => setMessage(e.target.value)} />
+                        <button type="submit" onClick={sendMessage}>Send</button>
+                    </form>
                 </div>
             </div>
         </div >

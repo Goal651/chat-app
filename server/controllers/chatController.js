@@ -1,5 +1,6 @@
 const { Message } = require('../models/models');
 const userSockets = new Map;
+const roomSockets = new Map;
 const cookie = require('cookie');
 
 const handlerChat = (io) => {
@@ -12,24 +13,50 @@ const handlerChat = (io) => {
     });
 
     io.on('connection', (socket) => {
+
         userSockets.set(socket.username, socket.id);
-        console.log(userSockets);
         socket.broadcast.emit("connected", socket.username);
-
-
-        socket.on('join', (data) => {
-            console.log('joined',data.joiner);
-            socket.join(data.room);
-            socket.emit('joined', data.joiner);
-        });
-        socket.on('send', (data) => {
-            console.log(data)
-            socket.to(data.receiver).emit('receive', data.message);
-        })
-
         socket.on("connected", (socket) => {
             socket.broadcast.emit("connected", socket.username);
         });
+
+        //////////////////////////////////////////////////////
+        //Group codes
+
+
+        socket.on('create-group', (data) => {
+            roomSockets.set(data.room, socket.id);
+            socket.rooms = data.room;
+            console.log(userSockets);
+            try {
+
+
+
+            } catch (error) { }
+        });
+
+        socket.on('join-group', (data) => {
+            roomSockets.set(data.room, socket.id);
+            socket.rooms = data.room
+            console.log(userSockets);
+        });
+
+        socket.on('join', (data) => {
+            console.log('joined', data.joiner, data.room);
+            socket.join(data.room);
+            socket.broadcast.to(socket.rooms).emit('joined', data.joiner);
+        });
+
+        socket.on('send', (data) => {
+            const targetRoom = userSockets.get(data.room);
+            console.log(data)
+            socket.to(targetRoom).emit('receive', data.message);
+        })
+
+
+        //////////////////////////////////////////////////////////////////
+        //DM codes
+
         socket.on("send_message", async ({ receiver, message, sender }) => {
             const targetSocketId = userSockets.get(receiver);
             if (!targetSocketId && receiver === null) return;
@@ -44,6 +71,16 @@ const handlerChat = (io) => {
             } catch (error) {
                 console.error('Error saving message:', error);
             }
+        });
+        socket.on('typing', ({ username, chat }) => {
+            const targetSocketId = userSockets.get(chat);
+            console.log(username + 'Is typing to ' + chat)
+            io.to(targetSocketId).emit('typing', chat);
+        });
+        socket.on('not_typing', ({ username, chat }) => {
+            const targetSocketId = userSockets.get(chat);
+            console.log(username + 'Is not typing to ' + chat)
+            io.to(targetSocketId).emit('not_typing', {username,chat});
         });
 
     });

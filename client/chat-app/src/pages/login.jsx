@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { Link, useNavigate } from 'react-router-dom';
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
 
 
@@ -9,9 +9,9 @@ function App() {
   useEffect(() => {
     const username = Cookies.get('username');
     if (username) {
-        window.location.href = '/';
+      window.location.href = '/';
     }
-}, []);
+  }, []);
 
 
 
@@ -30,14 +30,13 @@ function App() {
       const progress = elapsedTime / duration;
       const offset = distance * Math.sin(progress * Math.PI * 2);
       element.style.transform = `translateX(${offset}px) `;
-
       if (elapsedTime < duration) {
         setTimeout(updatePosition, 1000 / 60); // Update roughly 60 times per second
       } else {
         element.style.transform = 'translateX(0)'; // Reset transform when animation ends
       }
     }
-
+    element.style.borderColor = 'red';
     updatePosition();
   }
 
@@ -70,7 +69,10 @@ function App() {
       }
       else if (response.status === 404) {
         let email = document.getElementById('email');
-        shake(email);
+        let password = document.getElementById('password');
+        email.style.borderColor = "red";
+        password.style.borderColor = "red";
+
       }
       else {
         throw new Error("Something went wrong");
@@ -83,15 +85,15 @@ function App() {
 
   return (
     <div className="login-page">
-      <h1>Chat App</h1>
+      <div className='left-login'>
+      </div>
       <div className='login-form'>
-        <h1  >Log In</h1>
         <form onSubmit={handleSubmit} >
+          <h1 >Log In</h1>
           <label htmlFor="email" className=''>Email address:</label>
-          <input type="email" name="email" id="email" autoComplete="true" value={formData.email} onChange={handleChange} />
+          <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} />
           <label htmlFor="password">Password:</label>
-          <input type="password" name="password" id="password" autoComplete="true" value={formData.password} onChange={handleChange} />
-          <Link to="/forgot-password" >Forgot Password?</Link><br />
+          <input type="password" name="password" id="password" value={formData.password} onChange={handleChange} />
           <button type="submit" id="login"  >Login</button>
         </form>
         <Link to="/signup" className="create">Create New Account</Link>

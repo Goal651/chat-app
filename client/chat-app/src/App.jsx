@@ -5,8 +5,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Chat from './pages/chatF';
 import Login from './pages/login';
-import CreateGroup from './components/createGroup';
-import JoinGroup from './components/joinGroup';
 import Signup from './pages/signup';
 import GroupArea from './pages/groupArea';
 import Dashboard from './pages/dashboard';

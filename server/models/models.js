@@ -34,6 +34,20 @@ const messageSchema = mongoose.Schema({
 })
 
 
+const groupSchema = mongoose.Schema(
+    {
+        groupName: { type: String, require: [true, "Please enter username"] },
+        admin: { type: String, require: [true, "please enter email"] },
+        password: { type: String, require: [true, "please enter your password"] },
+        createdAt: { type: Date, default: Date.now }
+    },
+    {
+        timestamps: true
+    }
+)
+
+
+
 const User = mongoose.model("users", userSchema)
 const Tokens = mongoose.model("tokens", tokenSchema)
 const Message = mongoose.model("messages", messageSchema)
