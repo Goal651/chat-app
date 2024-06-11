@@ -16,16 +16,15 @@ const DMArea = ({ chat }) => {
     const [history, setHistory] = useState([]);
     const [typing, setTyping] = useState(false);
     const username = Cookies.get('username');
+    const messagesEndRef = useRef(null);
 
     useEffect(() => {
         const newSocket = io("http://localhost:3001", { withCredentials: true });
         setSocket(newSocket);
         setTyping(false);
         return () => { newSocket.disconnect(); };
-
     }, []);
 
-    const messagesEndRef = useRef(null);
     const handleScrollToBottom = () => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -49,8 +48,8 @@ const DMArea = ({ chat }) => {
         const handleTyping = ({ username, chat }) => {
             if (chat == username && username == chat) setTyping(true);
             else setTyping(false);
-
         };
+
         const handleNotTyping = () => {
             setTyping(false);
         }
@@ -64,7 +63,6 @@ const DMArea = ({ chat }) => {
             socket.off("receive_message", handleReceiveMessage);
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
-
         };
     }, [socket, chat, username]);
 
@@ -122,11 +120,9 @@ const DMArea = ({ chat }) => {
                                 Say hey to your new friend
                             </div>
                         )}
-
                         {typing === true ? (<div id="typing-indicator">
                             <img src="/typing.gif" alt="Typing..." />
                         </div>) : null}
-
                         <div ref={messagesEndRef} className="chatArea_footer">
 
                             <form onSubmit={sendMessage}>

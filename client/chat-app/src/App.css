@@ -633,8 +633,7 @@ a {
 
 .navigation {
   width: auto;
-  padding: 1rem;
-  background-color: #010831;
+  background-color: #01051f;
 }
 
 .navigating {
@@ -644,4 +643,11 @@ a {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  width: 100%;
+}
+
+.navigating div {
+  cursor: pointer;
+  background-color: #00131d;
+  width: auto;
 }

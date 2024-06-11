@@ -9,8 +9,13 @@ const Navigation = () => {
     return (
         <div className="navigating">
             <div>
+            <i className="fa fa-home"></i>
                 <img src="/folder.png" alt="" />
                 <h3>All chats</h3>
+            </div>
+            <div>
+                <img src="/folder.png" alt="" />
+                <h3>Groups</h3>
             </div>
             <div>
                 <img src="/folder.png" alt="" />
@@ -18,11 +23,7 @@ const Navigation = () => {
             </div>
             <div>
                 <img src="/folder.png" alt="" />
-                <h3>All chats</h3>
-            </div>
-            <div>
-                <img src="/folder.png" alt="" />
-                <h3>All chats</h3>
+                <h3>Setting</h3>
             </div>
             
         </div>

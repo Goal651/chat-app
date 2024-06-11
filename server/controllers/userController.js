@@ -5,8 +5,6 @@ const { validator } = require('../schema/dataModels');
 
 
 const signup = async (req, res) => {
-    console.log('signing in.....');
-    console.log(req);
     const { username, email, password, image } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
