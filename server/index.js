@@ -19,7 +19,7 @@ const path = require('path');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(cors({ credentials: true, origin: "http://localhost:5173" })); // Ensure origin matches your frontend
+app.use(cors()); // Ensure origin matches your frontend
 app.use('/', routes);
 
 
@@ -34,7 +34,9 @@ const io = new Server(server, {
         credentials: true
     }
 });
-
+app.get('/',(req,res)=>{
+    res.send('hello')
+});
 // Initialize chat handler
 handlerChat(io);
 

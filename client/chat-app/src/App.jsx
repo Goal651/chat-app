@@ -9,7 +9,7 @@ import Signup from './pages/signup';
 import GroupArea from './pages/groups';
 import Dashboard from './pages/dashboard';
 import NotFound from './pages/construction';
-
+import FileDisplay from './pages/test';
 
 function App() {
   return (
@@ -21,6 +21,7 @@ function App() {
           <Route path='/' element={<Dashboard />} />
           <Route path='/chat/:params' element={<Dashboard/>} />
           <Route path='/group' element={<GroupArea />} />
+          <Route path='/testing' element={<FileDisplay/>}/>
           <Route path='*' element={<NotFound/>}></Route>
         </Routes>
       </Router>

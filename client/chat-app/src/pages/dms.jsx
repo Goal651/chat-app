@@ -13,7 +13,8 @@ const Chat = () => {
     const [friends, setFriends] = useState([]);
     let { params } = useParams();
     const [chat, setChat] = useState(null);
-    const [selectedUser, setSelectedUser] = useState(null); // State to track selected user
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [files, setFiles] = useState([]);
     const chatNow = (friend) => {
         setChat(params);
         navigate(`/chat/${username || friend.username}`)
@@ -28,7 +29,8 @@ const Chat = () => {
         const fetchMessage = async () => {
             const response = await fetch(`http://localhost:3001/allFriends`);
             const data = await response.json();
-            setFriends(data);
+            setFriends(data.users);
+            setFiles(data.files);
         };
         fetchMessage();
     }, []);
@@ -36,6 +38,7 @@ const Chat = () => {
     return (
         <div className="dm-chat">
             <div className="users">
+
                 {friends.length > 0 ? friends
                     .filter((friend) => friend.username !== Cookies.get('username'))
                     .map((friend) => {
@@ -52,6 +55,13 @@ const Chat = () => {
                             </div>
                         )
                     }) : ("No Friends")}
+                <ul>
+                    {files.map((file, index) => (
+                        <li key={index}>
+                            <img src={`http://localhost:3001/uploads/${file}`} alt="" width="100" />
+                        </li>
+                    ))}
+                </ul>
             </div>
             <div className='chat-screen'>
                 <ChatArea chat={chat} />

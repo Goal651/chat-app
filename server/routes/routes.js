@@ -24,7 +24,7 @@ router.get('/checkUser', checkUser);
 router.get('/message', getMessage);
 router.get('/allFriends', getUsers)
 router.get('/logout', (req, res) => { res.clearCookie('accessToken') })
-router.post('/test', test);
+router.get('/test/', test);
 
 
 module.exports = router;

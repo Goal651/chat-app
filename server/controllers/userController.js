@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validator } = require('../schema/dataModels');
 const fs = require('fs');
+const path = require('path')
 
 
 const signup = async (req, res) => {
@@ -48,21 +49,33 @@ const login = async (req, res) => {
 };
 
 const getUsers = async (req, res) => {
-    fs.readdir('./uploads', (err, files) => {
-        if (err) return res.status(500).json({ message: 'enable to retrieve files' });
-        res.files = files;
-    })
+
     try {
         const users = await User.find();
-        res.status(200).json({users, files: res.files});
+        res.status(200).json({ users, files: res.files });
     } catch (err) {
         res.sendStatus(500);
     }
 }
 
+
+const uploadsDir = path.join(__dirname, '../uploads');
+
 const test = (req, res) => {
-    console.log(req.body.image);
-    res.status(202).send('Wow finally');
+    fs.readdir(uploadsDir, (err, files) => {
+        if (err) {
+            console.error('Error reading directory:', err);
+            return res.status(500).json({ error: 'Error reading directory' });
+        }
+
+        const fileData = files.map((file) => {
+            const filePath = path.join(uploadsDir, file);
+            const fileBuffer = fs.readFileSync(filePath);
+            return { data: fileBuffer };
+        });
+
+        res.json(fileData);
+    });
 }
 
 
