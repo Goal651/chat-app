@@ -3,10 +3,10 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import Chat from './pages/chatF';
 import Login from './pages/login';
+import Chat from './pages/dms';
 import Signup from './pages/signup';
-import GroupArea from './pages/groupArea';
+import GroupArea from './pages/groups';
 import Dashboard from './pages/dashboard';
 import NotFound from './pages/construction';
 
@@ -19,8 +19,7 @@ function App() {
           <Route path='/login' element={<Login />} />
           <Route path='/signup' element={<Signup />} />
           <Route path='/' element={<Dashboard />} />
-          <Route path='/chat/:receiver' element={<Chat />} />
-          <Route path='/chat/' element={<Chat />} />
+          <Route path='/chat/:params' element={<Dashboard/>} />
           <Route path='/group' element={<GroupArea />} />
           <Route path='*' element={<NotFound/>}></Route>
         </Routes>

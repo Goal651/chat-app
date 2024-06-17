@@ -4,504 +4,73 @@
   box-sizing: border-box;
   outline: none;
   border: 0;
+  font-size: 12px;
   font-family: 'Poppins', sans-serif;
 }
 
 body {
-  background-color: #f8f2f2;
+  background-color: rgb(195, 214, 248);
+}
+
+.chat-app {
+  display: flex;
+  background-color: rgb(1, 5, 22);
 }
 
 .dashboard {
-  background-color: transparent;
-  height: auto;
+  background-color: white;
+  height: 100vh;
   padding: 0 3rem 0 0;
+  margin: 2rem 3rem;
+  border-radius: 2rem;
+  align-self: center;
+  width: 100%;
+}
+
+.dm-chat {
   display: flex;
-}
-
-.dashboard h1 {
-  text-align: center;
-  background: linear-gradient(to right, rgb(101, 101, 241), #54b8f5, #ffffff);
-  background-clip: text;
-  color: transparent;
-  font-size: 2rem;
-  padding: 1rem;
-  margin: 0;
-}
-
-.dashboard h2 {
-  text-align: center;
-  background: linear-gradient(to right, rgb(101, 101, 241), #2aa3ef, #a5e0f8);
-  background-clip: text;
-  color: transparent;
-  font-size: 2rem;
-  display: inline;
-  padding: 1rem;
-  margin: 0;
-}
-
-.create-connection {
-  border-radius: 1rem;
   background-color: transparent;
-  font-size: 1rem;
-  font-weight: 500;
-  padding: 1rem 2rem;
-  border-radius: 1rem;
-  float: right;
-  display: flex;
-  flex-direction: row;
-}
-
-#create-group {
-  background-color: #54b8f5;
-  font-size: 1.1rem;
-  font-weight: 500;
-  padding: 1rem 2rem;
-  border-radius: 1rem;
-}
-
-#create-group:hover {
-  background-color: rgb(27, 193, 239);
-  cursor: pointer;
-  box-shadow: 0 0 0.7rem rgb(110, 107, 107);
-}
-
-#join-group {
-  background-color: #54b8f5;
-  font-size: 1.1rem;
-  font-weight: 500;
-  padding: 1rem 2rem;
-  border-radius: 1rem;
-  margin-left: 1rem;
-}
-
-#join-group:hover {
-  background-color: rgb(27, 193, 239);
-  cursor: pointer;
-  box-shadow: 0 0 0.7rem rgb(110, 107, 107);
+  height: 100vh;
+  width: 100%;
 }
 
 .users {
   overflow-y: scroll;
-  width: 100%;
-  height: 100vh;
-  border-right: 1px solid black;
+  overflow-x: hidden;
+  width: 40%;
+  height: 100%;
+  background-color: white;
 }
 
 .friends {
-  background-color: #ffffff;
   margin: 1rem 1rem;
   padding: 0.5rem 2rem;
-  width: 90%;
+  width: 80%;
   border-radius: 1rem;
   display: flex;
   flex-direction: row;
   align-items: center;
   overflow: hidden;
   color: black;
+  grid-column: 1;
 }
 
 .friends div {
   position: relative;
-  width: 5rem;
-  height: 5rem;
+  width: 6rem;
+  height: 6rem;
   border-radius: 20rem;
-  background-color: lightgrey;
+  background-color: rgb(188, 187, 187);
 }
 
 .selected {
-  box-shadow: 0 0 0.5rem rgb(78, 77, 77);
-  background-color: rgb(248, 247, 247);
+  background-color: rgb(216, 213, 213);
 }
 
 .friends h3 {
   color: rgb(17, 7, 7);
   margin: 0.5rem 2rem;
   position: relative;
-}
-
-.friends button {
-  cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: 700;
-  padding: 0.5rem 1rem;
-  left: 90%;
-  border-radius: 1rem;
-}
-
-.createGroup {
-  background-color: #032739;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100vh;
-}
-
-.createGroup form {
-  border: 0.2rem white solid;
-  padding: 1rem 2rem;
-  background-color: #053c57;
-  border-radius: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-around;
-  width: 30%;
-  margin-top: 5rem;
-  margin-bottom: 5rem;
-}
-
-.createGroup form input {
-  padding: 1rem 2rem;
-  width: 80%;
-  display: inline-block;
-  margin-right: 2rem;
-  border: 1.5px solid white;
-  border-radius: 1rem;
-  background-color: #032739;
-  color: white;
-}
-
-.createGroup form label {
-  color: white;
-  font-size: 1.2rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-.createGroup form button {
-  padding: 1rem 2rem;
-  display: inline-block;
-  background-color: #091921;
-  font-size: 1rem;
-  margin-top: 1rem;
-  border-radius: 1rem;
-}
-
-.chat-screen {
-  float: right;
-  background-color: white;
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 50%;
-  overflow-y: auto;
-  border-radius: 2rem;
-  padding: 2rem 1rem 0rem 1rem;
-  height: 97vh;
-}
-
-.chatArea_header h1 {
-  text-align: center;
-  background: linear-gradient(to bottom, #bef4fa, blue, #ffffff);
-  background-clip: text;
-  color: transparent;
-  font-size: 2rem;
-  padding: 1rem;
-  margin: 0;
-}
-
-.chatArea_message {
-  position: relative;
-  margin: 1rem 0 0rem 0;
-  padding: 1rem 2rem;
-  left: 4rem;
-  border-radius: 2rem;
-  width: 30%;
-  overflow-y: auto;
-}
-
-.chatArea_footer {
-  background-color: rgb(223, 228, 236);
-  border: 1.5px white solid;
-  color: rgb(7, 7, 7);
-  padding: 0rem 2rem;
-  width: 95%;
-  position: relative;
-  border-radius: 1.5rem;
-}
-
-.chatArea_footer input {
-  color: black;
-  position: relative;
-  top: -0.3rem;
-  padding: 1rem 2rem;
-  width: 70%;
-  display: inline-block;
-  font-size: 1rem;
-  border-radius: 1rem;
-  background-color: transparent;
-}
-
-.chatArea_footer button {
-  padding: 0.2rem;
-  display: inline-block;
-  background-color: transparent;
-  position: relative;
-  top: 0.5rem;
-  right: -8rem;
-  transition: scale 0.4s;
-}
-
-.chatArea_footer button:hover {
-  cursor: pointer;
-  scale: 1.1;
-}
-
-::-webkit-scrollbar {
-  display: none;
-}
-
-.chatArea_body {
-  overflow-y: scroll;
-  padding: 1rem 0;
-}
-
-
-.history {
-  display: flex;
-  background: transparent;
-  flex-direction: column;
-  justify-content: space-between;
-  margin: 1rem 0;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-}
-
-#chat-Receiver {
-  background-color: #e4e5e5;
-  color: rgb(19, 8, 8);
-  width: 30%;
-  padding: 1rem 2rem;
-  border-top-right-radius: 1rem;
-  border-bottom-left-radius: 1rem;
-}
-
-#chat-Sender {
-  position: relative;
-  background-color: rgb(75, 0, 249);
-  color: white;
-  width: 30%;
-  padding: 1rem 2rem;
-  border-top-left-radius: 1rem;
-  border-bottom-right-radius: 1rem;
-  left: 70%;
-}
-
-.header {
-  background-color: #fff;
-  padding: 1rem 1rem;
-  display: flex;
-  width: 100vw;
-  position: absolute;
-  top: 0;
-  left: 0;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 2;
-}
-
-.header a {
-  width: 10rem;
-  display: inline-block;
-  text-align: center;
-  padding: 1rem 2rem;
-  margin: 0 0.5rem;
-  border-radius: 1rem;
-  color: black;
-  font-weight: 700;
-  transition: background-color 0.5s;
-}
-
-.header a:hover {
-  background-color: #053c57;
-
-}
-
-.header button {
-  background-color: #df364a;
-  padding: 1rem 2rem;
-  border-radius: 1rem;
-  font-size: 1.1rem;
-  font-weight: 500;
-  cursor: pointer;
-  margin-left: 30%;
-}
-
-.header button:hover {
-  background-color: #055984;
-}
-
-.construction {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2rem 0;
-}
-
-.construction h1 {
-  background: radial-gradient(blue, white);
-  background-clip: text;
-  color: transparent;
-  font-size: 4rem;
-}
-
-.construction h2 {
-  font-size: 3rem;
-  background: linear-gradient(to right, rgb(255, 0, 234), blue, white);
-  background-clip: text;
-  color: transparent;
-}
-
-.construction button {
-  background-color: transparent;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
-}
-
-.construction button:hover {
-  background-color: #032739;
-  cursor: pointer;
-}
-
-.signup-page {
-  background-color: rgb(8, 8, 8);
-  height: 100vh;
-}
-
-
-.signup-page h1 {
-  margin-bottom: 2rem;
-  font-size: 2.5rem;
-  font-weight: bolder;
-  color: transparent;
-  background: linear-gradient(to right, rgb(255, 255, 255), rgb(66, 63, 63), rgb(8, 0, 0));
-  background-clip: text;
-  text-align: center;
-}
-
-.signup-form {
-  background-color: #00131d;
-  padding: 2rem 2rem;
-  display: flex;
-  justify-content: space-around;
-  float: right;
-  width: 40%;
-  flex-direction: column;
-  border-radius: 2rem;
-  margin-bottom: 1rem;
-  box-shadow: 0px 2px 10px rgb(3, 89, 123);
-}
-
-.signup-page input:not([type='file']) {
-  background-color: #203e4b;
-  border-radius: 20px;
-  color: white;
-  height: 30px;
-  margin-bottom: 2rem;
-  margin-left: 10%;
-  outline: none;
-  padding: 1.7rem 1.2rem;
-  font-size: 1.2rem;
-  text-align: center;
-  width: 70%;
-}
-
-.signup-page input[type="file"] {
-  display: none;
-
-}
-
-.login-page {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: row;
-}
-
-.left-login {
-  height: 100%;
-  float: left;
-  width: 50%;
-  background-image: url('welcome.jpg');
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
-.login-form h1 {
-  font-size: 40px;
-  font-weight: bolder;
-  margin-bottom: 2rem;
-  color: transparent;
-  background: linear-gradient(to right, rgb(5, 43, 235), rgb(102, 131, 250), rgb(8, 0, 0));
-  background-clip: text;
-  text-align: center;
-}
-
-.login-form {
-  position: relative;
-  width: fit-content;
-  padding: 4rem 6rem;
-  display: flex;
-  float: right;
-  flex-direction: column;
-  margin-bottom: 1rem;
-  background-color: white;
-  height: fit-content;
-  box-shadow: 0px 2px 10px grey;
-  align-self: center;
-  border-radius: 2rem;
-  justify-content: space-between;
-  left: 4rem;
-}
-
-.login-form input {
-  border: 1.5px solid rgb(61, 8, 207);
-  border-radius: 0.5rem;
-  height: auto;
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  color: black;
-  margin-bottom: 1rem;
-}
-
-.login-form input:focus {
-  box-shadow: 0 0 0.5rem rgb(9, 12, 155);
-}
-
-.login-form label {
-  font-size: 1rem;
-  font-weight: 500;
-  color: rgba(1, 27, 58, 0.941);
-  display: block;
-  margin: 0.5rem 0;
-}
-
-.login-form button {
-  background: rgb(31, 49, 248);
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0.7rem 2rem;
-  font-size: 1.2rem;
-  border-radius: 1rem;
-
-  display: block;
-  height: auto;
-}
-
-.login-form button:hover {
-  background-color: blue;
-}
-
-.login-form a {
-  margin: 1rem 0;
-  display: block;
-  color: darkblue;
-  font-weight: 600;
-  font-size: 1rem;
-  text-align: left;
 }
 
 a {
@@ -528,37 +97,7 @@ a {
   width: 70%;
 }
 
-.signup-page input:focus {
-  background-color: rgb(123, 121, 121);
-  color: black;
 
-}
-
-.signup-page label {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: rgb(214, 238, 238);
-  margin-left: 11%;
-  display: block;
-}
-
-.signup-page button {
-  background: rgb(51, 51, 52);
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0.5rem 0.5rem;
-  font-size: 1.2rem;
-  border-radius: 1.5rem;
-  border-color: transparent;
-  margin: 1rem 0 1rem 6rem;
-  height: auto;
-  width: 10rem;
-}
-
-.signup-page button[type="submit"]:hover {
-  background: radial-gradient(circle, rgb(159, 159, 162) 0%, rgb(108, 108, 110) 35%, rgb(48, 48, 48) 100%);
-}
 
 
 .groupArea {
@@ -570,33 +109,6 @@ a {
   width: 100vw;
 }
 
-.joinGroup {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-around;
-}
-
-.joinGroup input {
-  background-color: #b1d7f3;
-  border-radius: 20px;
-  color: white;
-  height: 30px;
-  margin-bottom: 2rem;
-  margin-left: 10%;
-  outline: none;
-  padding: 1.5rem 2rem;
-  font-size: 1rem;
-  width: 70%;
-}
-
-.joinGroup button {
-  padding: 1rem 2rem;
-  background-color: #053c57;
-  border-radius: 1rem;
-  color: white;
-  width: 50%;
-}
 
 .groupArea_container {
   background-color: #00131d;
@@ -632,7 +144,7 @@ a {
 }
 
 .navigation {
-  width: auto;
+  width: 10%;
   background-color: #01051f;
 }
 
@@ -642,12 +154,29 @@ a {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
   width: 100%;
+  align-items: center;
 }
 
 .navigating div {
   cursor: pointer;
-  background-color: #00131d;
+  background-color: transparent;
   width: auto;
+  margin: 1rem 0;
+}
+
+.navigating button {
+  text-align: center;
+  display: flex;
+  padding: 1rem 1rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background-color: rgb(221, 27, 27);
+  color: wheat;
+}
+
+.wrong {
+  position: relative;
+  top: -1rem;
+  color: red;
 }

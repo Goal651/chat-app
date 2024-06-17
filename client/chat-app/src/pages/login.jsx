@@ -2,7 +2,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
-
+import '../css/login.css'
 
 function App() {
 
@@ -12,7 +12,8 @@ function App() {
       window.location.href = '/';
     }
   }, []);
-
+  const [wrongEmail, setWrongEmail] = useState(false);
+  const [wrongPass, setWrongPass] = useState(false);
 
 
   const [formData, setFormData] = useState({
@@ -64,36 +65,34 @@ function App() {
         navigate("/home");
       }
       else if (response.status === 401) {
-        let password = document.getElementById('password');
-        shake(password);
+        document.getElementById('password').style.borderColor = "red";
+        document.getElementById('email').style.borderColor = "blue";
+        setWrongPass(true);
+        setWrongEmail(false);
       }
       else if (response.status === 404) {
-        let email = document.getElementById('email');
-        let password = document.getElementById('password');
-        email.style.borderColor = "red";
-        password.style.borderColor = "red";
-
+        document.getElementById('email').style.borderColor = "red";
+        document.getElementById('password').style.borderColor = "red";
+        setWrongEmail(true);
       }
-      else {
-        throw new Error("Something went wrong");
-      }
-
-    } catch (error) {
-      console.error("Error submitting data:", error);
-    }
+      else { throw new Error("Something went wrong"); }
+    } catch (error) { console.error("Error submitting data:", error); }
   };
 
   return (
     <div className="login-page">
       <div className='left-login'>
+
       </div>
       <div className='login-form'>
         <form onSubmit={handleSubmit} >
           <h1 >Log In</h1>
           <label htmlFor="email" className=''>Email address:</label>
           <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} />
+          {wrongEmail && <div className='wrong'>Incorrect email</div>}
           <label htmlFor="password">Password:</label>
           <input type="password" name="password" id="password" value={formData.password} onChange={handleChange} />
+          {wrongPass && <div className='wrong'>Incorrect Password</div>}
           <button type="submit" id="login"  >Login</button>
         </form>
         <Link to="/signup" className="create">Create New Account</Link>

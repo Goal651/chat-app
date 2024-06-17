@@ -1,0 +1,37 @@
+
+
+
+.construction {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2rem 0;
+  }
+  
+  .construction h1 {
+    background: radial-gradient(blue, white);
+    background-clip: text;
+    color: transparent;
+    font-size: 4rem;
+  }
+  
+  .construction h2 {
+    font-size: 3rem;
+    background: linear-gradient(to right, rgb(255, 0, 234), blue, white);
+    background-clip: text;
+    color: transparent;
+  }
+  
+  .construction button {
+    background-color: transparent;
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+  }
+  
+  .construction button:hover {
+    background-color: #032739;
+    cursor: pointer;
+  }
+  

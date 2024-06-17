@@ -2,10 +2,13 @@ const { User } = require('../models/models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validator } = require('../schema/dataModels');
+const fs = require('fs');
 
 
 const signup = async (req, res) => {
-    const { username, email, password, image } = req.body;
+    console.log(req.file);
+    const image = req.file.path;
+    const { username, email, password } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
     try {
@@ -45,9 +48,13 @@ const login = async (req, res) => {
 };
 
 const getUsers = async (req, res) => {
+    fs.readdir('./uploads', (err, files) => {
+        if (err) return res.status(500).json({ message: 'enable to retrieve files' });
+        res.files = files;
+    })
     try {
         const users = await User.find();
-        res.status(200).json(users);
+        res.status(200).json({users, files: res.files});
     } catch (err) {
         res.sendStatus(500);
     }

@@ -72,15 +72,15 @@ const handlerChat = (io) => {
                 console.error('Error saving message:', error);
             }
         });
-        socket.on('typing', ({ username, chat }) => {
-            const targetSocketId = userSockets.get(chat);
-            console.log(username + 'Is typing to ' + chat)
-            io.to(targetSocketId).emit('typing', chat);
+        socket.on('typing', ({ user, receiver }) => {
+            const targetSocketId = userSockets.get(receiver);
+            console.log(user + 'Is typing to ' + receiver)
+            io.to(targetSocketId).emit('typing', receiver);
         });
-        socket.on('not_typing', ({ username, chat }) => {
-            const targetSocketId = userSockets.get(chat);
-            console.log(username + 'Is not typing to ' + chat)
-            io.to(targetSocketId).emit('not_typing', {username,chat});
+        socket.on('not_typing', ({ user, receiver }) => {
+            const targetSocketId = userSockets.get(receiver);
+            console.log(user + 'Is not typing to ' + receiver)
+            io.to(targetSocketId).emit('not_typing', {user,receiver});
         });
 
     });

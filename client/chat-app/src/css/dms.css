@@ -1,0 +1,127 @@
+.chat-screen {
+    grid-column: 2;
+    background-color: white;
+    width: 100%;
+    overflow-y: auto;
+    border-radius: 2rem;
+    padding: 2rem 1rem 0rem 1rem;
+    height: 100%;
+}
+
+.chatArea_header h1 {
+    text-align: center;
+    background: linear-gradient(to bottom, #bef4fa, blue, #ffffff);
+    background-clip: text;
+    color: transparent;
+    font-size: 2rem;
+    padding: 1rem;
+    margin: 0;
+}
+
+.chatArea_message {
+    position: relative;
+    margin: 1rem 0 0rem 0;
+    padding: 1rem 2rem;
+    left: 4rem;
+    border-radius: 2rem;
+    width: 30%;
+    overflow-y: auto;
+}
+
+.chatArea_footer {
+    background-color: rgb(223, 228, 236);
+    border: 1.5px white solid;
+    color: rgb(7, 7, 7);
+    padding: 0rem 2rem;
+    width: 95%;
+    position: relative;
+    border-radius: 1.5rem;
+}
+
+.chatArea_footer input {
+    color: black;
+    position: relative;
+    top: -0.3rem;
+    padding: 1rem 2rem;
+    width: 70%;
+    display: inline-block;
+    font-size: 1rem;
+    border-radius: 1rem;
+    background-color: transparent;
+}
+
+.chatArea_footer button {
+    padding: 0.2rem;
+    display: inline-block;
+    background-color: transparent;
+    position: relative;
+    top: 0.5rem;
+    right: -8rem;
+    transition: scale 0.4s;
+}
+
+.chatArea_footer button:hover {
+    cursor: pointer;
+    scale: 1.1;
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+.chatArea_body {
+    overflow-y: scroll;
+    padding: 1rem 0;
+}
+
+
+.history {
+    display: flex;
+    background: transparent;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 1rem 0;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+.chat-receiver {
+    float: left;
+    background-color: #e4e5e5;
+    color: rgb(19, 8, 8);
+    width: 60%;
+    padding: 1rem 2rem;
+    border-top-right-radius: 1rem;
+    border-bottom-left-radius: 1rem;
+}
+
+.chat-sender {
+    position: relative;
+    display: flex;
+    width: fit-content;
+    float: right;
+}
+
+.sender-message {
+    position: relative;
+    background-color: rgba(92, 111, 252, 0.868);
+    color: white;
+    max-width: 15rem;
+    height: fit-content;
+    overflow-x: hidden;
+    padding: 1rem 2rem;
+    border-bottom-left-radius: 1rem;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    word-wrap: break-word;
+    word-break: break-all;
+    flex-wrap: wrap;
+}
+
+
+.sender-drop {
+    background-color: lightgrey;
+    height: fit-content;
+    border-radius: 0.5rem;
+    margin: 1rem 1rem;
+}

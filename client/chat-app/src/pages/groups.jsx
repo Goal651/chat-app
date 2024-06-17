@@ -5,7 +5,10 @@ import { useState, useEffect } from "react";
 import MessageContainer from "./messageContainer";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import Cookies from 'js-cookie'
+import Cookies from 'js-cookie';
+import '../css/groups.css'
+
+
 
 const GroupArea = () => {
     const username = Cookies.get('username');

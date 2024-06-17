@@ -3,21 +3,20 @@
 
 import { Link, useNavigate } from 'react-router-dom';
 import React, { useState } from "react";
+import '../css/sign.css';
+
 
 const signUp = () => {
-    const [formData, setFormData] = useState({
-        username: "",
-        email: "",
-        password: "",
-        image: "",
-    });
+    const [formData, setFormData] = useState({ username: "", email: "", password: "", image: null });
     const navigate = useNavigate();
+
+
     const handleChange = (e) => {
+        const { name, value, files } = e.target;
         if (name === 'image') {
-            const file = e.target.files[0];
-            setFormData({ ...formData, [name]: file });
+            const file = files[0];
+            setFormData({ ...formData, image: file });
         } else {
-            const { name, value, files } = e.target;
             setFormData({ ...formData, [name]: value });
         }
     };
@@ -43,35 +42,37 @@ const signUp = () => {
     }
 
 
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log(formData);
+    
         try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('username', formData.username);
+            formDataToSend.append('email', formData.email);
+            formDataToSend.append('password', formData.password);
+            formDataToSend.append('image', formData.image);
+    
             const response = await fetch("http://localhost:3001/signup", {
                 method: "POST",
-                body: JSON.stringify(formData),
-                headers: { "Content-Type": "application/json" },
+                body: formDataToSend, // Use FormData object directly
+                // No need for headers or JSON.stringify
             });
+    
             if (response.ok) {
-                navigate('/');
-            }
-            else if (response.status === 400) {
+                alert("Account Created");
+            } else if (response.status === 400) {
                 navigate('/signup');
-            }
-            else if (response.status === 404) {
+            } else if (response.status === 404) {
                 let email = document.getElementById('email');
                 shake(email);
-            }
-            else {
+            } else {
                 throw new Error("Something went wrong");
             }
-
         } catch (error) {
             console.error("Error submitting data:", error);
         }
-    }
+    };
     return (
         <div className='signup-page'>
             <Link to="/">Return Home</Link>
@@ -83,7 +84,7 @@ const signUp = () => {
                 <input name="email" type="email" autoComplete="true" onChange={handleChange} />
                 <div className="file-input-container">
                     <label htmlFor="file" className="file-input-label">Choose File</label>
-                    <input type="file" id="file" className="file-input" onChange={handleChange} />
+                    <input type="file" name="image" id="file" className="file-input" onChange={handleChange} />
                 </div>
                 <label htmlFor="password">Password:</label>
                 <input name="password" type="password" onChange={handleChange} />

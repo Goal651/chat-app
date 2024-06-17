@@ -7,21 +7,20 @@ import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
 const DMArea = ({ chat }) => {
-    const { receiver } = useParams();
+    const { params } = useParams();
+    const [receiver, setReceiver] = useState('');
     const [socket, setSocket] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
     const [scrollToBottom, setScrollToBottom] = useState(false);
-    const [user, setUser] = useState("");
     const [history, setHistory] = useState([]);
-    const [typing, setTyping] = useState(false);
-    const username = Cookies.get('username');
+    const [beingTyped, setBeingTyped] = useState(false);
+    const user = Cookies.get('username');
     const messagesEndRef = useRef(null);
-
     useEffect(() => {
         const newSocket = io("http://localhost:3001", { withCredentials: true });
         setSocket(newSocket);
-        setTyping(false);
+        setBeingTyped(false);
         return () => { newSocket.disconnect(); };
     }, []);
 
@@ -33,27 +32,23 @@ const DMArea = ({ chat }) => {
     };
 
     useEffect(() => {
-        handleScrollToBottom();
-    }, [scrollToBottom]);
+        setReceiver(params);
+        console.log(params)
+    }, [chat]);
+
+    useEffect(() => { handleScrollToBottom(); }, [scrollToBottom]);
 
     useEffect(() => {
         if (!socket) return;
-        setUser(username);
-
         const handleReceiveMessage = () => {
             setRefresh(prev => !prev);
             setScrollToBottom(true);
         };
-
-        const handleTyping = ({ username, chat }) => {
-            if (chat == username && username == chat) setTyping(true);
-            else setTyping(false);
+        const handleTyping = ({ chat, username }) => {
+            if (chat == username && username == chat) setBeingTyped(true);
+            else setBeingTyped(false);
         };
-
-        const handleNotTyping = () => {
-            setTyping(false);
-        }
-
+        const handleNotTyping = () => setBeingTyped(false)
         socket.on("receive_message", handleReceiveMessage);
         socket.on('typing', handleTyping);
         socket.on('not_typing', handleNotTyping);
@@ -64,11 +59,11 @@ const DMArea = ({ chat }) => {
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
         };
-    }, [socket, chat, username]);
+    }, [socket, chat, user]);
 
     useEffect(() => {
         const fetchMessage = async () => {
-            const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${receiver || chat}`);
+            const response = await fetch(`http://localhost:3001/message?sender=${user}&receiver=${params}`);
             const data = await response.json();
             setHistory(data.messages);
             setScrollToBottom(true);
@@ -78,38 +73,47 @@ const DMArea = ({ chat }) => {
     const sendMessage = (e) => {
         e.preventDefault();
         if (message === "") return;
-        socket.emit("send_message", { receiver: chat, message, sender: user });
+        socket.emit("send_message", { receiver: receiver, message, sender: user });
         setScrollToBottom(true);
         setMessage("");
         setRefresh(prev => !prev);
-        setTyping(false);
-        socket.emit("not_typing", { username, chat });
+        socket.emit("not_typing", { user, chat });
     };
 
     const handleChange = (e) => {
         const message = e.target.value;
         setMessage(message);
-        if (message) socket.emit("typing", { username, chat });
-        else socket.emit("not_typing", { username, chat });
-    };
+        if (message) socket.emit("typing", { user, receiver });
+        else socket.emit("not_typing", { user, receiver });
+    }
+
+    const messageOperations = (e) => {
+        e.preventDefault()
+        alert("message deleted")
+    }
 
     return (
         <div id="chatArea">
             <div className="chatArea_container">
-                <div className="chatArea_header">
-                    <h1>{chat}</h1>
-                </div>
+                <div className="chatArea_header">   <h1>{chat}</h1>    </div>
                 <div className="chatArea_body">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
                                 message.sender === user ? (
-                                    <div className="history" key={message._id}>
-                                        <div id="chat-Sender">{message.message}</div>
+                                    <div onContextMenu={messageOperations} className="history" key={message._id}>
+                                        <div className="chat-sender">
+                                            <span className="sender-message">
+                                                {message.message}
+                                            </span>
+                                            <span className="sender-drop">
+                                                <img src="/drop.png" alt="" width={30} />
+                                            </span>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="history" key={message._id}>
-                                        <div id="chat-Receiver">
+                                        <div className="chat-receiver">
                                             {message.message}
                                         </div>
                                     </div>
@@ -120,11 +124,10 @@ const DMArea = ({ chat }) => {
                                 Say hey to your new friend
                             </div>
                         )}
-                        {typing === true ? (<div id="typing-indicator">
+                        {beingTyped ? (<div id="typing-indicator">
                             <img src="/typing.gif" alt="Typing..." />
                         </div>) : null}
                         <div ref={messagesEndRef} className="chatArea_footer">
-
                             <form onSubmit={sendMessage}>
                                 <input type="text" placeholder="Enter message" value={message} onChange={handleChange} />
                                 <button type="submit">
