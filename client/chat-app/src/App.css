@@ -55,11 +55,11 @@ body {
   grid-column: 1;
 }
 
-.friends div {
+.friends img {
   position: relative;
   width: 6rem;
   height: 6rem;
-  border-radius: 20rem;
+  border-radius: 50%;
   background-color: rgb(188, 187, 187);
 }
 

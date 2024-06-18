@@ -2,12 +2,13 @@ const { User } = require('../models/models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validator } = require('../schema/dataModels');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path')
 
 
 const signup = async (req, res) => {
-    console.log(req.file);
+    const uploadsDir = path.join(__dirname, '../uploads');
+
     const image = req.file.path;
     const { username, email, password } = req.body;
     const salt = await bcrypt.genSalt(10);
@@ -49,17 +50,31 @@ const login = async (req, res) => {
 };
 
 const getUsers = async (req, res) => {
-
+    const uploadsDir = path.join(__dirname, '../');
     try {
         const users = await User.find();
-        res.status(200).json({ users, files: res.files });
-    } catch (err) {
-        res.sendStatus(500);
-    }
+        const usersWithImages = await Promise.all(users.map(async user => {
+            if (user.image) {
+                try {
+                    const imagePath = path.join(uploadsDir, user.image);
+                    const imageBuffer = await fs.readFile(imagePath);
+                    return { ...user.toObject(), imageData: imageBuffer };
+                } catch (err) { return { ...user.toObject(), imageData: null } }
+            } else return { ...user.toObject(), imageData: null };
+        }));
+        res.status(200).json({ users: usersWithImages });
+    } catch (err) { res.sendStatus(500); }
+};
+
+const getUser=async (req,res)=>{
+    const {id}=req.params
+    const user=await User.findById(id)
+    if(!user) return res.status(404).json({message:"User not found"});
+    res.status(200).json({userImage:user.image})
 }
 
 
-const uploadsDir = path.join(__dirname, '../uploads');
+
 
 const test = (req, res) => {
     fs.readdir(uploadsDir, (err, files) => {
@@ -79,4 +94,4 @@ const test = (req, res) => {
 }
 
 
-module.exports = { signup, login, checkUser, getUsers, test };
+module.exports = { signup, login, checkUser, getUsers,getUser, test };

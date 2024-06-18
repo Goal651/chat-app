@@ -8,14 +8,33 @@
     height: 100%;
 }
 
+.chatArea_header {
+    background-color: rgb(223, 228, 236);
+    position: fixed;
+    top: 0;
+    width: 61%;
+    height: 15%;
+    border-bottom: 2px solid black;
+}
+
+.chatArea_header img {
+    position: relative;
+    left: 0.5rem;
+    top: 0.5rem;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+}
+
 .chatArea_header h1 {
+    position: relative;
+    left: 6rem;
+    top: -4.5rem;
     text-align: center;
     background: linear-gradient(to bottom, #bef4fa, blue, #ffffff);
     background-clip: text;
     color: transparent;
     font-size: 2rem;
-    padding: 1rem;
-    margin: 0;
 }
 
 .chatArea_message {
@@ -70,6 +89,7 @@
 }
 
 .chatArea_body {
+    margin-top: 10%;
     overflow-y: scroll;
     padding: 1rem 0;
 }

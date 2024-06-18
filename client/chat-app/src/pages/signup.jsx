@@ -60,7 +60,7 @@ const signUp = () => {
             });
     
             if (response.ok) {
-                alert("Account Created");
+                navigate('/');
             } else if (response.status === 400) {
                 navigate('/signup');
             } else if (response.status === 404) {

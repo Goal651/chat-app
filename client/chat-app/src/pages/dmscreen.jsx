@@ -7,6 +7,7 @@ import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
 const DMArea = ({ chat }) => {
+    console.log(chat)
     const { params } = useParams();
     const [receiver, setReceiver] = useState('');
     const [socket, setSocket] = useState(null);
@@ -92,10 +93,34 @@ const DMArea = ({ chat }) => {
         alert("message deleted")
     }
 
+    const arrayBufferToBase64 = (buffer) => {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    };
+
+
+    let imageBase64 = '';
+    if (chat.imageData && chat.imageData.data) imageBase64 = arrayBufferToBase64(chat.imageData.data)
+    else console.warn("No image data found for friend:", chat.username);
+    console.log(chat.imageData)
+
+
     return (
         <div id="chatArea">
             <div className="chatArea_container">
-                <div className="chatArea_header">   <h1>{chat}</h1>    </div>
+                <div className="chatArea_header">
+                    {imageBase64 ? (
+                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
+                    ) : (
+                        <div>No Image</div>
+                    )}
+                    <h1>{chat.username}</h1>
+                </div>
                 <div className="chatArea_body">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
