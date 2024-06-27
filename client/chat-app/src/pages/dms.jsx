@@ -6,12 +6,11 @@ import ChatArea from "./dmscreen";
 import Cookies from 'js-cookie';
 import '../css/dms.css';
 
-const Chat = () => {
+
+const Chat = ({ friends }) => {
     const { username } = useParams();
     const navigate = useNavigate();
-    const [friends, setFriends] = useState([]);
     const [chat, setChat] = useState([]);
-    const [selectedUser, setSelectedUser] = useState(null);
     const [files, setFiles] = useState([]);
 
     const chatNow = (friend) => {
@@ -24,18 +23,7 @@ const Chat = () => {
         if (!username) navigate('/login');
     }, [navigate]);
 
-    useEffect(() => {
-        const fetchMessage = async () => {
-            try {
-                const response = await fetch(`http://localhost:3001/allFriends`);
-                const data = await response.json();
-                setFriends(data.users); // Adjust this line according to your backend response structure
-            } catch (error) {
-                console.error("Error fetching friends:", error);
-            }
-        };
-        fetchMessage();
-    }, []);
+
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -68,7 +56,7 @@ const Chat = () => {
                             >
                                 <div>
                                     {imageBase64 ? (
-                                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image"  />
+                                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
                                     ) : (
                                         <div>No Image</div>
                                     )}

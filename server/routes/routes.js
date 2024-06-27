@@ -13,7 +13,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage })
 
-
 router.post('/login', login)
 router.post('/signup', upload.single('image'), signup)
 router.get('/checkUser', checkUser)

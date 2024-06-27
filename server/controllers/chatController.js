@@ -13,7 +13,6 @@ const handlerChat = (io) => {
     });
 
     io.on('connection', (socket) => {
-
         userSockets.set(socket.username, socket.id);
         socket.broadcast.emit("connected", socket.username);
         socket.on("connected", (socket) => {
@@ -29,29 +28,23 @@ const handlerChat = (io) => {
             socket.rooms = data.room;
             console.log(userSockets);
             try {
-
-
-
             } catch (error) { }
         });
 
         socket.on('join-group', (data) => {
             roomSockets.set(data.room, socket.id);
             socket.rooms = data.room
-            console.log(userSockets);
         });
 
         socket.on('join', (data) => {
-            console.log('joined', data.joiner, data.room);
             socket.join(data.room);
             socket.broadcast.to(socket.rooms).emit('joined', data.joiner);
         });
 
         socket.on('send', (data) => {
             const targetRoom = userSockets.get(data.room);
-            console.log(data)
             socket.to(targetRoom).emit('receive', data.message);
-        })
+        });
 
 
         //////////////////////////////////////////////////////////////////
@@ -72,15 +65,17 @@ const handlerChat = (io) => {
                 console.error('Error saving message:', error);
             }
         });
+
+
         socket.on('typing', ({ user, receiver }) => {
             const targetSocketId = userSockets.get(receiver);
-            console.log(user + 'Is typing to ' + receiver)
             io.to(targetSocketId).emit('typing', receiver);
         });
+
+
         socket.on('not_typing', ({ user, receiver }) => {
             const targetSocketId = userSockets.get(receiver);
-            console.log(user + 'Is not typing to ' + receiver)
-            io.to(targetSocketId).emit('not_typing', {user,receiver});
+            io.to(targetSocketId).emit('not_typing', { user, receiver });
         });
 
     });
