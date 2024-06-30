@@ -3,26 +3,24 @@
     background-color: white;
     width: 100%;
     overflow-y: auto;
-    border-radius: 2rem;
     padding: 2rem 1rem 0rem 1rem;
-    height: 100%;
+    height: 70%;
 }
 
 .chatArea_header {
-    background-color: rgb(223, 228, 236);
-    position: fixed;
-    top: 0;
-    width: 61%;
+    background-color: transparent;
+    position: relative;
+    width: 100%;
     height: 15%;
-    border-bottom: 2px solid black;
+    box-sizing: border-box;
 }
 
 .chatArea_header img {
     position: relative;
-    left: 0.5rem;
+    left: 5rem;
     top: 0.5rem;
-    width: 5rem;
-    height: 5rem;
+    width: 7rem;
+    height: 7rem;
     border-radius: 50%;
 }
 
@@ -37,24 +35,17 @@
     font-size: 2rem;
 }
 
-.chatArea_message {
-    position: relative;
-    margin: 1rem 0 0rem 0;
-    padding: 1rem 2rem;
-    left: 4rem;
-    border-radius: 2rem;
-    width: 30%;
-    overflow-y: auto;
-}
 
 .chatArea_footer {
     background-color: rgb(223, 228, 236);
     border: 1.5px white solid;
     color: rgb(7, 7, 7);
     padding: 0rem 2rem;
-    width: 95%;
+    width: 50%;
     position: relative;
     border-radius: 1.5rem;
+    position: absolute;
+    bottom: 1rem;
 }
 
 .chatArea_footer input {
@@ -89,9 +80,9 @@
 }
 
 .chatArea_body {
-    margin-top: 10%;
     overflow-y: scroll;
     padding: 1rem 0;
+    height: 50vh;
 }
 
 
@@ -107,19 +98,16 @@
 
 .chat-receiver {
     float: left;
-    background-color: #e4e5e5;
     color: rgb(19, 8, 8);
-    width: 60%;
+    width: 100%;
     padding: 1rem 2rem;
-    border-top-right-radius: 1rem;
-    border-bottom-left-radius: 1rem;
+    text-align: start;
 }
 
 .chat-sender {
     position: relative;
-    display: flex;
-    width: fit-content;
-    float: right;
+    width: 100%;
+    text-align: end;
 }
 
 .sender-message {
@@ -138,10 +126,18 @@
     flex-wrap: wrap;
 }
 
-
-.sender-drop {
-    background-color: lightgrey;
+.receiver-message {
+    position: relative;
+    background-color: rgba(207, 212, 252, 0.868);
+    color: rgb(26, 25, 25);
+    max-width: 15rem;
     height: fit-content;
-    border-radius: 0.5rem;
-    margin: 1rem 1rem;
+    overflow-x: hidden;
+    padding: 1rem 2rem;
+    border-bottom-right-radius: 1rem;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    word-wrap: break-word;
+    word-break: break-all;
+    flex-wrap: wrap;
 }

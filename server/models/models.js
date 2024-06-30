@@ -1,4 +1,3 @@
-const { string, required } = require('joi')
 const { Timestamp } = require('mongodb')
 const mongoose = require('mongoose')
 
@@ -27,18 +26,18 @@ const tokenSchema = mongoose.Schema(
 )
 
 const messageSchema = mongoose.Schema({
-    sender: { type: String, require: [true, "Please enter username"] },
-    message: { type: String, require: [true, "Please enter message"] },
-    receiver: { type: String, require: [true, "Please enter message"] },
+    sender: { type: String, require: true },
+    message: { type: String, require: true },
+    receiver: { type: String, require: true },
     timestamp: { type: Date, default: Date.now }
 })
 
 
 const groupSchema = mongoose.Schema(
     {
-        groupName: { type: String, require: [true, "Please enter username"] },
-        admin: { type: String, require: [true, "please enter email"] },
-        password: { type: String, require: [true, "please enter your password"] },
+        name: { type: String, require: true },
+        admin: { type: String, require: true },
+        image: { type: String },
         createdAt: { type: Date, default: Date.now }
     },
     {
@@ -51,5 +50,6 @@ const groupSchema = mongoose.Schema(
 const User = mongoose.model("users", userSchema)
 const Tokens = mongoose.model("tokens", tokenSchema)
 const Message = mongoose.model("messages", messageSchema)
+const Group = mongoose.model('groups', groupSchema)
 
-module.exports = { User, Tokens, Message };
+module.exports = { User, Tokens, Message, Group };

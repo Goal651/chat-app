@@ -1,7 +1,6 @@
-const { User } = require('../models/models');
+const { User, Group } = require('../models/models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { validator } = require('../schema/dataModels');
 const fs = require('fs').promises;
 const path = require('path')
 
@@ -65,13 +64,80 @@ const getUsers = async (req, res) => {
     } catch (err) { res.sendStatus(500); }
 };
 
+
+
 const getUser = async (req, res) => {
-    const { id } = req.body;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.status(200).json({ userImage: user.image })
+    const uploadsDir = path.join(__dirname, '../');
+    try {
+        const { userEmail } = req.params;
+        const user = await User.findOne({ username: userEmail });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        const getUserWithImage = async (user) => {
+            if (user.image) {
+                try {
+                    const imagePath = path.join(uploadsDir, user.image);
+                    const imageBuffer = await fs.readFile(imagePath);
+                    return { ...user.toObject(), imageData: imageBuffer };
+                } catch (err) {
+                    console.error('Error reading image file:', err);
+                    return { ...user.toObject(), imageData: null };
+                }
+            } else {
+                return { ...user.toObject(), imageData: null };
+            }
+        }
+        const userWithImage = await getUserWithImage(user);
+        res.status(200).json({ user: userWithImage });
+    } catch (err) {
+        console.error('Error fetching user:', err);
+        res.sendStatus(500);
+    }
 }
 
+
+const getGroups = async (req, res) => {
+    const uploadsDir = path.join(__dirname, '../');
+    try {
+        const groups = await Group.find();
+        const groupsWithImages = await Promise.all(groups.map(async group => {
+            if (group.image) {
+                try {
+                    const imagePath = path.join(uploadsDir, group.image);
+                    const imageBuffer = await fs.readFile(imagePath);
+                    return { ...group.toObject(), imageData: imageBuffer };
+                } catch (err) { return { ...group.toObject(), imageData: null } }
+            } else return { ...group.toObject(), imageData: null };
+        }));
+        res.status(200).json({ groups: groupsWithImages });
+    } catch (err) { res.sendStatus(500); }
+}
+const getGroup = async (req, res) => {
+    const uploadsDir = path.join(__dirname, '../');
+    try {
+        const { name } = req.params;
+        const group = await Group.findOne(name);
+        if (!group) return res.status(404).json({ error: 'User not found' });
+        const getGroupWithImage = async (group) => {
+            if (group.image) {
+                try {
+                    const imagePath = path.join(uploadsDir, group.image);
+                    const imageBuffer = await fs.readFile(imagePath);
+                    return { ...group.toObject(), imageData: imageBuffer };
+                } catch (err) {
+                    console.error('Error reading image file:', err);
+                    return { ...group.toObject(), imageData: null };
+                }
+            } else {
+                return { ...group.toObject(), imageData: null };
+            }
+        }
+        const groupWithImage = await getUserWithImage(group);
+        res.status(200).json({ group: groupWithImage });
+    } catch (err) {
+        console.error('Error fetching group:', err);
+        res.sendStatus(500);
+    }
+}
 
 
 
@@ -93,4 +159,13 @@ const test = (req, res) => {
 }
 
 
-module.exports = { signup, login, checkUser, getUsers, getUser, test };
+module.exports = {
+    signup,
+    login,
+    checkUser,
+    getUsers,
+    getUser,
+    getGroups,
+    getGroup,
+    test
+};

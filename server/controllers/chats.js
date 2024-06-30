@@ -1,9 +1,10 @@
 const { Message } = require('../models/models');
-const userSockets = new Map;
-const roomSockets = new Map;
+const userSockets = new Map();
+const roomSockets = new Map();
 const cookie = require('cookie');
 
 const handlerChat = (io) => {
+    
     io.use((socket, next) => {
         const cookies = cookie.parse(socket.handshake.headers.cookie || '');
         const username = cookies['username'];
@@ -15,44 +16,42 @@ const handlerChat = (io) => {
     io.on('connection', (socket) => {
         userSockets.set(socket.username, socket.id);
         socket.broadcast.emit("connected", socket.username);
-        socket.on("connected", (socket) => {
-            socket.broadcast.emit("connected", socket.username);
-        });
 
         //////////////////////////////////////////////////////
-        //Group codes
-
+        // Group codes
 
         socket.on('create-group', (data) => {
-            roomSockets.set(data.room, socket.id);
-            socket.rooms = data.room;
-            console.log(userSockets);
-            try {
-            } catch (error) { }
+            const room = data.room;
+            if (!room) return;
+            socket.join(room);
+            roomSockets.set(room, socket.id);
+            socket.emit('group-created', { room });
+            console.log(`Group ${room} created by ${socket.username}`);
         });
 
         socket.on('join-group', (data) => {
-            roomSockets.set(data.room, socket.id);
-            socket.rooms = data.room
+            const room = data.room;
+            if (!room) return;
+            socket.join(room);
+            socket.emit('group-joined', { room });
+            socket.to(room).emit('user-joined', { username: socket.username, room });
+            console.log(`${socket.username} joined group ${room}`);
         });
 
-        socket.on('join', (data) => {
-            socket.join(data.room);
-            socket.broadcast.to(socket.rooms).emit('joined', data.joiner);
+        socket.on('send-group-message', (data) => {
+            const room = data.room;
+            const message = data.message;
+            if (!room || !message) return;
+            io.to(room).emit('group-message', { sender: socket.username, message });
+            console.log(`Message sent to group ${room} by ${socket.username}`);
         });
-
-        socket.on('send', (data) => {
-            const targetRoom = userSockets.get(data.room);
-            socket.to(targetRoom).emit('receive', data.message);
-        });
-
 
         //////////////////////////////////////////////////////////////////
-        //DM codes
+        // DM codes
 
         socket.on("send_message", async ({ receiver, message, sender }) => {
             const targetSocketId = userSockets.get(receiver);
-            if (!targetSocketId && receiver === null) return;
+            if (!targetSocketId) return;
             try {
                 const newMessage = new Message({
                     sender: sender,
@@ -66,18 +65,23 @@ const handlerChat = (io) => {
             }
         });
 
-
         socket.on('typing', ({ user, receiver }) => {
             const targetSocketId = userSockets.get(receiver);
-            io.to(targetSocketId).emit('typing', receiver);
+            if (!targetSocketId) return;
+            io.to(targetSocketId).emit('typing', { user, sender: receiver });
         });
-
 
         socket.on('not_typing', ({ user, receiver }) => {
             const targetSocketId = userSockets.get(receiver);
+            if (!targetSocketId) return;
             io.to(targetSocketId).emit('not_typing', { user, receiver });
         });
 
+        socket.on('disconnect', () => {
+            userSockets.delete(socket.username);
+            socket.broadcast.emit('disconnected', socket.username);
+            console.log(`${socket.username} disconnected`);
+        });
     });
 };
 

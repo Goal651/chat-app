@@ -1,29 +1,30 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import ChatArea from "./dmscreen";
 import Cookies from 'js-cookie';
 import '../css/dms.css';
 
-
 const Chat = ({ friends }) => {
+
     const { username } = useParams();
     const navigate = useNavigate();
-    const [chat, setChat] = useState([]);
-    const [files, setFiles] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [friend, setFriend] = useState('')
+    const [user, setUser] = useState('');
 
     const chatNow = (friend) => {
-        setChat(friend);
-        navigate(`/chat/${username || friend.username}`)
+        setFriend(friend.username)
+        navigate(`/chat/${username || friend.username}`);
     }
+
 
     useEffect(() => {
         const username = Cookies.get('username');
+        setUser(username)
         if (!username) navigate('/login');
-    }, [navigate]);
-
-
+    }, []);
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -34,24 +35,25 @@ const Chat = ({ friends }) => {
         }
         return window.btoa(binary);
     };
-
     return (
         <div className="dm-chat">
             <div className="users">
-                {friends.length > 0 ? friends
-                    .filter((friend) => friend.username !== Cookies.get('username'))
-                    .map((friend) => {
+                {friends ? friends
+                    .filter(friend => friend.username !== Cookies.get('username'))
+                    .map(friend => {
                         let imageBase64 = '';
-                        if (friend.imageData && friend.imageData.data && friend.imageData.data) imageBase64 = arrayBufferToBase64(friend.imageData.data)
-                        else console.warn("No image data found for friend:", friend);
-
+                        if (friend.imageData && friend.imageData.data) {
+                            imageBase64 = arrayBufferToBase64(friend.imageData.data);
+                        } else {
+                            console.warn("No image data found for friend:", friend.username);
+                        }
                         return (
                             <div
                                 onClick={() => {
                                     chatNow(friend);
-                                    setSelectedUser(friend.email); // Set the selected user
+                                    setSelectedUser(friend.email);
                                 }}
-                                className={`friends ${selectedUser === friend.email ? 'selected' : ''}`} // Apply 'selected' class if user is selected
+                                className={`friends ${selectedUser === friend.email ? 'selected' : ''}`}
                                 key={friend._id}
                             >
                                 <div>
@@ -65,10 +67,9 @@ const Chat = ({ friends }) => {
                             </div>
                         );
                     }) : "No Friends"}
-
             </div>
             <div className='chat-screen'>
-                <ChatArea chat={chat} />
+                <ChatArea friend={friend} />
             </div>
         </div>
     );

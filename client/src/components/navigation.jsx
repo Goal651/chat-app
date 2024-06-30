@@ -10,13 +10,16 @@ const Navigation = () => {
         navigate('/login');
     }
     const navigate = useNavigate();
+
+
+    const toGroups = () => { navigate('/groups') }
     return (
         <div className="navigating">
             <div >
                 <img src="/folder.png" alt="" />
                 <h3>All chats</h3>
             </div>
-            <div>
+            <div onClick={() => { toGroups() }}>
                 <img src="/folder.png" alt="" />
                 <h3>Groups</h3>
             </div>

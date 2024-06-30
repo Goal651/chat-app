@@ -1,29 +1,42 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
 import io from 'socket.io-client';
 import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
-const DMArea = ({ chat }) => {
-    console.log(chat)
+const GroupArea = ({ friend }) => {
     const { params } = useParams();
-    const [receiver, setReceiver] = useState('');
     const [socket, setSocket] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
+    const [info, setInfo] = useState([]);
+    const [groupName, setGroupName] = useState("");
+    const [currentRoom, setCurrentRoom] = useState("");
     const user = Cookies.get('username');
     const messagesEndRef = useRef(null);
+
     useEffect(() => {
         const newSocket = io("http://localhost:3001", { withCredentials: true });
         setSocket(newSocket);
         setBeingTyped(false);
-        return () => { newSocket.disconnect(); };
+        return () => {
+            newSocket.disconnect();
+        };
     }, []);
+
+    useEffect(() => {
+        const fetchUserDetails = async () => {
+            const response = await fetch(`http://localhost:3001/getUser/${params || friend}`);
+            const data = await response.json();
+            setInfo(data.user);
+        };
+        fetchUserDetails();
+    }, [friend, params]);
 
     const handleScrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -32,12 +45,11 @@ const DMArea = ({ chat }) => {
         }
     };
 
-    useEffect(() => {
-        setReceiver(params);
-        console.log(params)
-    }, [chat]);
+    const messageOperations = () => { };
 
-    useEffect(() => { handleScrollToBottom(); }, [scrollToBottom]);
+    useEffect(() => {
+        handleScrollToBottom();
+    }, [scrollToBottom]);
 
     useEffect(() => {
         if (!socket) return;
@@ -45,53 +57,73 @@ const DMArea = ({ chat }) => {
             setRefresh(prev => !prev);
             setScrollToBottom(true);
         };
-        const handleTyping = ({ chat, username }) => {
-            if (chat == username && username == chat) setBeingTyped(true);
+        const handleTyping = ({ receiver, sender }) => {
+            if (receiver === user && (friend || params) === sender) setBeingTyped(true);
             else setBeingTyped(false);
         };
-        const handleNotTyping = () => setBeingTyped(false)
+
+        const handleNotTyping = () => setBeingTyped(false);
+
         socket.on("receive_message", handleReceiveMessage);
         socket.on('typing', handleTyping);
         socket.on('not_typing', handleNotTyping);
+        socket.on('group-message', handleReceiveMessage);
 
-        // Cleanup function to remove the event listeners
         return () => {
             socket.off("receive_message", handleReceiveMessage);
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
+            socket.off('group-message', handleReceiveMessage);
         };
-    }, [socket, chat, user]);
+    }, [socket, friend, user]);
 
     useEffect(() => {
-        const fetchMessage = async () => {
-            const response = await fetch(`http://localhost:3001/message?sender=${user}&receiver=${params}`);
+        const fetchMessages = async () => {
+            const response = await fetch(`http://localhost:3001/message?sender=${user}&receiver=${params || friend}`);
             const data = await response.json();
             setHistory(data.messages);
             setScrollToBottom(true);
-        }; fetchMessage();
-    }, [chat, refresh]);
+        };
+        fetchMessages();
+    }, [friend, refresh]);
 
     const sendMessage = (e) => {
         e.preventDefault();
         if (message === "") return;
-        socket.emit("send_message", { receiver: receiver, message, sender: user });
+        if (currentRoom) {
+            socket.emit("send-group-message", { room: currentRoom, message });
+        } else {
+            socket.emit("send_message", { receiver: friend || params, message, sender: user });
+        }
         setScrollToBottom(true);
         setMessage("");
         setRefresh(prev => !prev);
-        socket.emit("not_typing", { user, chat });
+        socket.emit("not_typing", { user, receiver: friend });
     };
 
     const handleChange = (e) => {
         const message = e.target.value;
         setMessage(message);
-        if (message) socket.emit("typing", { user, receiver });
-        else socket.emit("not_typing", { user, receiver });
-    }
+        if (message) socket.emit("typing", { user, receiver: friend || params });
+        else socket.emit("not_typing", { user, receiver: friend || params });
+        setScrollToBottom(true);
+    };
 
-    const messageOperations = (e) => {
-        e.preventDefault()
-        alert("message deleted")
-    }
+    const handleCreateGroup = (e) => {
+        e.preventDefault();
+        if (groupName === "") return;
+        socket.emit('create-group', { room: groupName });
+        setCurrentRoom(groupName);
+        setGroupName("");
+    };
+
+    const handleJoinGroup = (e) => {
+        e.preventDefault();
+        if (groupName === "") return;
+        socket.emit('join-group', { room: groupName });
+        setCurrentRoom(groupName);
+        setGroupName("");
+    };
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -103,12 +135,9 @@ const DMArea = ({ chat }) => {
         return window.btoa(binary);
     };
 
-
     let imageBase64 = '';
-    if (chat.imageData && chat.imageData.data) imageBase64 = arrayBufferToBase64(chat.imageData.data)
-    else console.warn("No image data found for friend:", chat.username);
-    console.log(chat.imageData)
-
+    if (info.imageData && info.imageData.data) imageBase64 = arrayBufferToBase64(info.imageData.data);
+    else imageBase64 = '';
 
     return (
         <div id="chatArea">
@@ -119,7 +148,7 @@ const DMArea = ({ chat }) => {
                     ) : (
                         <div>No Image</div>
                     )}
-                    <h1>{chat.username}</h1>
+                    <h1>{info.username || friend}</h1>
                 </div>
                 <div className="chatArea_body">
                     <div className="chatArea_history">
@@ -128,31 +157,30 @@ const DMArea = ({ chat }) => {
                                 message.sender === user ? (
                                     <div onContextMenu={messageOperations} className="history" key={message._id}>
                                         <div className="chat-sender">
-                                            <span className="sender-message">
-                                                {message.message}
-                                            </span>
-                                            <span className="sender-drop">
-                                                <img src="/drop.png" alt="" width={30} />
-                                            </span>
+                                            <span className="sender-message"> {message.message}</span>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="history" key={message._id}>
                                         <div className="chat-receiver">
-                                            {message.message}
+                                            <span className="receiver-message"> {message.message}</span>
                                         </div>
                                     </div>
                                 )
                             ))
                         ) : (
-                            <div style={{ textAlign: 'center', fontSize: '2rem', fontFamily: '700', background: 'linear-gradient(to right,red,blue,white)', color: 'transparent', backgroundClip: 'text' }}>
+                            <div style={{
+                                textAlign: 'center', fontSize: '2rem', fontWeight: '700', background: 'linear-gradient(to right, red, blue, white)', color: 'transparent', backgroundClip: 'text'
+                            }}>
                                 Say hey to your new friend
                             </div>
                         )}
-                        {beingTyped ? (<div id="typing-indicator">
-                            <img src="/typing.gif" alt="Typing..." />
-                        </div>) : null}
-                        <div ref={messagesEndRef} className="chatArea_footer">
+                        {beingTyped ? (
+                            <div id="typing-indicator" >
+                                <img src="/typing.gif" alt="Typing..." />
+                            </div>
+                        ) : null}
+                        <div className="chatArea_footer">
                             <form onSubmit={sendMessage}>
                                 <input type="text" placeholder="Enter message" value={message} onChange={handleChange} />
                                 <button type="submit">
@@ -160,11 +188,32 @@ const DMArea = ({ chat }) => {
                                 </button>
                             </form>
                         </div>
+                        <div ref={messagesEndRef} ></div>
                     </div>
+                </div>
+                <div className="group-controls">
+                    <form onSubmit={handleCreateGroup}>
+                        <input
+                            type="text"
+                            placeholder="Create Group"
+                            value={groupName}
+                            onChange={(e) => setGroupName(e.target.value)}
+                        />
+                        <button type="submit">Create Group</button>
+                    </form>
+                    <form onSubmit={handleJoinGroup}>
+                        <input
+                            type="text"
+                            placeholder="Join Group"
+                            value={groupName}
+                            onChange={(e) => setGroupName(e.target.value)}
+                        />
+                        <button type="submit">Join Group</button>
+                    </form>
                 </div>
             </div>
         </div>
     );
 };
 
-export default DMArea;
+export default GroupArea;
