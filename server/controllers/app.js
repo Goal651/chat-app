@@ -141,7 +141,6 @@ const getGroup = async (req, res) => {
                     const imageBuffer = await fs.readFile(imagePath);
                     return { ...group.toObject(), imageData: imageBuffer };
                 } catch (err) {
-                    console.error('Error reading image file:', err);
                     return { ...group.toObject(), imageData: null };
                 }
             } else {

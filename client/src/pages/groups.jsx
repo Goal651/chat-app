@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import  io  from "socket.io-client";
-import '../css/groups.css';
 import GroupArea from "./groupScreen";
 
 const GroupChat = () => {

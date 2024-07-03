@@ -51,11 +51,11 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="chat-app">
-            <div className="navigation">
+        <div className="flex flex-row bg-black">
+            <div className="">
                 <Navigation />
             </div>
-            <div className="dashboard">
+            <div className="bg-white text-black m-4 p-4 w-full rounded-3xl">
                 {renderContent()}
             </div>
         </div>

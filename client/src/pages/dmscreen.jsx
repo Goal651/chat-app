@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-undef */
 /* eslint-disable react/prop-types */
@@ -121,29 +122,26 @@ const DMArea = ({ friend }) => {
 
     return (
         <div id="chatArea">
-            <div className="chatArea_container">
-                <div className="chatArea_header">
-                    {imageBase64 ? (
-                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
-                    ) : (
-                        <img src="/nopro.png" alt="No Profile" />
-                    )}
+            <div className="flex flex-col">
+                <div className="">
+                    {imageBase64 ? (<img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />)
+                        : (<img src="/nopro.png" alt="No Profile" />)}
                     <h1>{info.username || friend}</h1>
                 </div>
-                <div className="chatArea_body">
+                <div className="overflow-auto h-80">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
                                 message.sender === username ? (
-                                    <div onContextMenu={messageOperations} className="history" key={message._id}>
-                                        <div className="chat-sender">
-                                            <span className="sender-message"> {message.message}</span>
+                                    <div key={message._id}>
+                                        <div className="chat chat-end ">
+                                            <span className="chat-bubble"> {message.message}</span>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="history" key={message._id}>
-                                        <div className="chat-receiver">
-                                            <span className="receiver-message"> {message.message}</span>
+                                    <div key={message._id}>
+                                        <div className="chat chat-start">
+                                            <span className="chat-bubble bg-blue-400"> {message.message}</span>
                                         </div>
                                     </div>
                                 )
@@ -160,16 +158,17 @@ const DMArea = ({ friend }) => {
                                 <img src="/typing.gif" alt="Typing..." />
                             </div>
                         ) : null}
-                        <div className="chatArea_footer">
-                            <form onSubmit={sendMessage}>
-                                <input type="text" placeholder="Enter message" value={message} onChange={handleChange} />
-                                <button type="submit">
-                                    <img src="/send.png" alt="Send" width={'40rem'} />
-                                </button>
-                            </form>
-                        </div>
+
                         <div ref={messagesEndRef} ></div>
                     </div>
+                </div>
+                <div className="">
+                    <form style={{ width: '100%' }} onSubmit={sendMessage} className=" flex flex-row bg-slate-400 relative  rounded-badge px-4 py-1 justify-between ">
+                        <input type="text" placeholder="Enter message" value={message} onChange={handleChange} className="bg-transparent w-full placeholder:text-black" />
+                        <button type="submit">
+                            <img src="/send.png" alt="Send" className="w-10" />
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

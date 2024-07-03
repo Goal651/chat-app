@@ -1,10 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import ChatArea from "./dmscreen";
 import Cookies from 'js-cookie';
-import '../css/dms.css';
 
 const Chat = ({ friends }) => {
 
@@ -36,8 +36,8 @@ const Chat = ({ friends }) => {
         return window.btoa(binary);
     };
     return (
-        <div className="dm-chat">
-            <div className="users">
+        <div className="flex flex-row p-4">
+            <div className="flex flex-col w-full">
                 {friends ? friends
                     .filter(friend => friend.username !== Cookies.get('username'))
                     .map(friend => {
@@ -48,31 +48,24 @@ const Chat = ({ friends }) => {
                             console.warn("No image data found for friend:", friend.username);
                         }
                         return (
-                            <div
-                                onClick={() => {
-                                    chatNow(friend);
-                                    setSelectedUser(friend.email);
-                                }}
+                            <div onClick={() => { chatNow(friend) }
+                            }
                                 className={`friends ${selectedUser === friend.email ? 'selected' : ''}`}
                                 key={friend._id}
                             >
                                 <div>
-                                    {imageBase64 ? (
-                                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
-                                    ) : (
-                                        <img src="/nopro.png" alt=""  />
-
-                                    )}
+                                    {imageBase64 ? (<img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />)
+                                        : (<img src="/nopro.png" alt="" />)}
                                 </div>
                                 <h3>{friend.username}</h3>
                             </div>
                         );
                     }) : "No Friends"}
             </div>
-            <div className='chat-screen'>
+            <div className='overflow-hidden ' style={{ height: '83vh' }}>
                 <ChatArea friend={friend} />
             </div>
-        </div>
+        </div >
     );
 }
 

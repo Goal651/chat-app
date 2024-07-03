@@ -45,20 +45,20 @@ const signUp = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log(formData);
-    
+
         try {
             const formDataToSend = new FormData();
             formDataToSend.append('username', formData.username);
             formDataToSend.append('email', formData.email);
             formDataToSend.append('password', formData.password);
             formDataToSend.append('image', formData.image);
-    
+
             const response = await fetch("http://localhost:3001/signup", {
                 method: "POST",
                 body: formDataToSend, // Use FormData object directly
                 // No need for headers or JSON.stringify
             });
-    
+
             if (response.ok) {
                 navigate('/');
             } else if (response.status === 400) {
