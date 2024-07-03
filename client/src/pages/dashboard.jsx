@@ -4,25 +4,27 @@ import { useNavigate, useParams } from "react-router-dom";
 import Navigation from "../components/navigation";
 import Chat from "./dms";
 import GroupChat from "./groups";
+import CreateGroup from "../components/createGroup";
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { type } = useParams()
+    const { type, name } = useParams(); // Destructure both type and name from params
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const username = Cookies.get('username');
     useEffect(() => {
-        const username = Cookies.get('username');
         if (!username) {
             navigate('/login');
         }
-    }, [navigate])
+    }, [navigate, username]);
+
     useEffect(() => {
         const fetchFriends = async () => {
             try {
                 const response = await fetch(`http://localhost:3001/allFriends`);
                 const data = await response.json();
-                setFriends(data.users);
+                const users = data.users.filter((user) => user.username !== username);
+                setFriends(users);
             } catch (error) {
                 console.error("Error fetching friends:", error);
             } finally {
@@ -31,25 +33,31 @@ const Dashboard = () => {
         };
 
         fetchFriends();
-    }, []);
+    }, [username]);
+
+    const renderContent = () => {
+        if (name) return <GroupChat groupName={name} />;
+
+        switch (type) {
+            case 'group':
+                return <GroupChat />;
+            case 'create-group':
+                return <CreateGroup />;
+            case 'chat':
+                return <Chat friends={friends[0]} />;
+            default:
+                return loading ? <div>Loading...</div> : <Chat friends={friends} />;
+        }
+    };
 
     return (
         <div className="chat-app">
             <div className="navigation">
                 <Navigation />
             </div>
-            {type === 'groups' ? (
-                <div className="groupArea">
-                    <GroupChat />
-                </div>
-            ) : (
-                <div className="dashboard">
-                    {loading ? (
-                        <div>Loading...</div>
-                    ) : (
-                        <Chat friends={friends} />
-                    )}
-                </div>)}
+            <div className="dashboard">
+                {renderContent()}
+            </div>
         </div>
     );
 };

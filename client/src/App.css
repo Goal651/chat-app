@@ -29,14 +29,16 @@ body {
   left: 1rem;
 }
 
-.dm-chat {
+.dm-chat,
+.group-chat {
   display: flex;
   background-color: transparent;
   height: 100vh;
   width: 100%;
 }
 
-.users {
+.users,
+.groups {
   overflow-y: scroll;
   overflow-x: hidden;
   width: 40%;
@@ -44,7 +46,8 @@ body {
   background-color: transparent;
 }
 
-.friends {
+.friends,
+.group {
   margin: 1rem 1rem;
   padding: 0.5rem 2rem;
   width: 80%;
@@ -57,7 +60,8 @@ body {
   grid-column: 1;
 }
 
-.friends img {
+.friends img,
+.group img {
   position: relative;
   width: 6rem;
   height: 6rem;
@@ -69,7 +73,8 @@ body {
   background-color: rgb(216, 213, 213);
 }
 
-.friends h3 {
+.friends h3,
+.group h3 {
   color: rgb(17, 7, 7);
   margin: 0.5rem 2rem;
   position: relative;
@@ -112,39 +117,6 @@ a {
 }
 
 
-.groupArea_container {
-  background-color: #00131d;
-  height: 100vh;
-  width: 100vw;
-}
-
-.groupArea_footer {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-around;
-  height: 10vh;
-  background-color: #a5e0f8;
-  margin: 2rem 10rem;
-}
-
-.groupArea_footer input {
-  background-color: transparent;
-  color: black;
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.groupArea_footer button {
-  padding: 1rem 1rem;
-  background-color: #053c57;
-  border-radius: 1rem;
-  color: white;
-  width: 20%;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
 .navigation {
   width: 10%;
   background-color: #01051f;
@@ -185,4 +157,8 @@ a {
 
 .navigating img {
   width: 7rem;
+}
+
+.selected {
+  box-shadow: 0 0 5px black;
 }

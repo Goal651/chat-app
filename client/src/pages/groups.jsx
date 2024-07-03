@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
+import  io  from "socket.io-client";
 import '../css/groups.css';
 import GroupArea from "./groupScreen";
 
@@ -11,8 +12,19 @@ const GroupChat = () => {
     const { name } = useParams();
     const navigate = useNavigate();
     const [selectedGroup, setSelectedGroup] = useState(null);
-    const [group, setGroup] = useState('');
-    const [user, setUser] = useState('');
+    const [group, setGroup] = useState({});
+    const [socket, setSocket] = useState(null)
+    const username = Cookies.get('username');
+
+
+    useEffect(() => {
+        const newSocket = io("http://localhost:3001", { withCredentials: true });
+        setSocket(newSocket);
+        return () => {
+            newSocket.disconnect();
+        };
+    }, []);
+
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -24,15 +36,14 @@ const GroupChat = () => {
     }, []);
 
     const chatNow = (group) => {
-        setGroup(group.name);
+        setGroup(group);
         navigate(`/group/${group.name}`);
+        socket.emit('connect-group',{room:group.name})
     };
 
     useEffect(() => {
-        const username = Cookies.get('username');
-        setUser(username);
         if (!username) navigate('/login');
-    }, [navigate]);
+    }, [username, navigate]);
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -48,9 +59,9 @@ const GroupChat = () => {
         <div className="group-chat">
             <div className="groups">
                 <button onClick={() => { navigate('/create-group') }}>Create new group</button>
-                {groups ? groups.map(group => {
+                {groups.length > 0 ? groups.map(group => {
                     let imageBase64 = '';
-                    if (group.imageData && group.imageData.data) {
+                    if (group && group.imageData && group.imageData.data) {
                         imageBase64 = arrayBufferToBase64(group.imageData.data);
                     } else {
                         console.warn("No image data found for group:", group.name);
@@ -61,14 +72,14 @@ const GroupChat = () => {
                                 chatNow(group);
                                 setSelectedGroup(group.name);
                             }}
-                            className={`groups ${selectedGroup === group.name ? 'selected' : ''}`}
+                            className={`group ${selectedGroup === group.name ? 'selected' : ''}`}
                             key={group._id}
                         >
                             <div>
                                 {imageBase64 ? (
                                     <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Group Image" />
                                 ) : (
-                                    <div>No Image</div>
+                                    <img src="/nogro.png" alt="No Group" />
                                 )}
                             </div>
                             <h3>{group.name}</h3>
@@ -77,7 +88,7 @@ const GroupChat = () => {
                 }) : "No Groups"}
             </div>
             <div className='group-screen'>
-                <GroupArea group={group} />
+                {selectedGroup && <GroupArea group={group} />}
             </div>
         </div>
     );

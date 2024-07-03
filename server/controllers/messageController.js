@@ -1,4 +1,4 @@
-const { Message } = require('../models/models');
+const { Message, GMessage } = require('../models/models');
 
 const getMessage = async (req, res) => {
   const { sender, receiver } = req.query;
@@ -18,4 +18,17 @@ const getMessage = async (req, res) => {
   }
 };
 
-module.exports = { getMessage };
+
+const getGMessage = async (req, res) => {
+  const { group } = req.params;
+  if (!group) return res.status(400).json({ message: 'Group not given' })
+  try {
+    const gmessages = await GMessage.find({ group: group });
+    if (gmessages.length === 0) return res.status(404).json({ message: 'No messages found' });
+    res.status(200).json({ gmessages });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { getMessage, getGMessage };

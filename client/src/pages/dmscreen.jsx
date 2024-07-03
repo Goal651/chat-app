@@ -14,8 +14,8 @@ const DMArea = ({ friend }) => {
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
-    const [info, setInfo] = useState([])
-    const user = Cookies.get('username');
+    const [info, setInfo] = useState([]);
+    const username = Cookies.get('username');
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -27,12 +27,11 @@ const DMArea = ({ friend }) => {
         };
     }, []);
 
-
     useEffect(() => {
         const fetchUserDetails = async () => {
             const response = await fetch(`http://localhost:3001/getUser/${params || friend}`);
             const data = await response.json();
-            setInfo(data.user)
+            setInfo(data.user);
         };
         fetchUserDetails();
     }, [friend, params]);
@@ -43,8 +42,6 @@ const DMArea = ({ friend }) => {
             setScrollToBottom(false);
         }
     };
-    const messageOperations = () => { }
-
 
     useEffect(() => {
         handleScrollToBottom();
@@ -56,27 +53,30 @@ const DMArea = ({ friend }) => {
             setRefresh(prev => !prev);
             setScrollToBottom(true);
         };
+
         const handleTyping = ({ receiver, sender }) => {
-            if (receiver === user && friend||params === sender) setBeingTyped(true);
+            if ((receiver === username && friend) || params === sender) setBeingTyped(true);
             else setBeingTyped(false);
         };
 
-        const handleNotTyping = () => setBeingTyped(false);
+        const handleNotTyping = ({ sender, receiver }) => {
+            if ((receiver === username && friend) || params === sender) setBeingTyped(false);
+        };
 
         socket.on("receive_message", handleReceiveMessage);
-        socket.on('typing', handleTyping);
-        socket.on('not_typing', handleNotTyping);
+        socket.on("typing", handleTyping);
+        socket.on("not_typing", handleNotTyping);
 
         return () => {
             socket.off("receive_message", handleReceiveMessage);
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
         };
-    }, [socket, friend, user]);
+    }, [socket, friend, username]);
 
     useEffect(() => {
         const fetchMessages = async () => {
-            const response = await fetch(`http://localhost:3001/message?sender=${user}&receiver=${params || friend}`);
+            const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${params || friend}`);
             const data = await response.json();
             setHistory(data.messages);
             setScrollToBottom(true);
@@ -87,20 +87,23 @@ const DMArea = ({ friend }) => {
     const sendMessage = (e) => {
         e.preventDefault();
         if (message === "") return;
-        socket.emit("send_message", { receiver: friend || params, message, sender: user });
+        socket.emit("send_message", { receiver: friend || params, message, sender: username });
         setScrollToBottom(true);
         setMessage("");
         setRefresh(prev => !prev);
-        socket.emit("not_typing", { user, friend });
+        socket.emit("not_typing", { username, receiver: friend || params });
     };
 
     const handleChange = (e) => {
-        const message = e.target.value;
-        setMessage(message);
-        if (message) socket.emit("typing", { user, receiver: friend || params });
-        else socket.emit("not_typing", { user, receiver });
+        const { value } = e.target
+        setMessage(value)
+        console.log(e.target.value)
+        if (message !== "") socket.emit("typing", { username, receiver: friend || params });
+        else socket.emit("not_typing", { username, receiver: friend || params });
         setScrollToBottom(true);
     };
+
+    const messageOperations = () => { }
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -115,6 +118,7 @@ const DMArea = ({ friend }) => {
     let imageBase64 = '';
     if (info.imageData && info.imageData.data) imageBase64 = arrayBufferToBase64(info.imageData.data);
     else imageBase64 = '';
+
     return (
         <div id="chatArea">
             <div className="chatArea_container">
@@ -122,7 +126,7 @@ const DMArea = ({ friend }) => {
                     {imageBase64 ? (
                         <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
                     ) : (
-                        <div>No Image</div>
+                        <img src="/nopro.png" alt="No Profile" />
                     )}
                     <h1>{info.username || friend}</h1>
                 </div>
@@ -130,7 +134,7 @@ const DMArea = ({ friend }) => {
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
-                                message.sender === user ? (
+                                message.sender === username ? (
                                     <div onContextMenu={messageOperations} className="history" key={message._id}>
                                         <div className="chat-sender">
                                             <span className="sender-message"> {message.message}</span>
@@ -152,7 +156,7 @@ const DMArea = ({ friend }) => {
                             </div>
                         )}
                         {beingTyped ? (
-                            <div id="typing-indicator" >
+                            <div id="typing-indicator">
                                 <img src="/typing.gif" alt="Typing..." />
                             </div>
                         ) : null}

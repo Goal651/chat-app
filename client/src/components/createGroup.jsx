@@ -1,34 +1,61 @@
 /* eslint-disable no-unused-vars */
-import io from 'socket.io-client';
-const socket = io.connect("http://localhost:3001", { withCredentials: true });
 import React, { useState } from 'react';
-import Feedback from './feedback';
+import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 function CreateGroup() {
-    const [groupName, setGroup] = useState("");
-    const [result, setResult] = useState("");
-    const createRoom = () => {
-        socket.emit("create_room", groupName);
-    };
-    socket.on('room_created', (roomName) => {
-        console.log(`Room created: ${roomName}`);
-        setResult({ type: 'success', message: `Room created: ${roomName}` });
-    });
+    const username = Cookies.get('username');
+    const navigate = useNavigate();
+    const [group, setGroup] = useState({ name: '', image: null });
 
-    socket.on('room_exists', (roomName) => {
-        console.log(`Room already exists: ${roomName}`);
-        setResult({ type: 'error', message: `Room already exists: ${roomName}` })
-    });
+    const handleChange = (e) => {
+        const { name, value, files } = e.target;
+        if (name === 'image') {
+            const file = files[0];
+            setGroup({ ...group, image: file });
+        } else {
+            setGroup({ ...group, name: value });
+        }
+    };
+
+    const sendData = async (e) => {
+        e.preventDefault();
+        const formDataToSend = new FormData();
+        formDataToSend.append('name', group.name);
+        formDataToSend.append('photo', group.image);
+        formDataToSend.append('admin', username);
+        try {
+            const response = await fetch("http://localhost:3001/create-group", {
+                method: "POST",
+                body: formDataToSend
+            });
+
+            if (response.ok) {
+                navigate('/');
+            } else if (response.status === 400) {
+                navigate('/group');
+            } else if (response.status === 404) {
+                alert('no stop there');
+            } else {
+                throw new Error("Something went wrong");
+            }
+        } catch (error) {
+            console.error("Error submitting data:", error);
+        }
+    };
+
     return (
         <div className='createGroup'>
             <h1>Create Group</h1>
-            <form >
+            <form onSubmit={sendData}>
                 <label htmlFor="group">Group Name</label>
-                <input type="text" id="group" name="group" value={groupName} onChange={(e) => setGroup(e.target.value)} />
-                <button type="button" onClick={() => createRoom()}>Create</button>
+                <input type="text" id="group" name="group" value={group.name} onChange={handleChange} />
+                <label htmlFor="image">Photo</label>
+                <input type="file" name='image' onChange={handleChange} />
+                <button type="submit">Create</button>
             </form>
-            <Feedback data={result} />
         </div>
-    )
+    );
 }
+
 export default CreateGroup;

@@ -33,6 +33,13 @@ const messageSchema = mongoose.Schema({
 })
 
 
+const groupMessageSchema = mongoose.Schema({
+    sender: { type: String, require: true },
+    message: { type: String, require: true },
+    group: { type: String, require: true },
+    timestamp: { type: Date, default: Date.now }
+})
+
 const groupSchema = mongoose.Schema(
     {
         name: { type: String, require: true },
@@ -50,6 +57,7 @@ const groupSchema = mongoose.Schema(
 const User = mongoose.model("users", userSchema)
 const Tokens = mongoose.model("tokens", tokenSchema)
 const Message = mongoose.model("messages", messageSchema)
+const GMessage=mongoose.model('GMessage',groupMessageSchema)
 const Group = mongoose.model('groups', groupSchema)
 
-module.exports = { User, Tokens, Message, Group };
+module.exports = { User, Tokens, Message, Group ,GMessage};

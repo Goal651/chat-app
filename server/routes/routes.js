@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, checkUser, getUsers, getUser, test, getGroups, getGroup } = require('../controllers/app');
-const { getMessage } = require('../controllers/messageController');
+const { login, signup, checkUser, getUsers, getUser, test, getGroups, getGroup, createGroup } = require('../controllers/app');
+const { getMessage, getGMessage } = require('../controllers/messageController');
 const multer = require('multer');
 
 const storage = multer.diskStorage({
@@ -22,7 +22,9 @@ router.get('getUserProfile', getUser);
 router.get('/getUser/:userEmail', getUser)
 
 router.get('/allGroups', getGroups);
-router.get('/get-group/name', getGroup)
+router.get('/getGroup/:name', getGroup);
+router.post('/create-group',upload.single('photo'),createGroup)
+router.get('/gmessage/:group', getGMessage)
 
 
 router.get('/test/', test);

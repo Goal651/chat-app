@@ -60,7 +60,8 @@ const Chat = ({ friends }) => {
                                     {imageBase64 ? (
                                         <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
                                     ) : (
-                                        <div>No Image</div>
+                                        <img src="/nopro.png" alt=""  />
+
                                     )}
                                 </div>
                                 <h3>{friend.username}</h3>

@@ -95,6 +95,23 @@ const getUser = async (req, res) => {
 }
 
 
+
+const createGroup = async (req, res) => {
+    const image = req.file.path;
+    const { name, admin } = req.body;
+    try {
+        const existingGroup = await Group.findOne({ name });
+        if (existingGroup) return res.status(400).json({ message: "User already exists" });
+        const newGroup = new Group({ name, admin, image });
+        const savedGroup = await newGroup.save();
+        if (!savedGroup) return res.status(500).json({ message: "Failed to save user" });
+        res.status(201).json(savedGroup);
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error", error: err.message });
+    }
+};
+
+
 const getGroups = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
     try {
@@ -113,9 +130,9 @@ const getGroups = async (req, res) => {
 }
 const getGroup = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
-    try {
+    try { 
         const { name } = req.params;
-        const group = await Group.findOne(name);
+        const group = await Group.findOne({name});
         if (!group) return res.status(404).json({ error: 'User not found' });
         const getGroupWithImage = async (group) => {
             if (group.image) {
@@ -131,7 +148,7 @@ const getGroup = async (req, res) => {
                 return { ...group.toObject(), imageData: null };
             }
         }
-        const groupWithImage = await getUserWithImage(group);
+        const groupWithImage = await getGroupWithImage(group);
         res.status(200).json({ group: groupWithImage });
     } catch (err) {
         console.error('Error fetching group:', err);
@@ -167,5 +184,6 @@ module.exports = {
     getUser,
     getGroups,
     getGroup,
+    createGroup,
     test
 };

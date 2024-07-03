@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-undef */
 /* eslint-disable react/prop-types */
@@ -6,37 +7,37 @@ import io from 'socket.io-client';
 import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
-const GroupArea = ({ friend }) => {
-    const { params } = useParams();
+const GroupArea = ({ group }) => {
+    const { name } = useParams();
     const [socket, setSocket] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
-    const [beingTyped, setBeingTyped] = useState(false);
-    const [info, setInfo] = useState([]);
+    const [typing, setTyping] = useState(false);
     const [groupName, setGroupName] = useState("");
     const [currentRoom, setCurrentRoom] = useState("");
-    const user = Cookies.get('username');
+    const username = Cookies.get('username');
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
         const newSocket = io("http://localhost:3001", { withCredentials: true });
         setSocket(newSocket);
-        setBeingTyped(false);
+        setTyping(false);
         return () => {
             newSocket.disconnect();
         };
     }, []);
 
     useEffect(() => {
-        const fetchUserDetails = async () => {
-            const response = await fetch(`http://localhost:3001/getUser/${params || friend}`);
+        const fetchGroupDetails = async () => {
+            const response = await fetch(`http://localhost:3001/getGroup/${name || group.name}`);
             const data = await response.json();
-            setInfo(data.user);
+            setCurrentRoom(data.group);
+            setGroupName(data.group.name);
         };
-        fetchUserDetails();
-    }, [friend, params]);
+        fetchGroupDetails();
+    }, [group, name]);
 
     const handleScrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -44,8 +45,6 @@ const GroupArea = ({ friend }) => {
             setScrollToBottom(false);
         }
     };
-
-    const messageOperations = () => { };
 
     useEffect(() => {
         handleScrollToBottom();
@@ -57,12 +56,12 @@ const GroupArea = ({ friend }) => {
             setRefresh(prev => !prev);
             setScrollToBottom(true);
         };
-        const handleTyping = ({ receiver, sender }) => {
-            if (receiver === user && (friend || params) === sender) setBeingTyped(true);
-            else setBeingTyped(false);
+        const handleTyping = ({ group, sender }) => {
+            if (group === groupName && sender !== username) setTyping(true);
+            else setTyping(false);
         };
 
-        const handleNotTyping = () => setBeingTyped(false);
+        const handleNotTyping = () => setTyping(false);
 
         socket.on("receive_message", handleReceiveMessage);
         socket.on('typing', handleTyping);
@@ -75,55 +74,37 @@ const GroupArea = ({ friend }) => {
             socket.off("not_typing", handleNotTyping);
             socket.off('group-message', handleReceiveMessage);
         };
-    }, [socket, friend, user]);
+    }, [socket, groupName, username]);
 
     useEffect(() => {
         const fetchMessages = async () => {
-            const response = await fetch(`http://localhost:3001/message?sender=${user}&receiver=${params || friend}`);
+            const response = await fetch(`http://localhost:3001/gmessage/${groupName}`);
             const data = await response.json();
-            setHistory(data.messages);
+            setHistory(data.gmessages);
             setScrollToBottom(true);
         };
         fetchMessages();
-    }, [friend, refresh]);
+    }, [groupName, refresh]);
 
     const sendMessage = (e) => {
         e.preventDefault();
-        if (message === "") return;
-        if (currentRoom) {
-            socket.emit("send-group-message", { room: currentRoom, message });
-        } else {
-            socket.emit("send_message", { receiver: friend || params, message, sender: user });
-        }
+        if (message === "" || !groupName) return;
+        socket.emit("send_group_message", { room: groupName, message, sender: username });
         setScrollToBottom(true);
         setMessage("");
         setRefresh(prev => !prev);
-        socket.emit("not_typing", { user, receiver: friend });
+        socket.emit("not_typing", { username, group: groupName });
     };
 
     const handleChange = (e) => {
-        const message = e.target.value;
-        setMessage(message);
-        if (message) socket.emit("typing", { user, receiver: friend || params });
-        else socket.emit("not_typing", { user, receiver: friend || params });
+        const newMessage = e.target.value;
+        setMessage(newMessage);
+        if (newMessage) socket.emit("typing", { username, group: groupName });
+        else socket.emit("not_typing", { username, group: groupName });
         setScrollToBottom(true);
     };
 
-    const handleCreateGroup = (e) => {
-        e.preventDefault();
-        if (groupName === "") return;
-        socket.emit('create-group', { room: groupName });
-        setCurrentRoom(groupName);
-        setGroupName("");
-    };
 
-    const handleJoinGroup = (e) => {
-        e.preventDefault();
-        if (groupName === "") return;
-        socket.emit('join-group', { room: groupName });
-        setCurrentRoom(groupName);
-        setGroupName("");
-    };
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -134,9 +115,10 @@ const GroupArea = ({ friend }) => {
         }
         return window.btoa(binary);
     };
+    const messageOperations = () => { }
 
     let imageBase64 = '';
-    if (info.imageData && info.imageData.data) imageBase64 = arrayBufferToBase64(info.imageData.data);
+    if (currentRoom && currentRoom.imageData && currentRoom.imageData.data) imageBase64 = arrayBufferToBase64(currentRoom.imageData.data);
     else imageBase64 = '';
 
     return (
@@ -146,24 +128,30 @@ const GroupArea = ({ friend }) => {
                     {imageBase64 ? (
                         <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
                     ) : (
-                        <div>No Image</div>
+                        <img src="/nogro.png" alt="No Group Image" />
                     )}
-                    <h1>{info.username || friend}</h1>
+                    <h1>{currentRoom.name}</h1>
                 </div>
                 <div className="chatArea_body">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
-                                message.sender === user ? (
+                                message.sender === username ? (
                                     <div onContextMenu={messageOperations} className="history" key={message._id}>
                                         <div className="chat-sender">
-                                            <span className="sender-message"> {message.message}</span>
+                                            <span className="sender-message">
+                                                <h5>{message.sender}</h5>
+                                                <p>{message.message}</p>
+                                            </span>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="history" key={message._id}>
                                         <div className="chat-receiver">
-                                            <span className="receiver-message"> {message.message}</span>
+                                            <span className="receiver-message">
+                                                <h5>{message.sender}</h5>
+                                                <p>{message.message}</p>
+                                            </span>
                                         </div>
                                     </div>
                                 )
@@ -172,11 +160,11 @@ const GroupArea = ({ friend }) => {
                             <div style={{
                                 textAlign: 'center', fontSize: '2rem', fontWeight: '700', background: 'linear-gradient(to right, red, blue, white)', color: 'transparent', backgroundClip: 'text'
                             }}>
-                                Say hey to your new friend
+                                Say hey to your new group
                             </div>
                         )}
-                        {beingTyped ? (
-                            <div id="typing-indicator" >
+                        {typing ? (
+                            <div id="typing-indicator">
                                 <img src="/typing.gif" alt="Typing..." />
                             </div>
                         ) : null}
@@ -188,28 +176,8 @@ const GroupArea = ({ friend }) => {
                                 </button>
                             </form>
                         </div>
-                        <div ref={messagesEndRef} ></div>
+                        <div ref={messagesEndRef}></div>
                     </div>
-                </div>
-                <div className="group-controls">
-                    <form onSubmit={handleCreateGroup}>
-                        <input
-                            type="text"
-                            placeholder="Create Group"
-                            value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
-                        />
-                        <button type="submit">Create Group</button>
-                    </form>
-                    <form onSubmit={handleJoinGroup}>
-                        <input
-                            type="text"
-                            placeholder="Join Group"
-                            value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
-                        />
-                        <button type="submit">Join Group</button>
-                    </form>
                 </div>
             </div>
         </div>
