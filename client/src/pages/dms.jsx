@@ -37,7 +37,7 @@ const Chat = ({ friends }) => {
     };
     return (
         <div className="flex flex-row p-4">
-            <div className="flex flex-col w-full">
+            <div className="flex flex-col w-52">
                 {friends ? friends
                     .filter(friend => friend.username !== Cookies.get('username'))
                     .map(friend => {
@@ -62,7 +62,7 @@ const Chat = ({ friends }) => {
                         );
                     }) : "No Friends"}
             </div>
-            <div className='overflow-hidden ' style={{ height: '83vh' }}>
+            <div className='overflow-hidden w-full ' style={{ height: '83vh' }}>
                 <ChatArea friend={friend} />
             </div>
         </div >

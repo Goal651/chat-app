@@ -128,7 +128,7 @@ const DMArea = ({ friend }) => {
                         : (<img src="/nopro.png" alt="No Profile" />)}
                     <h1>{info.username || friend}</h1>
                 </div>
-                <div className="overflow-auto h-80">
+                <div style={{ height: '27rem' }} className="overflow-auto ">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (

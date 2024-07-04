@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import  io  from "socket.io-client";
+import io from "socket.io-client";
 import GroupArea from "./groupScreen";
 
 const GroupChat = () => {
@@ -37,7 +37,7 @@ const GroupChat = () => {
     const chatNow = (group) => {
         setGroup(group);
         navigate(`/group/${group.name}`);
-        socket.emit('connect-group',{room:group.name})
+        socket.emit('connect-group', { room: group.name })
     };
 
     useEffect(() => {
@@ -55,8 +55,8 @@ const GroupChat = () => {
     };
 
     return (
-        <div className="group-chat">
-            <div className="groups">
+        <div className="flex flex-row p-4">
+            <div className="flex flex-col w-52">
                 <button onClick={() => { navigate('/create-group') }}>Create new group</button>
                 {groups.length > 0 ? groups.map(group => {
                     let imageBase64 = '';
@@ -66,11 +66,10 @@ const GroupChat = () => {
                         console.warn("No image data found for group:", group.name);
                     }
                     return (
-                        <div
-                            onClick={() => {
-                                chatNow(group);
-                                setSelectedGroup(group.name);
-                            }}
+                        <div onClick={() => {
+                            chatNow(group);
+                            setSelectedGroup(group.name);
+                        }}
                             className={`group ${selectedGroup === group.name ? 'selected' : ''}`}
                             key={group._id}
                         >
@@ -86,7 +85,7 @@ const GroupChat = () => {
                     );
                 }) : "No Groups"}
             </div>
-            <div className='group-screen'>
+            <div className='overflow-hidden w-full' style={{ height: '83vh' }}>
                 {selectedGroup && <GroupArea group={group} />}
             </div>
         </div>

@@ -51,8 +51,8 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="flex flex-row bg-black">
-            <div className="">
+        <div className="flex flex-row bg-black h-screen">
+            <div className="w-24">
                 <Navigation />
             </div>
             <div className="bg-white text-black m-4 p-4 w-full rounded-3xl">

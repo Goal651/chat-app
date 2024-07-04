@@ -1,9 +1,17 @@
-img {
-  width: 5rem;
-  border-radius: 50%;
-  height: 5rem;
+* {
+  font-size: 14px;
 }
-input{
+body{
+  background-color: white;
+}
+
+img {
+  width: 3rem;
+  border-radius: 50%;
+  height: 3rem;
+}
+
+input {
   outline: none;
-  
+  background-color: transparent;
 }

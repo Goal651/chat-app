@@ -132,24 +132,24 @@ const GroupArea = ({ group }) => {
                     )}
                     <h1>{currentRoom.name}</h1>
                 </div>
-                <div className="chatArea_body">
+                <div style={{ height: '27rem' }} className="overflow-auto ">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
                                 message.sender === username ? (
-                                    <div onContextMenu={messageOperations} className="history" key={message._id}>
-                                        <div className="chat-sender">
-                                            <span className="sender-message">
-                                                <h5>{message.sender}</h5>
+                                    <div key={message._id}>
+                                        <div className="chat chat-end">
+                                            <span className="chat-bubble">
+                                                <h5 className="text-white">{message.sender}</h5>
                                                 <p>{message.message}</p>
                                             </span>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="history" key={message._id}>
-                                        <div className="chat-receiver">
-                                            <span className="receiver-message">
-                                                <h5>{message.sender}</h5>
+                                    <div key={message._id}>
+                                        <div className="chat chat-start">
+                                            <span className="chat-bubble bg-slate-400 text-black">
+                                                <h5 className="text-white">{message.sender}</h5>
                                                 <p>{message.message}</p>
                                             </span>
                                         </div>
@@ -168,16 +168,17 @@ const GroupArea = ({ group }) => {
                                 <img src="/typing.gif" alt="Typing..." />
                             </div>
                         ) : null}
-                        <div className="chatArea_footer">
-                            <form onSubmit={sendMessage}>
-                                <input type="text" placeholder="Enter message" value={message} onChange={handleChange} />
-                                <button type="submit">
-                                    <img src="/send.png" alt="Send" width={'40rem'} />
-                                </button>
-                            </form>
-                        </div>
+
                         <div ref={messagesEndRef}></div>
                     </div>
+                </div>
+                <div className="chatArea_footer">
+                    <form style={{ width: '100%' }}  onSubmit={sendMessage} className=" flex flex-row bg-slate-400 relative  rounded-badge px-4 py-1 justify-between ">
+                        <input type="text" placeholder="Enter message" value={message} onChange={handleChange} className="bg-transparent w-full placeholder:text-black" />
+                        <button type="submit">
+                            <img src="/send.png" alt="Send" className='w-10' />
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
