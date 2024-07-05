@@ -1,17 +1,31 @@
 * {
   font-size: 14px;
 }
-body{
-  background-color: white;
-}
 
-img {
-  width: 3rem;
-  border-radius: 50%;
-  height: 3rem;
+body {
+  background-color: white;
 }
 
 input {
   outline: none;
   background-color: transparent;
+}
+
+.navigation {
+  background-color: rgb(8, 8, 8);
+  color: white;
+}
+
+.navigation img {
+  width: 10rem;
+}
+
+.navigation div {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.navigation h3 {
+ font-size: 1rem;
 }

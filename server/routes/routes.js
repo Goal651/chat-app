@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, checkUser, getUsers, getUser, test, getGroups, getGroup, createGroup } = require('../controllers/app');
+const { login, signup, checkUser, getUsers, getUser, getGroups, getGroup, createGroup } = require('../controllers/app');
 const { getMessage, getGMessage } = require('../controllers/messageController');
 const multer = require('multer');
 
@@ -27,7 +27,6 @@ router.post('/create-group',upload.single('photo'),createGroup)
 router.get('/gmessage/:group', getGMessage)
 
 
-router.get('/test/', test);
 
 
 module.exports = router;

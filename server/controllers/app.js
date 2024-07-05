@@ -70,21 +70,19 @@ const getUser = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
     try {
         const { userEmail } = req.params;
-        const user = await User.findOne({ username: userEmail });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const user = await User.findOne({ username: userEmail })
+        if (!user) return res.status(404).json({ error: 'User not found' })
         const getUserWithImage = async (user) => {
             if (user.image) {
                 try {
-                    const imagePath = path.join(uploadsDir, user.image);
-                    const imageBuffer = await fs.readFile(imagePath);
-                    return { ...user.toObject(), imageData: imageBuffer };
+                    const imagePath = path.join(uploadsDir, user.image)
+                    const imageBuffer = await fs.readFile(imagePath)
+                    return { ...user.toObject(), imageData: imageBuffer }
                 } catch (err) {
-                    console.error('Error reading image file:', err);
-                    return { ...user.toObject(), imageData: null };
+                    return { ...user.toObject(), imageData: null }
                 }
-            } else {
-                return { ...user.toObject(), imageData: null };
-            }
+            } else return { ...user.toObject(), imageData: null };
+
         }
         const userWithImage = await getUserWithImage(user);
         res.status(200).json({ user: userWithImage });
@@ -98,14 +96,14 @@ const getUser = async (req, res) => {
 
 const createGroup = async (req, res) => {
     const image = req.file.path;
-    const { name, admin } = req.body;
+    const { name, admin } = req.body
     try {
-        const existingGroup = await Group.findOne({ name });
+        const existingGroup = await Group.findOne({ name })
         if (existingGroup) return res.status(400).json({ message: "User already exists" });
-        const newGroup = new Group({ name, admin, image });
-        const savedGroup = await newGroup.save();
+        const newGroup = new Group({ name, admin, image })
+        const savedGroup = await newGroup.save()
         if (!savedGroup) return res.status(500).json({ message: "Failed to save user" });
-        res.status(201).json(savedGroup);
+        res.status(201).json(savedGroup)
     } catch (err) {
         res.status(500).json({ message: "Internal server error", error: err.message });
     }
@@ -128,11 +126,13 @@ const getGroups = async (req, res) => {
         res.status(200).json({ groups: groupsWithImages });
     } catch (err) { res.sendStatus(500); }
 }
+
+
 const getGroup = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
-    try { 
+    try {
         const { name } = req.params;
-        const group = await Group.findOne({name});
+        const group = await Group.findOne({ name });
         if (!group) return res.status(404).json({ error: 'User not found' });
         const getGroupWithImage = async (group) => {
             if (group.image) {
@@ -143,9 +143,7 @@ const getGroup = async (req, res) => {
                 } catch (err) {
                     return { ...group.toObject(), imageData: null };
                 }
-            } else {
-                return { ...group.toObject(), imageData: null };
-            }
+            } else return { ...group.toObject(), imageData: null };
         }
         const groupWithImage = await getGroupWithImage(group);
         res.status(200).json({ group: groupWithImage });
@@ -153,25 +151,6 @@ const getGroup = async (req, res) => {
         console.error('Error fetching group:', err);
         res.sendStatus(500);
     }
-}
-
-
-
-const test = (req, res) => {
-    fs.readdir(uploadsDir, (err, files) => {
-        if (err) {
-            console.error('Error reading directory:', err);
-            return res.status(500).json({ error: 'Error reading directory' });
-        }
-
-        const fileData = files.map((file) => {
-            const filePath = path.join(uploadsDir, file);
-            const fileBuffer = fs.readFileSync(filePath);
-            return { data: fileBuffer };
-        });
-
-        res.json(fileData);
-    });
 }
 
 
@@ -183,6 +162,5 @@ module.exports = {
     getUser,
     getGroups,
     getGroup,
-    createGroup,
-    test
-};
+    createGroup
+}

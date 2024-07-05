@@ -15,28 +15,36 @@ const Navigation = () => {
     const toChats = () => { navigate('/') }
     const toGroups = () => { navigate('/group') }
     return (
-        <div className="navigating">
-            <div onClick={() => toChats()}>
-                <img src="/folder.png" alt="" />
-                <h3>All chats</h3>
-            </div>
-            <div onClick={() => { toGroups() }}>
-                <img src="/folder.png" alt="" />
-                <h3>Groups</h3>
-            </div>
-            <div>
-                <img src="/folder.png" alt="" />
-                <h3>All chats</h3>
-            </div>
-            <div>
-                <img src="/folder.png" alt="" />
-                <h3>Setting</h3>
-            </div>
-            <div>
-                <button onClick={() => { logOut() }}>Log out</button>
-
-            </div>
-        </div>
+        <ul className="menu menu-lg rounded-box w-full h-screen navigation ">
+            <li onClick={() => toChats()}>
+                <div>
+                    <img src="/folder.png" alt="" />
+                    <h3>All chats</h3>
+                </div>
+            </li>
+            <li onClick={() => { toGroups() }}>
+                <div>
+                    <img src="/folder.png" alt="" />
+                    <h3>Groups</h3></div>
+            </li>
+            <li>
+                <div>
+                    <img src="/folder.png" alt="" />
+                    <h3>All chats</h3>
+                </div>
+            </li>
+            <li>
+                <div>
+                    <img src="/folder.png" alt="" />
+                    <h3>Setting</h3></div>
+            </li>
+            <li>
+                <div className="" onClick={() => { logOut() }}>
+                    <img src="/logout.png" alt="logout" className="w-4 rotate-180" />
+                    <h4>Log out</h4>
+                </div>
+            </li>
+        </ul>
     )
 }
 export default Navigation;
