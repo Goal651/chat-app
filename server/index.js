@@ -19,7 +19,7 @@ const path = require('path');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(cors()); // Ensure origin matches your frontend
+app.use(cors());
 app.use('/', routes);
 
 
@@ -34,7 +34,7 @@ const io = new Server(server, {
         credentials: true
     }
 });
-app.get('/',(req,res)=>{
+app.get('/', (req, res) => {
     res.send('hello')
 });
 // Initialize chat handler

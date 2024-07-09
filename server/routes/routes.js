@@ -19,7 +19,7 @@ router.get('/checkUser', checkUser)
 router.get('/message', getMessage)
 router.get('/allFriends', getUsers)
 router.get('getUserProfile', getUser);
-router.get('/getUser/:userEmail', getUser)
+router.get('/getUser/:username', getUser)
 
 router.get('/allGroups', getGroups);
 router.get('/getGroup/:name', getGroup);

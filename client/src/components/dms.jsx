@@ -6,10 +6,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ChatArea from "./dmscreen";
 import Cookies from 'js-cookie';
 
-const Chat = ({ friends }) => {
-
-    const { username } = useParams();
-    const navigate = useNavigate();
+const Chat = ({ friends, socket }) => {
+    const { username } = useParams()
+    const navigate = useNavigate()
     const [selectedUser, setSelectedUser] = useState(null);
     const [friend, setFriend] = useState('')
     const [user, setUser] = useState('');
@@ -38,7 +37,7 @@ const Chat = ({ friends }) => {
     return (
         <div className="flex flex-row p-4">
             <div className="flex flex-col w-52">
-                {friends ? friends
+                {friends && friends.length > 0 ? friends
                     .filter(friend => friend.username !== Cookies.get('username'))
                     .map(friend => {
                         let imageBase64 = '';
@@ -53,7 +52,7 @@ const Chat = ({ friends }) => {
                                 key={friend._id}
                             >
                                 <li className="flex flex-row justify-between">
-                                    <span>{imageBase64 ? (<img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className=" h-14 w-14 rounded-3xl" />)
+                                    <span>{imageBase64 ? (<img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className=" w-14 h-14 rounded-lg" />)
                                         : (<img src="/nopro.png" alt="" className=" h-14 " />)}
                                         {friend.username}</span>
                                 </li>
@@ -63,7 +62,7 @@ const Chat = ({ friends }) => {
                     }) : <span className="loading loading-spinner text-neutral"></span>}
             </div>
             <div className='overflow-hidden w-full ' style={{ height: '83vh' }}>
-                <ChatArea friend={friend} />
+                <ChatArea socket={socket} friend={friend} />
             </div>
         </div >
     );

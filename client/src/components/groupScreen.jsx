@@ -1,50 +1,37 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-undef */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
-import io from 'socket.io-client';
 import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
-const GroupArea = ({ group }) => {
-    const { name } = useParams();
-    const [socket, setSocket] = useState(null);
-    const [refresh, setRefresh] = useState(false);
-    const [message, setMessage] = useState("");
-    const [scrollToBottom, setScrollToBottom] = useState(false);
-    const [history, setHistory] = useState([]);
-    const [typing, setTyping] = useState(false);
-    const [groupName, setGroupName] = useState("");
-    const [currentRoom, setCurrentRoom] = useState("");
-    const username = Cookies.get('username');
-    const messagesEndRef = useRef(null);
-
-    useEffect(() => {
-        const newSocket = io("http://localhost:3001", { withCredentials: true });
-        setSocket(newSocket);
-        setTyping(false);
-        return () => {
-            newSocket.disconnect();
-        };
-    }, []);
+const GroupArea = ({ group, socket }) => {
+    const { name } = useParams()
+    const [refresh, setRefresh] = useState(false)
+    const [message, setMessage] = useState("")
+    const [scrollToBottom, setScrollToBottom] = useState(false)
+    const [history, setHistory] = useState([])
+    const [typing, setTyping] = useState(false)
+    const [groupName, setGroupName] = useState("")
+    const [currentRoom, setCurrentRoom] = useState("")
+    const username = Cookies.get('username')
+    const messagesEndRef = useRef(null)
 
     useEffect(() => {
         const fetchGroupDetails = async () => {
             const response = await fetch(`http://localhost:3001/getGroup/${name || group.name}`);
             const data = await response.json();
-            setCurrentRoom(data.group);
-            setGroupName(data.group.name);
-        };
-        fetchGroupDetails();
-    }, [group, name]);
+            if (!data.group) return
+            setCurrentRoom(data.group)
+            setGroupName(data.group.name)
+        }
+        fetchGroupDetails()
+    }, [group, name])
 
     const handleScrollToBottom = () => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
             setScrollToBottom(false);
         }
-    };
+    }
 
     useEffect(() => {
         handleScrollToBottom();
@@ -78,33 +65,31 @@ const GroupArea = ({ group }) => {
 
     useEffect(() => {
         const fetchMessages = async () => {
-            const response = await fetch(`http://localhost:3001/gmessage/${groupName}`);
+            const response = await fetch(`http://localhost:3001/gmessage/${groupName || name}`);
             const data = await response.json();
             setHistory(data.gmessages);
             setScrollToBottom(true);
         };
         fetchMessages();
-    }, [groupName, refresh]);
+    }, [groupName, name, refresh]);
 
     const sendMessage = (e) => {
         e.preventDefault();
         if (message === "" || !groupName) return;
-        socket.emit("send_group_message", { room: groupName, message, sender: username });
+        socket.emit("send_group_message", { room: groupName || name, message, sender: username });
         setScrollToBottom(true);
         setMessage("");
         setRefresh(prev => !prev);
-        socket.emit("not_typing", { username, group: groupName });
+        socket.emit("not_typing", { username, group: groupName || name });
     };
 
     const handleChange = (e) => {
         const newMessage = e.target.value;
         setMessage(newMessage);
-        if (newMessage) socket.emit("typing", { username, group: groupName });
-        else socket.emit("not_typing", { username, group: groupName });
+        if (newMessage) socket.emit("typing", { username, group: groupName || name });
+        else socket.emit("not_typing", { username, group: groupName || name });
         setScrollToBottom(true);
     };
-
-
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -115,7 +100,6 @@ const GroupArea = ({ group }) => {
         }
         return window.btoa(binary);
     };
-    const messageOperations = () => { }
 
     let imageBase64 = '';
     if (currentRoom && currentRoom.imageData && currentRoom.imageData.data) imageBase64 = arrayBufferToBase64(currentRoom.imageData.data);
@@ -126,7 +110,7 @@ const GroupArea = ({ group }) => {
             <div className="chatArea_container">
                 <div className="chatArea_header">
                     {imageBase64 ? (
-                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" />
+                        <img src={`data:image/png;base64,${imageBase64}`} alt="Fetched Image" className="w-14  rounded-lg" />
                     ) : (
                         <img src="/nogro.png" alt="No Group Image" />
                     )}

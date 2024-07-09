@@ -69,8 +69,8 @@ const getUsers = async (req, res) => {
 const getUser = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
     try {
-        const { userEmail } = req.params;
-        const user = await User.findOne({ username: userEmail })
+        const { username } = req.params;
+        const user = await User.findOne({ username: username })
         if (!user) return res.status(404).json({ error: 'User not found' })
         const getUserWithImage = async (user) => {
             if (user.image) {
@@ -133,7 +133,7 @@ const getGroup = async (req, res) => {
     try {
         const { name } = req.params;
         const group = await Group.findOne({ name });
-        if (!group) return res.status(404).json({ error: 'User not found' });
+        if (!group) return res.status(404).json({ error: 'Group not found' });
         const getGroupWithImage = async (group) => {
             if (group.image) {
                 try {

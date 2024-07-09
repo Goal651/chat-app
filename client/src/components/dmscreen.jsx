@@ -3,13 +3,11 @@
 /* eslint-disable no-undef */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
-import io from 'socket.io-client';
 import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
-const DMArea = ({ friend }) => {
+const DMArea = ({ friend, socket }) => {
     const { params } = useParams();
-    const [socket, setSocket] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
     const [scrollToBottom, setScrollToBottom] = useState(false);
@@ -21,22 +19,14 @@ const DMArea = ({ friend }) => {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        const newSocket = io("http://localhost:3001", { withCredentials: true });
-        setSocket(newSocket);
-        setBeingTyped(false);
-        return () => {
-            newSocket.disconnect();
-        };
-    }, []);
-
-    useEffect(() => {
+        if(!params) return
         const fetchUserDetails = async () => {
             const response = await fetch(`http://localhost:3001/getUser/${params || friend}`);
             const data = await response.json();
             setInfo(data.user);
         };
-        fetchUserDetails();
-    }, [friend, params]);
+        fetchUserDetails()
+    }, [friend, params])
 
     const handleScrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -80,14 +70,15 @@ const DMArea = ({ friend }) => {
     }, [socket, friend, username]);
 
     useEffect(() => {
+        if(!params) return
         const fetchMessages = async () => {
             const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${params || friend}`);
             const data = await response.json();
             setHistory(data.messages);
             setScrollToBottom(true);
         };
-        fetchMessages();
-    }, [friend, refresh]);
+        fetchMessages()
+    }, [friend, refresh, params]);
 
     const sendMessage = (e) => {
         e.preventDefault();
@@ -102,7 +93,6 @@ const DMArea = ({ friend }) => {
     const handleChange = (e) => {
         const { value } = e.target
         setMessage(value)
-        console.log(e.target.value)
         if (message !== "") socket.emit("typing", { username, receiver: friend || params });
         else socket.emit("not_typing", { username, receiver: friend || params });
         setScrollToBottom(true);
@@ -128,11 +118,12 @@ const DMArea = ({ friend }) => {
         <div id="chatArea">
             <div className="flex flex-col">
                 <div className="">
-                    {imageBase64 ? (<img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="h-14 w-14"/>)
-                        : (<img src="/nopro.png" alt="No Profile"  className="h-14"/>)}
+                    {imageBase64 ?
+                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="h-14 w-14 rounded-lg" />
+                        : <img src="/nopro.png" alt="No Profile" className="h-14" />}
                     <h1>{info.username || friend}</h1>
                 </div>
-                
+
                 <div style={{ height: '27rem' }} className="overflow-auto ">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (

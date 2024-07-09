@@ -16,6 +16,7 @@ const handlerChat = (io) => {
     io.on('connection', (socket) => {
         userSockets.set(socket.username, socket.id);
         socket.broadcast.emit("connected", socket.username);
+        console.log('user', socket.id, 'connected')
 
         //////////////////////////////////////////////////////
         // Group codes

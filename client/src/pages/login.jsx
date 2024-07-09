@@ -67,11 +67,15 @@ function App() {
       else if (response.status === 401) {
         document.getElementById('password').style.borderColor = "red";
         document.getElementById('email').style.borderColor = "blue";
-        setWrongPass(true);
+        document.getElementById('password').focus()
+        let pass = document.getElementById('password')
+        shake(pass)
+        setWrongPass(true)
         setWrongEmail(false);
       }
       else if (response.status === 404) {
         document.getElementById('email').style.borderColor = "red";
+        document.getElementById('email').focus();
         document.getElementById('password').style.borderColor = "red";
         setWrongEmail(true);
       }
@@ -87,12 +91,12 @@ function App() {
       <div className='login-form'>
         <form onSubmit={handleSubmit} >
           <h1 >Log In</h1>
+          {wrongEmail && <div className='text-red-500'>Invalid email or password</div>}
           <label htmlFor="email" className=''>Email address:</label>
           <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} />
-          {wrongEmail && <div className='wrong'>Incorrect email</div>}
           <label htmlFor="password">Password:</label>
           <input type="password" name="password" id="password" value={formData.password} onChange={handleChange} />
-          {wrongPass && <div className='wrong'>Incorrect Password</div>}
+          {wrongPass && <div className='text-red-500 relative bottom-3'>Incorrect Password</div>}
           <button type="submit" id="login"  >Login</button>
         </form>
         <Link to="/signup" className="create">Create New Account</Link>
