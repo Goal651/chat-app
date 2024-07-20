@@ -3,17 +3,17 @@
 import { useNavigate } from "react-router-dom";
 import Cookies from 'js-cookie';
 
-
 const Navigation = () => {
+
+    const navigate = useNavigate()
     const logOut = () => {
-        Cookies.remove('username');
-        navigate('/login');
+        Cookies.remove('username')
+        navigate('/login')
     }
-    const navigate = useNavigate();
 
-
-    const toChats = () => { navigate('/') }
-    const toGroups = () => { navigate('/group') }
+    const toChats = () => navigate('/')
+    const toGroups = () => navigate('/group')
+    const toProfile = () => navigate('/profile')
     return (
         <ul className="menu menu-lg rounded-box w-full h-screen navigation ">
             <li onClick={() => toChats()}>
@@ -27,20 +27,21 @@ const Navigation = () => {
                     <img src="/folder.png" alt="" />
                     <h3>Groups</h3></div>
             </li>
-            <li>
+            <li onClick={() => { toProfile() }}>
                 <div>
                     <img src="/folder.png" alt="" />
-                    <h3>All chats</h3>
+                    <h3>Profile</h3>
                 </div>
             </li>
             <li>
                 <div>
                     <img src="/folder.png" alt="" />
-                    <h3>Setting</h3></div>
+                    <h3>Setting</h3>
+                </div>
             </li>
             <li>
                 <div className="" onClick={() => { logOut() }}>
-                    <img src="/logout.png" alt="logout" className="w-4 rotate-180" />
+                    <img src="/logout.png" alt="logout" className="w-2 rotate-180" style={{ width: '30px' }} />
                     <h4>Log out</h4>
                 </div>
             </li>

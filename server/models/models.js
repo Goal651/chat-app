@@ -3,6 +3,8 @@ const mongoose = require('mongoose')
 
 const userSchema = mongoose.Schema(
     {
+        f_name: { type: String, require: true },
+        l_name: { type: String, require: true },
         username: { type: String, require: [true, "Please enter username"] },
         email: { type: String, require: [true, "please enter email"] },
         password: { type: String, require: [true, "please enter your password"] },
@@ -57,7 +59,7 @@ const groupSchema = mongoose.Schema(
 const User = mongoose.model("users", userSchema)
 const Tokens = mongoose.model("tokens", tokenSchema)
 const Message = mongoose.model("messages", messageSchema)
-const GMessage=mongoose.model('GMessage',groupMessageSchema)
+const GMessage = mongoose.model('GMessage', groupMessageSchema)
 const Group = mongoose.model('groups', groupSchema)
 
-module.exports = { User, Tokens, Message, Group ,GMessage};
+module.exports = { User, Tokens, Message, Group, GMessage };

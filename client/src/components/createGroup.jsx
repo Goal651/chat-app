@@ -45,14 +45,14 @@ function CreateGroup() {
     };
 
     return (
-        <div className='createGroup'>
-            <h1>Create Group</h1>
+        <div className='form form-control'>
+            <h1 className='font-bold text-2xl my-5'>Create Group</h1>
             <form onSubmit={sendData}>
                 <label htmlFor="group">Group Name</label>
-                <input type="text" id="group" name="group" value={group.name} onChange={handleChange} />
+                <input type="text" id="group" name="group" value={group.name} onChange={handleChange} className='input bg-transparent border-blue-700' />
                 <label htmlFor="image">Photo</label>
-                <input type="file" name='image' onChange={handleChange} />
-                <button type="submit">Create</button>
+                <input type="file" name='image' onChange={handleChange} className='file-input file-input-accent bg-accent' />
+                <button type="submit" className='btn m-5'>Create</button>
             </form>
         </div>
     );

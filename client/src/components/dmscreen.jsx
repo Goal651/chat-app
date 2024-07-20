@@ -1,63 +1,62 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-undef */
 /* eslint-disable react/prop-types */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Cookies from 'js-cookie';
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import debounce from 'lodash/debounce'
 
 const DMArea = ({ friend, socket }) => {
-    const { params } = useParams();
+    const navigate = useNavigate();
+    const { user } = useParams();
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
     const [info, setInfo] = useState([]);
-    const [unreadMessages, setUnreadMessages] = useState(0);
     const username = Cookies.get('username');
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        if(!params) return
+        if (!user) return;
         const fetchUserDetails = async () => {
-            const response = await fetch(`http://localhost:3001/getUser/${params || friend}`);
+            const response = await fetch(`http://localhost:3001/getUser/${user || friend}`);
             const data = await response.json();
             setInfo(data.user);
         };
-        fetchUserDetails()
-    }, [friend, params])
+        setMessage("")
+        fetchUserDetails();
+    }, [friend, user, navigate]);
 
-    const handleScrollToBottom = () => {
+    const handleScrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
             setScrollToBottom(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         handleScrollToBottom();
-    }, [scrollToBottom]);
+    }, [scrollToBottom, handleScrollToBottom]);
 
     useEffect(() => {
         if (!socket) return;
+
         const handleReceiveMessage = () => {
             setRefresh(prev => !prev);
             setScrollToBottom(true);
         };
 
         const handleTyping = ({ receiver, sender }) => {
-            if ((receiver === username && friend) || params === sender) setBeingTyped(true);
+            if ((receiver === username && friend) || user === sender) setBeingTyped(true);
             else setBeingTyped(false);
+            setScrollToBottom(true)
         };
 
-        const handleNotTyping = ({ sender, receiver }) => {
-            if ((receiver === username && friend) || params === sender) setBeingTyped(false);
-        };
+        const handleNotTyping = ({sender, receiver }) => {
+            if ((receiver === username && friend) || user === sender) setBeingTyped(false);
+        }
 
-        socket.on('unread_messages', (count) => {
-            setUnreadMessages(count);
-        });
         socket.on("receive_message", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("not_typing", handleNotTyping);
@@ -67,38 +66,46 @@ const DMArea = ({ friend, socket }) => {
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
         };
-    }, [socket, friend, username]);
+    }, [socket, friend, username, user])
 
     useEffect(() => {
-        if(!params) return
+        if (!user) return;
+
         const fetchMessages = async () => {
-            const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${params || friend}`);
+            const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${user || friend}`);
             const data = await response.json();
             setHistory(data.messages);
             setScrollToBottom(true);
         };
-        fetchMessages()
-    }, [friend, refresh, params]);
+        fetchMessages();
+    }, [friend, refresh, user, username]);
 
-    const sendMessage = (e) => {
+    const sendMessage = useCallback((e) => {
         e.preventDefault();
         if (message === "") return;
-        socket.emit("send_message", { receiver: friend || params, message, sender: username });
+        socket.emit("send_message", { receiver: friend || user, message, sender: username });
         setScrollToBottom(true);
         setMessage("");
         setRefresh(prev => !prev);
-        socket.emit("not_typing", { username, receiver: friend || params });
-    };
+        socket.emit("not_typing", { username, receiver: friend || user });
+    }, [message, socket, friend, user, username]);
 
-    const handleChange = (e) => {
-        const { value } = e.target
-        setMessage(value)
-        if (message !== "") socket.emit("typing", { username, receiver: friend || params });
-        else socket.emit("not_typing", { username, receiver: friend || params });
+    const debounceTyping = useMemo(() => debounce(({ username, receiver }) => {
+        socket.emit("typing", { username, receiver });
+    }, 1000), [socket]); 
+
+    const handleChange = useCallback((e) => {
+        const { value } = e.target;
+        setMessage(value);
+        if (value !== "") {
+            debounceTyping({ username, receiver: friend || user });
+        } else {
+            socket.emit("not_typing", { username, receiver: friend || user });
+        }
         setScrollToBottom(true);
-    };
-
-    const messageOperations = () => { }
+    }, [debounceTyping, socket, friend, user, username]);
+    
+    
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = '';
@@ -110,21 +117,23 @@ const DMArea = ({ friend, socket }) => {
         return window.btoa(binary);
     };
 
-    let imageBase64 = '';
-    if (info.imageData && info.imageData.data) imageBase64 = arrayBufferToBase64(info.imageData.data);
-    else imageBase64 = '';
+    const imageBase64 = useMemo(() => {
+        if (info.imageData && info.imageData.data) return arrayBufferToBase64(info.imageData.data);
+        return '';
+    }, [info]);
 
     return (
-        <div id="chatArea">
+        <div className="">
             <div className="flex flex-col">
-                <div className="">
-                    {imageBase64 ?
+                <div className="flex">
+                    {imageBase64 ? (
                         <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="h-14 w-14 rounded-lg" />
-                        : <img src="/nopro.png" alt="No Profile" className="h-14" />}
-                    <h1>{info.username || friend}</h1>
+                    ) : (
+                        <img src="/nopro.png" alt="No Profile" className="h-14" />
+                    )}
+                    <div className="font-semibold text-xl ml-5 ">{info.username || friend}</div>
                 </div>
-
-                <div style={{ height: '27rem' }} className="overflow-auto ">
+                <div style={{ height: '31rem' }} className="overflow-auto ">
                     <div className="chatArea_history">
                         {history && history.length > 0 ? (
                             history.map((message) => (
@@ -154,11 +163,10 @@ const DMArea = ({ friend, socket }) => {
                                 <img src="/typing.gif" alt="Typing..." />
                             </div>
                         ) : null}
-
-                        <div ref={messagesEndRef} ></div>
+                        <div ref={messagesEndRef}></div>
                     </div>
                 </div>
-                <div className="">
+                <div className="mt-5">
                     <form style={{ width: '100%' }} onSubmit={sendMessage} className=" flex flex-row bg-slate-400 relative  rounded-badge px-4 py-1 justify-between ">
                         <input type="text" placeholder="Enter message" value={message} onChange={handleChange} className="bg-transparent w-full placeholder:text-black" />
                         <button type="submit">
@@ -172,3 +180,4 @@ const DMArea = ({ friend, socket }) => {
 };
 
 export default DMArea;
+``

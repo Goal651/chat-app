@@ -6,15 +6,16 @@ const path = require('path')
 
 
 const signup = async (req, res) => {
-    const uploadsDir = path.join(__dirname, '../uploads');
-    const image = req.file.path;
-    const { username, email, password } = req.body;
+    let image = ''
+    if (req.file) { image = req.file.path; }
+    console.log(req.file)
+    const { email, password, f_name, l_name, username } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
     try {
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ message: "User already exists" });
-        const newUser = new User({ username, email, password: hash, image });
+        const newUser = new User({ email, password: hash, image, username, l_name, f_name });
         const savedUser = await newUser.save();
         if (!savedUser) return res.status(500).json({ message: "Failed to save user" });
         res.status(201).json(savedUser);
@@ -59,7 +60,7 @@ const getUsers = async (req, res) => {
                     return { ...user.toObject(), imageData: imageBuffer };
                 } catch (err) { return { ...user.toObject(), imageData: null } }
             } else return { ...user.toObject(), imageData: null };
-        }));
+        }))
         res.status(200).json({ users: usersWithImages });
     } catch (err) { res.sendStatus(500); }
 };

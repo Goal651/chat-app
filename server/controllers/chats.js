@@ -1,6 +1,6 @@
 const { Message, GMessage } = require('../models/models');
 const userSockets = new Map();
-const roomSockets = new Map();
+const rooms = {};
 const cookie = require('cookie');
 
 const handlerChat = (io) => {
@@ -20,15 +20,34 @@ const handlerChat = (io) => {
 
         //////////////////////////////////////////////////////
         // Group codes
-        socket.on('connect-group', ({ room }) => {
-            const socketRoom = roomSockets.get(room);
-            if (socketRoom) return;
-            roomSockets.set(room, socket.id);
-            console.log(`${room} joined`);
+
+        socket.on('connect_group', ({ room }) => {
+            if (!rooms[room]) {
+                rooms[room] = new Set(); // Use Set to avoid duplicate entries
+                console.log(`Room ${room} created`);
+            } else {
+                socket.emit('room_exists', room)
+                console.log(`Room ${room} already exists.`);
+            }
         });
 
+        // Handle room joining
+        socket.on("join_room", ({ room, user }) => {
+            if (rooms[room]) {
+                rooms[room].add(user);
+                socket.join(room);
+                socket.emit('joined_room', room);
+                console.log(`Socket ${user} joined room ${room}.`);
+            } else {
+                socket.emit('roomNotFound', room);
+                console.log(`Room ${room} not found.`);
+            }
+        })
+
+  
+
         socket.on('send_group_message', async ({ message, room, sender }) => {
-            const targetRoom = roomSockets.get(room)
+            console.log(rooms);
             try {
                 const newMessage = new GMessage({
                     sender: sender,
@@ -36,7 +55,7 @@ const handlerChat = (io) => {
                     group: room
                 });
                 await newMessage.save();
-                io.to(targetRoom).emit("receive_message", { sender, room });
+                io.to(room).emit("receive_message", { sender, room })
             } catch (error) {
                 console.error('Error saving message:', error);
             }
@@ -69,7 +88,7 @@ const handlerChat = (io) => {
         socket.on('not_typing', ({ username, receiver }) => {
             const targetSocketId = userSockets.get(receiver);
             if (!targetSocketId) return;
-            io.to(targetSocketId).emit('not_typing', { username, receiver });
+            io.to(targetSocketId).emit('not_typing', { sender:username, receiver });
         });
 
         socket.on('disconnect', () => {

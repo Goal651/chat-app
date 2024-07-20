@@ -34,9 +34,7 @@ const io = new Server(server, {
         credentials: true
     }
 });
-app.get('/', (req, res) => {
-    res.send('hello')
-});
+
 // Initialize chat handler
 handlerChat(io);
 
@@ -56,8 +54,6 @@ let gfs;
 conn.once('open', () => {
     gfs = Grid(conn.db, mongoose.mongo);
     gfs.collection('uploads');
-
-
 
     const storage = new GridFsStorage({
         url: process.env.MONGO_URI,

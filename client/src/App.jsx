@@ -1,26 +1,27 @@
-/* eslint-disable no-unused-vars */
-import React from 'react';
+import  { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import Login from './pages/login';
-import Signup from './pages/signup';
-import Dashboard from './pages/dashboard';
-import NotFound from './pages/construction';
 
+const Login = lazy(() => import('./pages/login'));
+const Signup = lazy(() => import('./pages/signup'));
+const Dashboard = lazy(() => import('./pages/dashboard'));
+const NotFound = lazy(() => import('./pages/construction'));
 
 function App() {
   return (
     <div className="App">
       <Router>
-        <Routes>
-          <Route path='/login' element={<Login />} />
-          <Route path='/signup' element={<Signup />} />
-          <Route path='/' element={<Dashboard />} />
-          <Route path='/chat/:params' element={<Dashboard />} />
-          <Route path='/group/:name' element={<Dashboard />} />
-          <Route path='/:type' element={<Dashboard />} />
-          <Route path='*' element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path='/login' element={<Login />} />
+            <Route path='/signup' element={<Signup />} />
+            <Route path='/' element={<Dashboard />} />
+            <Route path='/chat/:user' element={<Dashboard />} />
+            <Route path='/group/:group' element={<Dashboard />} />
+            <Route path='/:type' element={<Dashboard />} />
+            <Route path='*' element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </Router>
     </div>
   );
