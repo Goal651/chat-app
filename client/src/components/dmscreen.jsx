@@ -62,15 +62,14 @@ const DMArea = ({ friend, socket }) => {
         socket.on("not_typing", handleNotTyping);
 
         return () => {
-            socket.off("receive_message", handleReceiveMessage);
-            socket.off("typing", handleTyping);
-            socket.off("not_typing", handleNotTyping);
-        };
+            socket.off("receive_message", handleReceiveMessage)
+            socket.off("typing", handleTyping)
+            socket.off("not_typing", handleNotTyping)
+        }
     }, [socket, friend, username, user])
 
     useEffect(() => {
-        if (!user) return;
-
+        if (!user) return
         const fetchMessages = async () => {
             const response = await fetch(`http://localhost:3001/message?sender=${username}&receiver=${user || friend}`);
             const data = await response.json();
@@ -84,15 +83,15 @@ const DMArea = ({ friend, socket }) => {
         e.preventDefault();
         if (message === "") return;
         socket.emit("send_message", { receiver: friend || user, message, sender: username });
-        setScrollToBottom(true);
-        setMessage("");
-        setRefresh(prev => !prev);
-        socket.emit("not_typing", { username, receiver: friend || user });
-    }, [message, socket, friend, user, username]);
+        setScrollToBottom(true)
+        setMessage("")
+        setRefresh(prev => !prev)
+        socket.emit("not_typing", { username, receiver: friend || user })
+    }, [message, socket, friend, user, username])
 
     const debounceTyping = useMemo(() => debounce(({ username, receiver }) => {
-        socket.emit("typing", { username, receiver });
-    }, 1000), [socket]); 
+        socket.emit("typing", { username, receiver })
+    }, 1000), [socket])
 
     const handleChange = useCallback((e) => {
         const { value } = e.target;

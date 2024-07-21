@@ -8,7 +8,6 @@ const path = require('path')
 const signup = async (req, res) => {
     let image = ''
     if (req.file) { image = req.file.path; }
-    console.log(req.file)
     const { email, password, f_name, l_name, username } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
@@ -25,7 +24,6 @@ const signup = async (req, res) => {
 };
 
 const checkUser = (req, res) => {
-    console.log(req.cookies);
     const accessToken = req.cookies.accessToken;
     if (!accessToken) return res.status(401).json({ message: "Not logged in" });
     jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
@@ -47,23 +45,34 @@ const login = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: err.message });
     }
 };
-
 const getUsers = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
     try {
-        const users = await User.find();
+        const users = await User.find().populate({
+            path: 'unread.sender',
+            select: 'username'
+        });
+
         const usersWithImages = await Promise.all(users.map(async user => {
             if (user.image) {
                 try {
                     const imagePath = path.join(uploadsDir, user.image);
                     const imageBuffer = await fs.readFile(imagePath);
                     return { ...user.toObject(), imageData: imageBuffer };
-                } catch (err) { return { ...user.toObject(), imageData: null } }
-            } else return { ...user.toObject(), imageData: null };
-        }))
+                } catch (err) {
+                    return { ...user.toObject(), imageData: null };
+                }
+            } else {
+                return { ...user.toObject(), imageData: null };
+            }
+        }));
         res.status(200).json({ users: usersWithImages });
-    } catch (err) { res.sendStatus(500); }
-};
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        res.sendStatus(500);
+    }
+}
+
 
 
 
@@ -134,7 +143,7 @@ const getGroup = async (req, res) => {
     try {
         const { name } = req.params;
         const group = await Group.findOne({ name });
-        if (!group) return res.status(404).json({ error: 'Group not found' });
+        if (!group) return res.status(404).json({ error: 'Group not found' })
         const getGroupWithImage = async (group) => {
             if (group.image) {
                 try {

@@ -1,4 +1,4 @@
-const { Message, GMessage } = require('../models/models');
+const { Message, GMessage, User } = require('../models/models');
 const userSockets = new Map();
 const rooms = {};
 const cookie = require('cookie');
@@ -44,7 +44,7 @@ const handlerChat = (io) => {
             }
         })
 
-  
+
 
         socket.on('send_group_message', async ({ message, room, sender }) => {
             console.log(rooms);
@@ -73,7 +73,11 @@ const handlerChat = (io) => {
                     receiver: receiver
                 });
                 await newMessage.save();
-                io.to(targetSocketId).emit("receive_message", { sender, message });
+                if (targetSocketId) io.to(targetSocketId).emit("receive_message", { sender, message })
+                else await User.updateOne(
+                    { username: receiver },
+                    { $push: { unread: { message, sender } } }
+                );
             } catch (error) {
                 console.error('Error saving message:', error);
             }
@@ -88,7 +92,20 @@ const handlerChat = (io) => {
         socket.on('not_typing', ({ username, receiver }) => {
             const targetSocketId = userSockets.get(receiver);
             if (!targetSocketId) return;
-            io.to(targetSocketId).emit('not_typing', { sender:username, receiver });
+            io.to(targetSocketId).emit('not_typing', { sender: username, receiver });
+        });
+
+
+        socket.on('mark_messages_as_read', async ({ sender }) => {
+            try {
+                await User.updateOne(
+                    { username: socket.username },
+                    { $pull: { unread: { sender } } }
+                );
+                console.log(`Messages from ${sender} marked as read for ${socket.username}`);
+            } catch (error) {
+                console.error('Error marking messages as read:', error);
+            }
         });
 
         socket.on('disconnect', () => {

@@ -1,20 +1,23 @@
 const { Timestamp } = require('mongodb')
 const mongoose = require('mongoose')
 
-const userSchema = mongoose.Schema(
-    {
-        f_name: { type: String, require: true },
-        l_name: { type: String, require: true },
-        username: { type: String, require: [true, "Please enter username"] },
-        email: { type: String, require: [true, "please enter email"] },
-        password: { type: String, require: [true, "please enter your password"] },
-        image: { type: String, required: [true, "please upload image"] },
-        createdAt: { type: Date, default: Date.now }
-    },
-    {
-        timestamps: true
-    }
-)
+const unreadMessageSchema = new mongoose.Schema({
+    message: { type: String, required: true },
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+});
+
+const userSchema = new mongoose.Schema({
+    f_name: { type: String, require: true },
+    l_name: { type: String, require: true },
+    username: { type: String, require: [true, "Please enter username"] },
+    email: { type: String, require: [true, "please enter email"] },
+    password: { type: String, require: [true, "please enter your password"] },
+    image: { type: String, required: [true, "please upload image"] },
+    createdAt: { type: Date, default: Date.now },
+    unread: [unreadMessageSchema],
+}, {
+    timestamps: true
+});
 
 const tokenSchema = mongoose.Schema(
     {

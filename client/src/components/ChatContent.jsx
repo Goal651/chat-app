@@ -18,6 +18,7 @@ const ChatContent = ({ friends, socket }) => {
     const navigate = useNavigate();
     const [selectedUser, setSelectedUser] = useState(null);
     const [friend, setFriend] = useState('');
+    console.log(friends[1].unread[0])
 
     useEffect(() => {
         const username = Cookies.get('username');
@@ -25,11 +26,11 @@ const ChatContent = ({ friends, socket }) => {
     }, [navigate]);
 
     const chatNow = useCallback((friend) => {
-        console.log(friend);
         setFriend(friend.username);
         navigate(`/chat/${friend.username}`);
         setSelectedUser(friend.username);
-    }, [navigate]);
+        socket.emit('mark_as_read',friend.username)
+    }, [navigate,socket]);
 
     return (
         <div className="flex flex-row">
@@ -65,6 +66,15 @@ const ChatContent = ({ friends, socket }) => {
                                                 />
                                             )}
                                             {friend.username}
+                                            {friend.unread && friend.unread.length > 0 ?(
+                                                <div className="unread-messages">
+                                                    {friend.unread.map((unread, index) => (
+                                                        <div key={index} className="unread-message">
+                                                            <p><strong>{unread.sender}:</strong> {unread.message}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ):null}
                                         </span>
                                     </li>
                                 </ul>

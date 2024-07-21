@@ -8,6 +8,7 @@ const Profile = () => {
     const [detail, setDetail] = useState({})
     const username = Cookies.get('username');
     const [imageBase64, setImageBase64] = useState('')
+    const [unread, setUnread] = useState([])
 
 
     const arrayBufferToBase64 = (buffer) => {
@@ -30,15 +31,16 @@ const Profile = () => {
                 const response = await fetch(`http://localhost:3001/getUser/${username}`)
                 const data = await response.json()
                 setDetail(data.user)
+                setUnread(data.user.unread)
 
             } catch (error) {
                 console.error("Error fetching friends:", error)
-            } 
+            }
         }
         fetchUserDetails()
     }, [username])
 
-    
+
     useEffect(() => {
         const groups = () => {
             if (!detail) return
@@ -60,7 +62,11 @@ const Profile = () => {
                                 : <img src="/nopro.png" alt="No Profile" className="h-14" />
                         }
                     </div>
+                    {unread && unread.length>0 ? unread.map(unread => (
+                        <h2 key={''}>{unread.message}</h2>
+                    )) : null}
                     <h3 className="text-center">{detail.username}</h3>
+
                 </div>) : (<span></span>)}
         </div>
     )
