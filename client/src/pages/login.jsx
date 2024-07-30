@@ -59,12 +59,13 @@ function App() {
 
       if (response.status === 200) {
         const data = await response.json();
-        Cookies.set('username', data)
+        Cookies.set('username', data.username)
+        Cookies.set('id', data.id)
         navigate("/home");
       }
       else if (response.status === 401) {
-        document.getElementById('password').style.borderColor = "red";
-        document.getElementById('email').style.borderColor = "blue";
+        document.getElementById('password').style.outlineColor = "red";
+        document.getElementById('email').style.outlineColor = "blue";
         document.getElementById('password').focus()
         let pass = document.getElementById('password')
         shake(pass)
@@ -72,9 +73,9 @@ function App() {
         setWrongEmail(false);
       }
       else if (response.status === 404) {
-        document.getElementById('email').style.borderColor = "red";
+        document.getElementById('email').style.outlineColor = "red";
         document.getElementById('email').focus();
-        document.getElementById('password').style.borderColor = "red";
+        document.getElementById('password').style.outlineColor = "red";
         setWrongEmail(true);
       }
       else { throw new Error("Something went wrong"); }
@@ -87,17 +88,17 @@ function App() {
         <img src="/welcome.jpg" alt="" />
       </div>
       <div className='w-full justify-center form h-full overflow-hidden'>
-        <form onSubmit={handleSubmit} className='flex flex-col h-1/2 w-72 justify-evenly ' autoComplete='false'>
+        <form onSubmit={handleSubmit} className='flex flex-col h-1/2 w-72 justify-evenly m-4 ' autoComplete='false'>
           <h1 className='gradient bg-clip-text text-transparent font-bold text-3xl'>Log In</h1>
           {wrongEmail && <div className='text-red-500'>Invalid email or password</div>}
           <label htmlFor="email" className=''>Email address:</label>
-          <input type="email" name="email" id='email' value={formData.email} onChange={handleChange} className='input bg-transparent border-blue-700 focus:bg-transparent ' />
+          <input type="email" name="email" id='email' value={formData.email} onChange={handleChange} className='input bg-transparent  outline outline-blue-300  ' />
           <label htmlFor="password">Password:</label>
-          <input type="password" name="password" id="password" value={formData.password} onChange={handleChange} className='input bg-transparent border-blue-700' />
+          <input type="password" name="password" id="password" value={formData.password} onChange={handleChange} className='input bg-transparent outline outline-blue-300' />
           {wrongPass && <div className='text-red-500 relative bottom-3'>Incorrect Password</div>}
           <button type="submit" id="login" className='btn btn-info  w-1/2 text-white '  >Login</button>
         </form>
-        <Link to="/signup" className="link link-error link-hover">Create New Account</Link>
+        <Link to="/signup" className="link text-green-500 link-hover">Create New Account</Link>
       </div>
 
     </div>

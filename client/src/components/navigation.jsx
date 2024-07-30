@@ -1,12 +1,13 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 
 import { useNavigate } from "react-router-dom";
 import Cookies from 'js-cookie';
 
-const Navigation = () => {
-
+const Navigation = ({ socket }) => {
     const navigate = useNavigate()
     const logOut = () => {
+        socket.emit('disconnected')
         Cookies.remove('username')
         navigate('/login')
     }
@@ -14,6 +15,7 @@ const Navigation = () => {
     const toChats = () => navigate('/')
     const toGroups = () => navigate('/group')
     const toProfile = () => navigate('/profile')
+    const toSetting = () => navigate('/setting')
     return (
         <ul className="menu menu-lg rounded-box w-full h-screen navigation ">
             <li onClick={() => toChats()}>
@@ -25,7 +27,8 @@ const Navigation = () => {
             <li onClick={() => { toGroups() }}>
                 <div>
                     <img src="/folder.png" alt="" />
-                    <h3>Groups</h3></div>
+                    <h3>Groups</h3>
+                </div>
             </li>
             <li onClick={() => { toProfile() }}>
                 <div>
@@ -33,8 +36,8 @@ const Navigation = () => {
                     <h3>Profile</h3>
                 </div>
             </li>
-            <li>
-                <div>
+            <li onClick={() => { toSetting() }}>
+                <div >
                     <img src="/folder.png" alt="" />
                     <h3>Setting</h3>
                 </div>

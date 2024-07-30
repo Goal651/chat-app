@@ -1,38 +1,39 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState, lazy } from "react";
 import Cookies from 'js-cookie';
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
+import Settings from "./setting";
 const Navigation = lazy(() => import("../components/navigation"))
 const CreateGroup = lazy(() => import("../components/createGroup"))
 const NotFound = lazy(() => import("./construction"))
 const Details = lazy(() => import("../components/info"))
 const Profile = lazy(() => import("./profile"))
-const GroupContent = lazy(() => import( "../components/GroupContent"))
+const GroupContent = lazy(() => import("../components/GroupContent"))
 const ChatContent = lazy(() => import("../components/ChatContent"))
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        const newSocket = io(url, { withCredentials: true });
-        setSocket(newSocket);
-        return () => {
-            newSocket.disconnect();
-        };
+        const newSocket = io(url, { withCredentials: true })
+        setSocket(newSocket)
+        return () => newSocket.disconnect();
     }, [url]);
-
     return socket;
 };
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { group, user, type } = useParams();
+    const { name, user, type } = useParams();
     const [friends, setFriends] = useState([]);
     const [loadingGroup, setLoadingGroup] = useState(true);
     const [loading, setLoading] = useState(true);
     const username = Cookies.get('username');
     const [groups, setGroups] = useState([]);
     const socket = useSocket("http://localhost:3001");
+    const [reload, setReload] = useState(false)
+    const [onlineUsers, setOnlineUsers] = useState([])
 
     useEffect(() => {
         if (!username) navigate('/login');
@@ -42,7 +43,7 @@ const Dashboard = () => {
         const fetchData = async () => {
             try {
                 const [friendsResponse, groupsResponse] = await Promise.all([
-                    fetch('http://localhost:3001/allFriends'),
+                    fetch(`http://localhost:3001/allFriends?username=${username}`),
                     fetch('http://localhost:3001/allGroups'),
                 ]);
                 const friendsData = await friendsResponse.json();
@@ -54,31 +55,47 @@ const Dashboard = () => {
             } finally {
                 setLoading(false);
                 setLoadingGroup(false);
+                setReload(false)
             }
         };
-        fetchData();
-    }, [username]);
+        fetchData()
+    }, [username, reload]);
+
+    useEffect(() => {
+        if (!socket) return
+        socket.emit('fetch_online_users', username)
+    }, [])
+
+
+    useEffect(() => {
+        if (!socket) return
+        socket.on('online_users', data => setOnlineUsers(data))
+        socket.on('marked_as_read', () => setReload(true))
+        socket.on('receive_message', () => setReload(true))
+        socket.on('message_sent', () => setReload(true))
+        return () => {
+            socket.off('marked_as_read')
+            socket.off('online_user')
+            socket.off('receive_message')
+            socket.off('message_sent')
+        }
+    }, [socket])
 
     const renderContent = () => {
         if (loading || loadingGroup) {
-            return <span className="loading loading-spinner text-neutral"></span>;
+            return <span className="loading loading-spinner text-neutral bg-black"></span>;
         }
 
         const contentMap = {
-            'group': <GroupContent groups={groups} socket={socket} />,
+            'group': <GroupContent groups={groups} socket={socket} onlineUsers={onlineUsers} />,
             'create-group': <CreateGroup />,
             'chat': <ChatContent friends={friends} socket={socket} />,
             'profile': <Profile />,
+            'setting': <Settings/>,
             'default': <NotFound />,
-        };
-
-        if (group) {
-            return <GroupContent groups={groups} socket={socket} />;
         }
-
-        if (user) {
-            return <ChatContent friends={friends} socket={socket} />;
-        }
+        if (name) return <GroupContent groups={groups} socket={socket} />
+        if (user) return <ChatContent friends={friends} socket={socket} />
 
         return contentMap[type] || <ChatContent friends={friends} socket={socket} />;
     };
@@ -86,13 +103,13 @@ const Dashboard = () => {
     return (
         <div className="flex flex-row bg-black h-screen">
             <div className="w-48">
-                <Navigation />
+                <Navigation socket={socket} />
             </div>
             <div className="bg-white text-black mr-4 my-4 pt-6 pl-0 w-full rounded-3xl">
                 {renderContent()}
             </div>
             <div className="w-96 bg-white my-4 mr-4 rounded-3xl">
-                <Details />
+                <Details onlineUsers={onlineUsers} />
             </div>
         </div>
     );

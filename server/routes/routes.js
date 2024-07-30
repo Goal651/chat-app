@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, checkUser, getUsers, getUser, getGroups, getGroup, createGroup } = require('../controllers/app');
+const { login, signup, checkUser, getUsers, getUser, getGroups, getGroup, createGroup, updateUser } = require('../controllers/app')
 const { getMessage, getGMessage } = require('../controllers/messageController');
 const multer = require('multer');
 
@@ -13,20 +13,29 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage })
 
+
+//Authentication
 router.post('/login', login)
-router.post('/signup', upload.single('image'), signup)
 router.get('/checkUser', checkUser)
-router.get('/message', getMessage)
-router.get('/allFriends', getUsers)
+
+//creation of groups and users
+router.post('/signup', upload.single('image'), signup)
+router.post('/create-group', upload.single('photo'), createGroup)
+
+//getting users and groups
 router.get('getUserProfile', getUser);
 router.get('/getUser/:username', getUser)
-
+router.get('/allFriends', getUsers)
 router.get('/allGroups', getGroups);
 router.get('/getGroup/:name', getGroup);
-router.post('/create-group',upload.single('photo'),createGroup)
+
+//getting messages
 router.get('/gmessage/:group', getGMessage)
+router.get('/message', getMessage)
 
+//updating user and messages
 
+router.put('/editUser/profile', upload.single('image'), updateUser)
 
 
 module.exports = router;

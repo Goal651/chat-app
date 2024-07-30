@@ -1,4 +1,4 @@
-import  { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 
@@ -11,13 +11,15 @@ function App() {
   return (
     <div className="App">
       <Router>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className='h-screen flex justify-center bg-slate-900'>
+          <span className='loading loading-spinner h-screen bg-white'></span>
+        </div>}>
           <Routes>
             <Route path='/login' element={<Login />} />
             <Route path='/signup' element={<Signup />} />
             <Route path='/' element={<Dashboard />} />
             <Route path='/chat/:user' element={<Dashboard />} />
-            <Route path='/group/:group' element={<Dashboard />} />
+            <Route path='/group/:name' element={<Dashboard />} />
             <Route path='/:type' element={<Dashboard />} />
             <Route path='*' element={<NotFound />} />
           </Routes>

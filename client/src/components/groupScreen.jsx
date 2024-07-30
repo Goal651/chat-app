@@ -85,6 +85,7 @@ const GroupArea = ({ group, socket }) => {
         socket.emit("not_typing", { username, group: groupName || name });
     }, [message, groupName, name, username, socket]);
 
+
     const handleChange = useCallback((e) => {
         const newMessage = e.target.value;
         setMessage(newMessage);
@@ -93,6 +94,7 @@ const GroupArea = ({ group, socket }) => {
         setScrollToBottom(true);
     }, [groupName, name, username, socket]);
 
+    
     const arrayBufferToBase64 = useCallback((buffer) => {
         let binary = '';
         const bytes = new Uint8Array(buffer);
