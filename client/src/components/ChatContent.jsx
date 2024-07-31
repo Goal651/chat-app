@@ -67,16 +67,16 @@ const ChatContent = ({ friends, socket }) => {
     const filteredFriends = friends.filter(friend => friend.username.toLowerCase().includes(searchQuery));
 
     return (
-        <div className="flex flex-row">
-            <div className="flex flex-col w-1/3 overflow-y-auto overflow-x-hidden">
-                <input 
-                    type="text" 
-                    value={searchQuery} 
-                    onChange={handleSearch} 
-                    placeholder="Search friends..." 
+        <div className="flex flex-row " >
+            <div style={{ height: '90vh' }} className="flex flex-col w-1/3 overflow-y-auto overflow-x-hidden" >
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    placeholder="Search friends..."
                     className="p-2 m-2 border rounded"
                 />
-                {filteredFriends && filteredFriends.length > 0 ? (
+                <div >{filteredFriends && filteredFriends.length > 0 ? (
                     filteredFriends
                         .filter(friend => friend.username !== Cookies.get('username'))
                         .map(friend => {
@@ -86,7 +86,7 @@ const ChatContent = ({ friends, socket }) => {
                             const isOnline = onlineUsers.includes(friend.username)
                             return (
                                 <ul onClick={() => chatNow(friend)}
-                                    className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg w-2/3 ${selectedUser === friend.username ? 'bg-gray-300' : ''} hover:bg-gray-400`}
+                                    className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer ${selectedUser === friend.username ? 'bg-gray-300' : ''} hover:bg-gray-400`}
                                     key={friend._id}
                                 >
                                     <li className="flex flex-row justify-between w-full mx-4">
@@ -116,8 +116,10 @@ const ChatContent = ({ friends, socket }) => {
                             )
                         })
                 ) : (
-                    <span className="loading loading-spinner text-neutral"></span>
-                )}
+                    <div className="flex w-52 flex-col gap-4">
+                        <p className="text-center">No results found</p>
+                    </div>
+                )}</div>
             </div>
             <div className="overflow-hidden w-2/3 pr-10" style={{ height: '90vh' }}>
                 <ChatArea socket={socket} friend={friend} />

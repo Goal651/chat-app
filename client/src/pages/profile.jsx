@@ -96,7 +96,7 @@ const Profile = () => {
                     <span className="loading loading-dots bg-black "></span>
                 </span>)}
             {editing && (<div className="fixed flex flex-col justify-center bg-black h-screen w-screen rounded-box top-0 left-0">
-                <div className="relative m-8 ml-72 w-full "> {imagePreview && <img src={imagePreview} alt="Image Preview" className="h-auto max-w-xl rounded-box " />}</div>
+                <div className="relative m-8 ml-72 w-full "> {imagePreview && <img src={imagePreview} alt="Image Preview" className="max-h-96 max-w-xl rounded-box " />}</div>
                 <div className="flex space-x-10 relative  justify-center">
                     <button onClick={() => { setEditing(false) }} className="btn text-gray-400">cancel</button>
                     <button onClick={() => handleEdit(detail.email)} className="btn btn-success">Save</button>

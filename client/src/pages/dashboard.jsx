@@ -83,7 +83,7 @@ const Dashboard = () => {
 
     const renderContent = () => {
         if (loading || loadingGroup) {
-            return <span className="loading loading-spinner text-neutral bg-black"></span>;
+            return (<div className="skeleton"> </div>)
         }
 
         const contentMap = {
@@ -91,7 +91,7 @@ const Dashboard = () => {
             'create-group': <CreateGroup />,
             'chat': <ChatContent friends={friends} socket={socket} />,
             'profile': <Profile />,
-            'setting': <Settings/>,
+            'setting': <Settings />,
             'default': <NotFound />,
         }
         if (name) return <GroupContent groups={groups} socket={socket} />
