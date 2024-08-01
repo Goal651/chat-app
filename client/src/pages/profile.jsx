@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from "react"
 
 import Cookies from "js-cookie"
@@ -15,7 +16,7 @@ const arrayBufferToBase64 = (buffer) => {
 }
 
 
-const Profile = () => {
+const Profile = ({dataFromProfile}) => {
     const navigate = useNavigate()
     const [detail, setDetail] = useState({})
     const username = Cookies.get('username');
@@ -43,7 +44,6 @@ const Profile = () => {
         fetchUserDetails()
     }, [username,reload])
 
-
     useEffect(() => {
         const groups = () => {
             if (!detail) return
@@ -54,6 +54,8 @@ const Profile = () => {
         groups()
     }, [detail])
 
+    const sendDataToDashboard=()=>{dataFromProfile(true)}
+
     const handleEdit = async (email) => {
         try {
             const formDataToSend = new FormData();
@@ -63,10 +65,10 @@ const Profile = () => {
                 method: "PUT",
                 body: formDataToSend
             })
-            console.log(response.status)
             if (!response.status === 200) return console.error('error saving the profile')
             setEditing(false)
             setReload(true)
+            sendDataToDashboard()
         } catch (error) {
             console.error("Error submitting data:", error);
         }

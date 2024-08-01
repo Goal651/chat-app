@@ -64,7 +64,13 @@ const ChatContent = ({ friends, socket }) => {
         setSearchQuery(e.target.value.toLowerCase());
     }
 
-    const filteredFriends = friends.filter(friend => friend.username.toLowerCase().includes(searchQuery));
+    const filteredFriends = friends
+        .filter(friend => friend.username.toLowerCase().includes(searchQuery))
+        .sort((a, b) => {
+            const aTime = a.latestMessage ? new Date(a.latestMessage.timestamp).getTime() : 0;
+            const bTime = b.latestMessage ? new Date(b.latestMessage.timestamp).getTime() : 0;
+            return bTime - aTime;
+        });
 
     return (
         <div className="flex flex-row " >
@@ -101,7 +107,7 @@ const ChatContent = ({ friends, socket }) => {
                                             <span className="ml-4 font-semibold">
                                                 <div> {friend.username}</div>
                                                 <div className="text-sm text-gray-600">
-                                                    {friend.latestMessage ? friend.latestMessage : 'No messages yet'}
+                                                    {friend.latestMessage ? friend.latestMessage.message : 'No messages yet'}
                                                 </div>
                                             </span>
 
@@ -125,7 +131,7 @@ const ChatContent = ({ friends, socket }) => {
                 <ChatArea socket={socket} friend={friend} />
             </div>
         </div>
-    );
-};
+    )
+}
 
 export default ChatContent;

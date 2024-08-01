@@ -15,7 +15,7 @@ const arrayBufferToBase64 = (buffer) => {
     return window.btoa(binary);
 };
 
-const Details = ({ onlineUsers }) => {
+const Details = ({ onlineUsers,reload }) => {
     const { user, name } = useParams();
     const navigate = useNavigate();
     const [details, setDetails] = useState({});
@@ -65,7 +65,7 @@ const Details = ({ onlineUsers }) => {
         if (username) {
             fetchUserDetails(username, setDetails);
         }
-    }, [username]);
+    }, [username,reload]);
 
     useEffect(() => {
         if (userInfo.imageData) {
@@ -91,8 +91,7 @@ const Details = ({ onlineUsers }) => {
     const isOnline = () => {
         if (!onlineUsers) return false;
         return onlineUsers.includes(user);
-    };
-    useEffect(() => console.log(user, name), [name,user])
+    }
 
     return (
         <div className="flex flex-col p-10 text-xl text-black">

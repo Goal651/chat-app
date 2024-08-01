@@ -7,7 +7,7 @@ const getMessage = async (req, res) => {
   if (!sender && !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });
   try {
     const messages = await Message.find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] })
-    if (messages.length == 0) return res.status(404)
+    if (messages.length == 0) return res.status(200).json({messages:null})
     res.status(200).json({ messages });
   } catch (error) { res.status(500) }
 }

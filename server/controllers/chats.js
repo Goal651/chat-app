@@ -55,8 +55,9 @@ const handlerChat = (io) => {
             try {
                 const newMessage = new Message({ sender: sender, message: message, receiver: receiver });
                 await newMessage.save()
-                io.to(senderSocketId).emit("message_sent");
-                if (targetSocketId) io.to(targetSocketId).emit("receive_message", { sender: sender, message });
+                
+                if(senderSocketId) io.to(senderSocketId).emit("message_sent")
+                if (targetSocketId) io.to(targetSocketId).emit("receive_message", { sender: sender, message })
                 else await User.updateOne({ username: receiver }, { $push: { unreads: { message, sender } } })
             } catch (error) { console.error('Error saving message:', error) }
         })

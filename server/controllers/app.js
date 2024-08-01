@@ -55,45 +55,23 @@ const login = async (req, res) => {
 const getUsers = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../')
     const { username } = req.query;
-
     try {
         const users = await User.find().populate({ path: 'unreads.sender', select: 'username' });
-
         const usersWithDetails = await Promise.all(users.map(async user => {
             let latestMessage = null;
-
-            if (username) {
-                latestMessage = await Message.findOne({
-                    $or: [
-                        { sender: user.username, receiver: username },
-                        { sender: username, receiver: user.username }
-                    ]
-                }).sort({ timestamp: -1 }).exec();
-            }
-
+            if (username) latestMessage = await Message.findOne({ $or: [{ sender: user.username, receiver: username }, { sender: username, receiver: user.username }] }).sort({ timestamp: -1 }).exec();
             let imageData = null;
             if (user.image) {
                 try {
                     const imagePath = path.join(uploadsDir, user.image);
                     imageData = await fs.readFile(imagePath);
-                } catch (err) {
-                    console.error('Error reading image file:', err);
-                }
+                } catch (err) { console.error('Error reading image file:', err) }
             }
-
-            return {
-                ...user.toObject(),
-                imageData,
-                latestMessage: latestMessage ? latestMessage.message : 'No messages yet'
-            }
+            return { ...user.toObject(), imageData, latestMessage }
         }))
-
         res.status(200).json({ users: usersWithDetails });
-    } catch (err) {
-        console.error('Error fetching users:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-};
+    } catch (err) { res.sendStatus(500) }
+}
 
 const getUser = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../');
@@ -112,10 +90,7 @@ const getUser = async (req, res) => {
         }
         const userWithImage = await getUserWithImage(user);
         res.status(200).json({ user: userWithImage });
-    } catch (err) {
-        console.error('Error fetching user:', err);
-        res.status(500);
-    }
+    } catch (err) { res.sendStatus(500) }
 }
 
 
@@ -124,12 +99,9 @@ const updateUser = async (req, res) => {
     const image = req.file.path
     try {
         const updatedUser = await User.updateOne({ email: email }, { image: image })
-        if (!updatedUser) return res.status(400)
+        if (!updatedUser) return res.sendStatus(400)
         res.sendStatus(200)
-    } catch (err) {
-        console.error('error saving image', err)
-    }
-
+    } catch (err) { res.sendStatus(500) }
 }
 
 
@@ -159,17 +131,12 @@ const getGroups = async (req, res) => {
                 try {
                     const imagePath = path.join(uploadsDir, group.image);
                     imageData = await fs.readFile(imagePath);
-                } catch (err) { return { ...group.toObject(), imageData: null } }
+                } catch (err) { res.sendStatus(500) }
             }
-            return {
-                ...group.toObject(), imageData, latestMessage: latestMessage ? latestMessage.message : 'No messages yet'
-            }
+            return { ...group.toObject(), imageData, latestMessage }
         }))
         res.status(200).json({ groups: groupsWithImages });
-    } catch (err) {
-        res.sendStatus(500);
-        console.log(err)
-    }
+    } catch (err) { res.sendStatus(500) }
 }
 
 
@@ -185,15 +152,12 @@ const getGroup = async (req, res) => {
                     const imagePath = path.join(uploadsDir, group.image);
                     const imageBuffer = await fs.readFile(imagePath);
                     return { ...group.toObject(), imageData: imageBuffer };
-                } catch (err) { return { ...group.toObject(), imageData: null } }
+                } catch (err) { res.sendStatus(500) }
             } else return { ...group.toObject(), imageData: null };
         }
         const groupWithImage = await getGroupWithImage(group);
         res.status(200).json({ group: groupWithImage });
-    } catch (err) {
-        console.error('Error fetching group:', err);
-        res.status(500);
-    }
+    } catch (err) { res.status(500) }
 }
 
 

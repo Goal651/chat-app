@@ -14,14 +14,13 @@ const ChatContent = lazy(() => import("../components/ChatContent"))
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
-
     useEffect(() => {
         const newSocket = io(url, { withCredentials: true })
         setSocket(newSocket)
         return () => newSocket.disconnect();
     }, [url]);
     return socket;
-};
+}
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -35,9 +34,7 @@ const Dashboard = () => {
     const [reload, setReload] = useState(false)
     const [onlineUsers, setOnlineUsers] = useState([])
 
-    useEffect(() => {
-        if (!username) navigate('/login');
-    }, [navigate, username]);
+    useEffect(() => { if (!username) navigate('/login') }, [navigate, username])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,7 +42,7 @@ const Dashboard = () => {
                 const [friendsResponse, groupsResponse] = await Promise.all([
                     fetch(`http://localhost:3001/allFriends?username=${username}`),
                     fetch('http://localhost:3001/allGroups'),
-                ]);
+                ])
                 const friendsData = await friendsResponse.json();
                 const groupsData = await groupsResponse.json();
                 setFriends(friendsData.users.filter((user) => user.username !== username));
@@ -57,9 +54,9 @@ const Dashboard = () => {
                 setLoadingGroup(false);
                 setReload(false)
             }
-        };
+        }
         fetchData()
-    }, [username, reload]);
+    }, [username, reload])
 
     useEffect(() => {
         if (!socket) return
@@ -72,7 +69,7 @@ const Dashboard = () => {
         socket.on('online_users', data => setOnlineUsers(data))
         socket.on('marked_as_read', () => setReload(true))
         socket.on('receive_message', () => setReload(true))
-        socket.on('message_sent', () => setReload(true))
+        socket.on('message_sent', () => { setReload(true) })
         return () => {
             socket.off('marked_as_read')
             socket.off('online_user')
@@ -80,6 +77,9 @@ const Dashboard = () => {
             socket.off('message_sent')
         }
     }, [socket])
+    const handleDataFromProfile = (data) => {
+        setReload(data)
+    }
 
     const renderContent = () => {
         if (loading || loadingGroup) {
@@ -90,15 +90,14 @@ const Dashboard = () => {
             'group': <GroupContent groups={groups} socket={socket} onlineUsers={onlineUsers} />,
             'create-group': <CreateGroup />,
             'chat': <ChatContent friends={friends} socket={socket} />,
-            'profile': <Profile />,
+            'profile': <Profile dataFromProfile={handleDataFromProfile} />,
             'setting': <Settings />,
             'default': <NotFound />,
         }
         if (name) return <GroupContent groups={groups} socket={socket} />
         if (user) return <ChatContent friends={friends} socket={socket} />
-
         return contentMap[type] || <ChatContent friends={friends} socket={socket} />;
-    };
+    }
 
     return (
         <div className="flex flex-row bg-black h-screen">
@@ -109,7 +108,7 @@ const Dashboard = () => {
                 {renderContent()}
             </div>
             <div className="w-96 bg-white my-4 mr-4 rounded-3xl">
-                <Details onlineUsers={onlineUsers} />
+                <Details onlineUsers={onlineUsers} reload={reload}/>
             </div>
         </div>
     );
