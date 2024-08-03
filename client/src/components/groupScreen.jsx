@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Cookies from 'js-cookie';
 import { useParams } from "react-router-dom";
 
-const GroupArea = ({ group, socket }) => {
+const GroupArea = ({ group, socket,friends }) => {
     const { name } = useParams();
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
@@ -33,6 +33,27 @@ const GroupArea = ({ group, socket }) => {
             setScrollToBottom(false);
         }
     }, []);
+
+    const getFriendImage = (sender) => {
+        if (!friends) {
+            console.log("Friends prop is not available.");
+            return "/nopro.png";
+        }
+        const friend = friends.find(friend => friend.username === sender);
+        if (!friend) {
+            console.log(`No friend found for sender: ${sender}`);
+            return "/nopro.png";
+        }
+        if (!friend.imageData) {
+            console.log(`No image data found for friend: ${friend.username}`);
+            return "/nopro.png";
+        }
+        const imageData = `data:image/png;base64,${arrayBufferToBase64(friend.imageData.data)}`;
+        console.log(`Image data found for ${friend.username}: ${imageData}`);
+        return imageData;
+    };
+    
+    
 
     useEffect(() => {
         handleScrollToBottom();
@@ -94,7 +115,7 @@ const GroupArea = ({ group, socket }) => {
         setScrollToBottom(true);
     }, [groupName, name, username, socket]);
 
-    
+
     const arrayBufferToBase64 = useCallback((buffer) => {
         let binary = '';
         const bytes = new Uint8Array(buffer);
@@ -112,52 +133,70 @@ const GroupArea = ({ group, socket }) => {
         return '';
     }, [currentRoom, arrayBufferToBase64]);
 
-    return (
-        <div id="chatArea">
-            <div className="">
-                <div className="flex mb-5 ">
-                    {imageBase64 ? (
-                        <img src={`data:image/png;base64,${imageBase64}`} alt="Fetched Image" className="w-14  rounded-lg" />
-                    ) : (
-                        <img src="/nogro.png" alt="No Group Image" className="w-14 rounded-lg" />
-                    )}
-                    <div className="font-semibold ml-5">{currentRoom.name}</div>
-                </div>
-                <div style={{ height: '30rem' }} className="overflow-auto">
-                    <div className="chatArea_history">
-                        {history && history.length > 0 ? (
-                            history.map((message) => (
+   return (
+    <div id="chatArea">
+        <div className="">
+            <div className="flex mb-5 ">
+                {imageBase64 ? (
+                    <img src={`data:image/png;base64,${imageBase64}`} alt="Fetched Image" className="w-14 rounded-lg" />
+                ) : (
+                    <img src="/nogro.png" alt="No Group Image" className="w-14 rounded-lg" />
+                )}
+                <div className="font-semibold ml-5">{currentRoom.name}</div>
+            </div>
+            <div style={{ height: '30rem' }} className="overflow-auto">
+                <div className="chatArea_history">
+                    {history && history.length > 0 ? (
+                        history.map((message) => (
+                            message.sender === username ? (
                                 <div key={message._id}>
-                                    <div className={message.sender === username ? "chat chat-end" : "chat chat-start"}>
-                                        <span className="chat-bubble bg-slate-400 text-black">
-                                            <h5 className="text-white">{message.sender === username ? 'You' : message.sender}</h5>
-                                            <p>{message.message}</p>
-                                        </span>
+                                    <div className="chat chat-end">
+                                        <div className="flex flex-col chat-bubble bg-indigo-600">
+                                            <div> {message.message}</div>
+                                            <time className="text-xs opacity-50 text-end">{message.time}</time>
+                                        </div>
                                     </div>
                                 </div>
-                            ))
-                        ) : (
-                            <div style={{
-                                textAlign: 'center', fontSize: '2rem', fontWeight: '700', background: 'linear-gradient(to right, red, blue, white)', color: 'transparent', backgroundClip: 'text'
-                            }}>
-                                Say hey to your new group
-                            </div>
-                        )}
-                        {typing && <span className="loading loading-dots loading-md"></span>}
-                        <div ref={messagesEndRef}></div>
-                    </div>
-                </div>
-                <div className="mt-5">
-                    <form style={{ width: '100%' }} onSubmit={sendMessage} className="flex flex-row bg-slate-400 relative rounded-badge px-4 py-1 justify-between">
-                        <input type="text" placeholder="Enter message" value={message} onChange={handleChange} className="bg-transparent w-full placeholder:text-black" />
-                        <button type="submit">
-                            <img src="/send.png" alt="Send" className='w-10' />
-                        </button>
-                    </form>
+                            ) : (
+                                <div key={message._id}>
+                                    <div className="chat chat-start">
+                                        <div className="chat-image avatar">
+                                            <div className="w-10 rounded-full">
+                                                <img src={getFriendImage(message.sender)} alt="Profile" />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col chat-bubble bg-slate-200">
+                                            <div className="text-blue-700">{message.sender}</div>
+                                            <div className="text-black">{message.message}</div>
+                                            <time className="text-xs opacity-50 text-end">{message.time}</time>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        ))
+                    ) : (
+                        <div style={{
+                            textAlign: 'center', fontSize: '2rem', fontWeight: '700', background: 'linear-gradient(to right, red, blue, white)', color: 'transparent', backgroundClip: 'text'
+                        }}>
+                            Say hey to your new group
+                        </div>
+                    )}
+                    {typing && <span className="loading loading-dots loading-md"></span>}
+                    <div ref={messagesEndRef}></div>
                 </div>
             </div>
+            <div className="mt-5">
+                <form style={{ width: '100%' }} onSubmit={sendMessage} className="flex flex-row bg-slate-400 relative rounded-badge px-4 py-1 justify-between">
+                    <input type="text" placeholder="Enter message" value={message} onChange={handleChange} className="bg-transparent w-full placeholder:text-black" />
+                    <button type="submit">
+                        <img src="/send.png" alt="Send" className='w-10' />
+                    </button>
+                </form>
+            </div>
         </div>
-    );
+    </div >
+);
+
 };
 
 export default GroupArea;

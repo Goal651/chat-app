@@ -55,7 +55,6 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       });
-
       if (response.status === 200) {
         const data = await response.json();
         Cookies.set('username', data.username);
@@ -63,7 +62,7 @@ function App() {
         navigate("/home");
       } else if (response.status === 401) {
         document.getElementById('password').focus();
-        setWrongPass(true);
+        setWrongPass(true)
         setWrongEmail(false);
       } else if (response.status === 404) {
         document.getElementById('email').focus();

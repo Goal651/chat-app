@@ -73,59 +73,52 @@ const ChatContent = ({ friends, socket }) => {
         });
 
     return (
-        <div className="flex flex-row " >
-            <div style={{ height: '90vh' }} className="flex flex-col w-1/3 overflow-y-auto overflow-x-hidden" >
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearch}
-                    placeholder="Search friends..."
-                    className="p-2 m-2 border rounded"
-                />
-                <div >{filteredFriends && filteredFriends.length > 0 ? (
-                    filteredFriends
-                        .filter(friend => friend.username !== Cookies.get('username'))
-                        .map(friend => {
-                            let imageBase64 = '';
-                            if (friend.imageData && friend.imageData.data) imageBase64 = arrayBufferToBase64(friend.imageData.data);
-                            const unreadCount = getUnreadCountForFriend(friend.username)
-                            const isOnline = onlineUsers.includes(friend.username)
-                            return (
-                                <ul onClick={() => chatNow(friend)}
-                                    className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer ${selectedUser === friend.username ? 'bg-gray-300' : ''} hover:bg-gray-400`}
-                                    key={friend._id}
-                                >
-                                    <li className="flex flex-row justify-between w-full mx-4">
-                                        <span className="flex items-center w-full h-fit">
-                                            <div className="h-fit">{imageBase64 ?
-                                                <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="w-14 h-16 rounded-lg" />
-                                                : <img src="/nopro.png" alt="No Image" className="h-14" />
-                                            }
-                                                {isOnline && (<span className="badge badge-sm border-green-500  bg-green-500  w-3 h-4 absolute ml-12 -mt-3  "></span>)}
+        <div className="flex flex-row" >
+            <div id="mobile" style={{ height: '90vh' }} className="flex flex-col w-1/3 overflow-y-auto overflow-x-hidden" >
+                <input type="text" onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
+                <div>
+                    {filteredFriends && filteredFriends.length > 0 ? (
+                        filteredFriends
+                            .filter(friend => friend.username !== Cookies.get('username'))
+                            .map(friend => {
+                                let imageBase64 = '';
+                                if (friend.imageData && friend.imageData.data) imageBase64 = arrayBufferToBase64(friend.imageData.data);
+                                const unreadCount = getUnreadCountForFriend(friend.username)
+                                const isOnline = onlineUsers.includes(friend.username)
+                                return (
+                                    <div onClick={() => chatNow(friend)}
+                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer ${selectedUser === friend.username ? 'bg-gray-200' : ''} hover:bg-gray-100`}
+                                        key={friend._id}>
+                                        <div className="flex flex-row justify-between w-full mx-4">
+                                            <span className="flex items-center w-full h-fit">
+                                                <div className="flex h-14 w-14 bg-slate-300 rounded-lg items-center align-middle justify-center">{imageBase64 ?
+                                                    <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="max-w-14 max-h-14 rounded-lg" />
+                                                    : <img src="/nopro.png" alt="No Image" className="h-14" />
+                                                }
+                                                    {isOnline && (<span className="badge badge-sm border-green-500  bg-green-500  w-3 h-4 ml-12 -mt-3  "></span>)}
 
-                                            </div>
-                                            <span className="ml-4 font-semibold">
-                                                <div> {friend.username}</div>
-                                                <div className="text-sm text-gray-600">
-                                                    {friend.latestMessage ? friend.latestMessage.message : 'No messages yet'}
                                                 </div>
+                                                <div className="ml-4 font-semibold">
+                                                    <div> {friend.username}</div>
+                                                    <div className="text-sm text-gray-600">
+                                                        {friend.latestMessage ? friend.latestMessage.message : ''}
+                                                    </div>
+                                                </div>
+                                                {unreadCount > 0 && (
+                                                    <span className="badge ml-auto bg-red-500 text-white rounded-full px-2 py-1">
+                                                        {unreadCount}
+                                                    </span>
+                                                )}
                                             </span>
-
-                                            {unreadCount > 0 && (
-                                                <span className="badge ml-auto bg-red-500 text-white rounded-full px-2 py-1">
-                                                    {unreadCount}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </li>
-                                </ul>
-                            )
-                        })
-                ) : (
-                    <div className="flex w-52 flex-col gap-4">
-                        <p className="text-center">No results found</p>
-                    </div>
-                )}</div>
+                                        </div>
+                                    </div>
+                                )
+                            })
+                    ) : (
+                        <div className="flex w-52 flex-col gap-4">
+                            <p className="text-center">No results found</p>
+                        </div>
+                    )}</div>
             </div>
             <div className="overflow-hidden w-2/3 pr-10" style={{ height: '90vh' }}>
                 <ChatArea socket={socket} friend={friend} />

@@ -17,7 +17,7 @@ const Navigation = ({ socket }) => {
     const toProfile = () => navigate('/profile')
     const toSetting = () => navigate('/setting')
     return (
-        <ul className="menu menu-lg rounded-box w-full h-screen navigation ">
+        <ul className="menu menu-lg rounded-box w-full h-full navigation ">
             <li onClick={() => toChats()}>
                 <div>
                     <img src="/folder.png" alt="" />

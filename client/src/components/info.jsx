@@ -15,7 +15,7 @@ const arrayBufferToBase64 = (buffer) => {
     return window.btoa(binary);
 };
 
-const Details = ({ onlineUsers,reload }) => {
+const Details = ({ onlineUsers, reload }) => {
     const { user, name } = useParams();
     const navigate = useNavigate();
     const [details, setDetails] = useState({});
@@ -61,25 +61,21 @@ const Details = ({ onlineUsers,reload }) => {
         }
     }, [name]);
 
-    useEffect(() => {
-        if (username) {
-            fetchUserDetails(username, setDetails);
-        }
-    }, [username,reload]);
+    useEffect(() => { if (username) fetchUserDetails(username, setDetails) }, [username, reload]);
 
     useEffect(() => {
         if (userInfo.imageData) {
             const result = arrayBufferToBase64(userInfo.imageData.data);
             setUsersImage(result);
         }
-    }, [userInfo]);
+    }, [userInfo])
 
     useEffect(() => {
         if (groupInfo.imageData) {
             const result = arrayBufferToBase64(groupInfo.imageData.data);
             setGroupImage(result);
         }
-    }, [groupInfo]);
+    }, [groupInfo])
 
     useEffect(() => {
         if (details.imageData) {
@@ -94,15 +90,15 @@ const Details = ({ onlineUsers,reload }) => {
     }
 
     return (
-        <div className="flex flex-col p-10 text-xl text-black">
+        <div className="info flex flex-col p-10 text-xl text-black">
             {user || name ? (
                 user ? (
                     <div className="flex flex-col p-10 text-xl text-black">
-                        <div>
+                        <div className="h-28 w-28 rounded-full bg-black flex justify-center">
                             {usersImage ? (
-                                <img src={`data:image/jpeg;base64,${usersImage}`} alt="Fetched Image" className="h-28 w-28 rounded-full" />
+                                <img src={`data:image/jpeg;base64,${usersImage}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full" />
                             ) : (
-                                <img src="/nopro.png" alt="No Profile" className="h-14" />
+                                <img src="/nopro.png" alt="No Profile" className="max-h-18 max-w-18" />
                             )}
                             {isOnline() && (<span className="text-green-500">Online</span>)}
                         </div>

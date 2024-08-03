@@ -14,6 +14,7 @@ const DMArea = ({ friend, socket }) => {
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
     const [info, setInfo] = useState([]);
+    const [loading, setLoading] = useState(true)
     const username = Cookies.get('username');
     const messagesEndRef = useRef(null);
 
@@ -58,7 +59,7 @@ const DMArea = ({ friend, socket }) => {
         socket.on("receive_message", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("not_typing", handleNotTyping);
-        socket.on("message_sent",handleReceiveMessage)
+        socket.on("message_sent", handleReceiveMessage)
 
         return () => {
             socket.off("receive_message", handleReceiveMessage)
@@ -76,18 +77,20 @@ const DMArea = ({ friend, socket }) => {
             setHistory(data.messages);
             setScrollToBottom(true);
             setRefresh(false)
+            setLoading(false)
         }
         fetchMessages();
     }, [friend, refresh, user, username]);
 
+
     const sendMessage = useCallback((e) => {
         e.preventDefault();
         if (message.length == 0) return;
-        socket.emit("send_message", { receiver: friend || user, message, sender: username });
+        socket.emit("send_message", { receiver: user, message, sender: username });
         setScrollToBottom(true)
         setMessage("")
         setRefresh(prev => !prev)
-        socket.emit("not_typing", { username, receiver: friend || user })
+        socket.emit("not_typing", { username, receiver: user })
     }, [message, socket, friend, user, username])
 
     const debounceTyping = useMemo(() => debounce(({ username, receiver }) => {
@@ -113,48 +116,76 @@ const DMArea = ({ friend, socket }) => {
             binary += String.fromCharCode(bytes[i]);
         }
         return window.btoa(binary);
-    };
+    }
 
     const imageBase64 = useMemo(() => {
         if (info.imageData && info.imageData.data) return arrayBufferToBase64(info.imageData.data);
         return '';
     }, [info]);
 
+
     return (
         <div className="flex flex-col">
             <div className="flex h-1/3 mb-2">
-                {imageBase64 ? (
-                    <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="h-14 w-14 rounded-lg" />
-                ) : (
-                    <img src="/nopro.png" alt="No Profile" className="h-14" />
-                )}
+                <div className="flex h-14 w-14 justify-center">
+                    {imageBase64 ? (
+                        <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Fetched Image" className="max-h-14 max-w-14 rounded-lg" />
+                    ) : (
+                        <img src="/nopro.png" alt="No Profile" className="h-14" />
+                    )}</div>
                 <div className="font-semibold text-xl ml-5 ">{info.username || friend}</div>
             </div>
             <div style={{ height: '31rem' }} className="overflow-y-auto h-2/3 ">
                 <div className="">
-                    {history && history.length > 0 ? (
-                        history.map((message) => (
-                            message.sender === username ? (
-                                <div key={message._id} className="w-full h-full">
-                                    <div className="chat chat-end w-full h-full">
-                                        <span className="chat-bubble bg-blue-600 text-white max-w-2/3 min-h-full"> {message.message}</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div key={message._id} className="max-w-2/3 h-auto">
-                                    <div className="chat chat-start">
-                                        <span className="chat-bubble bg-slate-400 text-black"> {message.message}</span>
-                                    </div>
-                                </div>
-                            )
-                        ))
-                    ) : (
-                        <div style={{
-                            textAlign: 'center', fontSize: '2rem', fontWeight: '700', background: 'linear-gradient(to right, red, blue, white)', color: 'transparent', backgroundClip: 'text'
-                        }}>
-                            Say hey to your new friend
+                    {user ? (loading ? (<div className="flex flex-col  justify-around h-4/6">
+                        <div className="chat chat-start">
+                            <div className="skeleton chat-bubble w-60"></div>
                         </div>
-                    )}
+                        <div className="chat chat-start">
+                            <div className="skeleton chat-bubble w-60"></div>
+                        </div>
+                        <div className="chat chat-start">
+                            <div className="skeleton chat-bubble w-60"></div>
+                        </div>
+                        <div className="chat chat-end">
+                            <div className="skeleton chat-bubble w-60"></div>
+                        </div>
+                        <div className="chat chat-end">
+                            <div className="skeleton chat-bubble w-60"></div>
+                        </div>
+                        <div className="chat chat-end">
+                            <div className="skeleton chat-bubble w-60"></div>
+                        </div>
+                    </div>) :
+                        (history && history.length > 0 ? (
+                            history.map((message) => (
+                                message.sender === username ? (
+                                    <div key={message._id} className="w-full h-full">
+                                        <div className="chat chat-end">
+                                            <div className="flex flex-col chat-bubble">
+                                                <div> {message.message}</div>
+                                                <time className="text-xs opacity-50 text-end">{message.time}</time>
+                                            </div>
+                                            <div className="chat-footer opacity-50">Delivered</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div key={message._id} className="max-w-2/3 h-auto">
+                                        <div className="chat chat-start">
+                                            <span className="chat-bubble bg-slate-400 text-black"> {message.message}</span>
+                                        </div>
+                                    </div>
+                                )
+                            ))
+                        ) : (
+                            <div style={{
+                                textAlign: 'center', fontSize: '2rem', fontWeight: '700', background: 'linear-gradient(to right, red, blue, white)', color: 'transparent', backgroundClip: 'text'
+                            }}>
+                                Say hey to your new friend
+                            </div>
+                        ))) : (<div className="h-full items-center">
+                            <div>Select user</div>
+                        </div>)}
                     {beingTyped ? (
                         <div className="chat chat-start h-5  ">
                             <span className="chat-bubble h-5 bg-slate-400">

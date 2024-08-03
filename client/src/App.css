@@ -73,3 +73,13 @@ label {
   transition: opacity, 0.5s;
   opacity: 0.7;
 }
+
+.Content {
+  display: block;
+}
+
+@media screen and (max-width:360px) {
+  #mobile {
+    display: none;
+  }
+}

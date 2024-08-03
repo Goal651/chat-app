@@ -27,6 +27,7 @@ const messageSchema = mongoose.Schema({
     sender: { type: String, require: true },
     message: { type: String, require: true },
     receiver: { type: String, require: true },
+    time: { type: String, require: true },
     timestamp: { type: Date, default: Date.now }
 })
 
@@ -34,6 +35,7 @@ const groupMessageSchema = mongoose.Schema({
     sender: { type: String, require: true },
     message: { type: String, require: true },
     group: { type: String, require: true },
+    time: { type: String, require: true },
     timestamp: { type: Date, default: Date.now }
 });
 

@@ -1,7 +1,6 @@
 const { Message, GMessage } = require('../models/models');
 
 
-
 const getMessage = async (req, res) => {
   const { sender, receiver } = req.query;
   if (!sender && !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });

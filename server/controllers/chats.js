@@ -5,6 +5,15 @@ const cookie = require('cookie')
 const mongoose = require('mongoose')
 
 
+const formatTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+
+
 const handlerChat = (io) => {
     io.use((socket, next) => {
         const cookies = cookie.parse(socket.handshake.headers.cookie || '')
@@ -41,7 +50,7 @@ const handlerChat = (io) => {
         socket.on('send_group_message', async ({ message, room, sender }) => {
             const senderSocketId = userSockets.get(sender)
             try {
-                const newMessage = new GMessage({ sender: sender, message: message, group: room })
+                const newMessage = new GMessage({ sender: sender, message: message, group: room, time: formatTime() });
                 await newMessage.save()
                 io.to(senderSocketId).emit("message_sent")
                 io.to(room).emit("receive_message", { sender, room })
@@ -53,10 +62,9 @@ const handlerChat = (io) => {
             const targetSocketId = userSockets.get(receiver)
             const senderSocketId = userSockets.get(sender)
             try {
-                const newMessage = new Message({ sender: sender, message: message, receiver: receiver });
-                await newMessage.save()
-                
-                if(senderSocketId) io.to(senderSocketId).emit("message_sent")
+                const newMessage = new Message({ sender: sender, message: message, receiver: receiver, time: formatTime() });
+                const result = await newMessage.save()
+                if (result) await io.to(senderSocketId).emit("message_sent")
                 if (targetSocketId) io.to(targetSocketId).emit("receive_message", { sender: sender, message })
                 else await User.updateOne({ username: receiver }, { $push: { unreads: { message, sender } } })
             } catch (error) { console.error('Error saving message:', error) }
