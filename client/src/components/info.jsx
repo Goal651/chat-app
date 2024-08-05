@@ -1,8 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
-/* eslint-disable no-unused-vars */
 
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 
 const arrayBufferToBase64 = (buffer) => {
@@ -29,37 +29,27 @@ const Details = ({ onlineUsers, reload }) => {
     const fetchUserDetails = async (userParam, setStateCallback) => {
         try {
             const response = await fetch(`http://localhost:3001/getUser/${userParam}`);
-            if (!response.ok) throw new Error('Failed to fetch user details');
+            if (!response.ok) navigate('/error')
             const data = await response.json();
             setStateCallback(data.user);
-        } catch (error) {
-            console.error("Error fetching user details:", error);
-        }
+        } catch (error) { navigate('/error') }
     };
 
-    useEffect(() => {
-        if (user) {
-            fetchUserDetails(user, setUserInfo);
-        }
-    }, [user]);
+    useEffect(() => { if (user) fetchUserDetails(user, setUserInfo) }, [user]);
 
     useEffect(() => {
-
         if (name) {
             const fetchGroupDetails = async () => {
                 try {
                     const response = await fetch(`http://localhost:3001/getGroup/${name}`);
-                    if (!response.ok) throw new Error('Failed to fetch group details');
-                    const data = await response.json();
-                    console.log("Group data:", data);
-                    setGroupInfo(data.group);
-                } catch (error) {
-                    console.error("Error fetching group details:", error);
-                }
-            };
+                    if (!response.ok) navigate('/error')
+                    const data = await response.json()
+                    setGroupInfo(data.group)
+                } catch (error) { navigate('/error') }
+            }
             fetchGroupDetails();
         }
-    }, [name]);
+    }, [name, navigate]);
 
     useEffect(() => { if (username) fetchUserDetails(username, setDetails) }, [username, reload]);
 
@@ -95,40 +85,31 @@ const Details = ({ onlineUsers, reload }) => {
                 user ? (
                     <div className="flex flex-col p-10 text-xl text-black">
                         <div className="h-28 w-28 rounded-full bg-black flex justify-center">
-                            {usersImage ? (
-                                <img src={`data:image/jpeg;base64,${usersImage}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full" />
-                            ) : (
-                                <img src="/nopro.png" alt="No Profile" className="max-h-18 max-w-18" />
-                            )}
+                            {usersImage ? <img src={`data:image/jpeg;base64,${usersImage}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full" />
+                                : <img src="/nopro.png" alt="No Profile" className="max-h-18 max-w-18" />}
                             {isOnline() && (<span className="text-green-500">Online</span>)}
                         </div>
                         <div>
-                            <span className="text-left">{userInfo.f_name}</span>
-                            <span className="text-right">{userInfo.l_name}</span>
+                            <span className="text-left font-semibold">{userInfo.f_name}</span>
+                            <span className="text-right font-semibold">{userInfo.l_name}</span>
                         </div>
                     </div>
                 ) : (
                     <div className="flex flex-col p-10 text-xl text-black">
-                        <div>
-                            {groupImage ? (
-                                <img src={`data:image/jpeg;base64,${groupImage}`} className="h-28 w-28 rounded-full" />
-                            ) : (
-                                <img src="/nopro.png" alt="No Profile" className="h-14" />
-                            )}
-                        </div>
-                        <h3 className="text-center">{groupInfo.name}</h3>
-                        <h5>Admin: {groupInfo.admin}</h5>
+                        <div>{groupImage ?
+                            <img src={`data:image/jpeg;base64,${groupImage}`} className="h-28 w-28 rounded-full" />
+                            : <img src="/nopro.png" alt="No Profile" className="h-14" />
+                        }</div>
+                        <h3 className="text-center font-semibold">{groupInfo.name}</h3>
+                        <h5 className="">Admin: {groupInfo.admin}</h5>
                     </div>
                 )
             ) : (
                 <div className="flex flex-col p-10 text-xl text-black">
-                    <div>
-                        {userImage ? (
-                            <img src={`data:image/jpeg;base64,${userImage}`} alt="Fetched Image" className="h-28 w-28 rounded-full" />
-                        ) : (
-                            <img src="/nopro.png" alt="No Profile" className="h-14" />
-                        )}
-                    </div>
+                    <div>{userImage ?
+                        <img src={`data:image/jpeg;base64,${userImage}`} alt="Fetched Image" className="h-28 w-28 rounded-full" />
+                        : <img src="/nopro.png" alt="No Profile" className="h-14" />
+                    }</div>
                     <h3 className="text-center">{details.username}</h3>
                 </div>
             )}

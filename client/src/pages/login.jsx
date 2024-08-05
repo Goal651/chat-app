@@ -1,44 +1,36 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import { Link, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
 
-function App() {
-  useEffect(() => {
-    const username = Cookies.get('username');
-    if (username) {
-      window.location.href = '/';
-    }
-  }, []);
 
+
+const Login = ({ isMobile }) => {
+  const navigate = useNavigate();
   const [wrongEmail, setWrongEmail] = useState(false);
   const [wrongPass, setWrongPass] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" })
 
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    const username = Cookies.get('username');
+    if (username) navigate('/')
+  }, [navigate]);
 
   const shake = (element) => {
-    const duration = 200; // in milliseconds
-    const distance = 20; // in pixels
+    const duration = 200;
+    const distance = 20;
     const startTime = Date.now();
-
     const updatePosition = () => {
       const elapsedTime = Date.now() - startTime;
       const progress = elapsedTime / duration;
       const offset = distance * Math.sin(progress * Math.PI * 2);
       element.style.transform = `translateX(${offset}px)`;
-      if (elapsedTime < duration) {
-        requestAnimationFrame(updatePosition);
-      } else {
-        element.style.transform = 'translateX(0)'; // Reset transform when animation ends
-      }
-    };
-
-    element.style.borderColor = 'red';
-    updatePosition();
+      if (elapsedTime < duration) requestAnimationFrame(updatePosition);
+      else element.style.transform = 'translateX(0)'
+    }
+    updatePosition()
   };
 
   const handleChange = (e) => {
@@ -54,7 +46,8 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
-      });
+      })
+
       if (response.status === 200) {
         const data = await response.json();
         Cookies.set('username', data.username);
@@ -63,25 +56,24 @@ function App() {
       } else if (response.status === 401) {
         document.getElementById('password').focus();
         setWrongPass(true)
+        shake(document.getElementById('pass'))
         setWrongEmail(false);
       } else if (response.status === 404) {
         document.getElementById('email').focus();
         setWrongEmail(true);
-      } else {
-        throw new Error("Something went wrong");
-      }
-    } catch (error) {
-      console.error("Error submitting data:", error);
-    }
+      } else navigate('/error')
+    } catch (error) { navigate('/error') }
   };
 
   return (
     <div className="flex h-screen max-w-screen overflow-hidden">
-      <div className='w-full'>
-        <img src="/welcome.jpg" alt="" />
+      {isMobile ? (null) : (<div className='w-2/4'>
+        < img src="/welcome.jpg" alt="" />
       </div>
-      <div className='w-full justify-center form h-full overflow-hidden'>
-        <form onSubmit={handleSubmit} className='flex flex-col h-1/2 w-72 justify-evenly m-4' autoComplete='off'>
+      )}
+
+      <div className={`form ${isMobile ? 'w-4/5 justify-evenly' : 'w-1/3 justify-center h-full overflow-hidden'} `}>
+        <form onSubmit={handleSubmit} className='flex flex-col h-1/2 max-w-min justify-evenly m-4' autoComplete='off'>
           <h1 className='gradient bg-clip-text text-transparent font-bold text-3xl'>Log In</h1>
           {wrongEmail && <div className='text-red-500'>Invalid email or password</div>}
           <label className="input input-bordered flex items-center gap-2">
@@ -97,7 +89,7 @@ function App() {
             </svg>
             <input type="text" className="grow" placeholder="Email" id='email' name="email" value={formData.email} onChange={handleChange} />
           </label>
-          <label className="input input-bordered flex items-center gap-2">
+          <label className="input input-bordered flex items-center gap-2" id='pass'>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 16 16"
@@ -115,8 +107,8 @@ function App() {
         </form>
         <Link to="/signup" className="link text-green-500 link-hover">Create New Account</Link>
       </div>
-    </div>
+    </div >
   );
 }
 
-export default App;
+export default Login;

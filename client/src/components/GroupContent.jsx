@@ -58,6 +58,7 @@ const GroupContent = ({ groups, socket, friends }) => {
             const result = await fetch(`http://localhost:3001/getGroup/${name}`);
             const data = await result.json();
             setGroup(data.group);
+            if (!result.ok) navigate('/error')
         };
         fetchGroup();
     }, [name]);

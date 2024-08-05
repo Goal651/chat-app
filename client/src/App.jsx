@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
 import './App.css';
 import Test from './pages/testing';
+import ErrorPage from './pages/500_error';
 
 const Login = lazy(() => import('./pages/login'));
 const Signup = lazy(() => import('./pages/signup'));
@@ -29,6 +30,7 @@ function App() {
             <Route path='/:type' element={<Dashboard isMobile={isMobile} />} />
             <Route path='*' element={<NotFound />} />
             <Route path='/testing' element={<Test />} />
+            <Route path='/error' element={<ErrorPage />} />
           </Routes>
         </Suspense>
       </Router>
