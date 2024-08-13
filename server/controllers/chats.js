@@ -1,118 +1,136 @@
-const { Message, GMessage, User } = require('../models/models')
-const userSockets = new Map()
-const rooms = {}
-const cookie = require('cookie')
-const mongoose = require('mongoose')
+const { Message, GMessage, User } = require('../models/models');
+const cookie = require('cookie');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
+const userSockets = new Map();
+const rooms = {};
 
 const formatTime = () => {
     const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+    return now.toISOString().slice(11, 16); // Returns HH:MM in 24-hour format
 };
-
-
 
 const handlerChat = (io) => {
     io.use((socket, next) => {
-        const cookies = cookie.parse(socket.handshake.headers.cookie || '')
-        const username = cookies['username']
-        if (!username) return next(new Error('invalid username'))
-        socket.username = username
-        next()
-    })
+        const cookies = cookie.parse(socket.handshake.headers.cookie || '');
+        const accessToken = cookies['accesstoken'];
+        if (!accessToken) return next(new Error('Invalid token'));
+
+        jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
+            if (err) return next(new Error('Invalid token'));
+            socket.email = user.email;
+            next();
+        });
+    });
 
     io.on('connection', (socket) => {
-        userSockets.set(socket.username, socket.id)
-        io.to(socket.id).emit('online_users', Array.from(userSockets.keys()))
-        io.emit('online_users', Array.from(userSockets.keys()))
-        socket.broadcast.emit('online_users', Array.from(userSockets.keys()))
+        userSockets.set(socket.email, socket.id);
+        io.emit('online_users', Array.from(userSockets.keys()));
 
         socket.on('connect_group', ({ room }) => {
             if (!rooms[room]) rooms[room] = new Set();
             else socket.emit('room_exists', room);
-        })
+        });
 
-        socket.on('fetch_online_users', (user) => {
-            const targetId = userSockets.get(user)
-            io.to(targetId).emit('online_users', Array.from(userSockets.keys()))
-        })
+        socket.on('fetch_online_users', () => {
+            socket.emit('online_users', Array.from(userSockets.keys()));
+        });
 
         socket.on("join_room", ({ room, user }) => {
             if (rooms[room]) {
                 rooms[room].add(user);
                 socket.join(room);
                 socket.emit('joined_room', room);
-            } else socket.emit('roomNotFound', room);
-        })
-
-        socket.on('send_group_message', async ({ message, room, sender }) => {
-            const senderSocketId = userSockets.get(sender)
-            try {
-                const newMessage = new GMessage({ sender: sender, message: message, group: room, time: formatTime() });
-                await newMessage.save()
-                io.to(senderSocketId).emit("message_sent",sender)
-                io.to(room).emit("receive_message", { sender, room })
-            } catch (error) { console.error('Error saving message:', error) }
+            } else {
+                socket.emit('roomNotFound', room);
+            }
         });
 
-
-        socket.on("send_message", async ({ receiver, message, sender }) => {
-            const targetSocketId = userSockets.get(receiver)
-            const senderSocketId = userSockets.get(sender)
+        socket.on('send_group_message', async ({ message, room }) => {
             try {
-                const newMessage = new Message({ sender: sender, message: message, receiver: receiver, time: formatTime() });
-                const result = await newMessage.save()
-                if (result) await io.to(senderSocketId).emit("message_sent",sender)
-                if (targetSocketId) io.to(targetSocketId).emit("receive_message", { sender: sender, message })
-                else await User.updateOne({ username: receiver }, { $push: { unreads: { message, sender } } })
-            } catch (error) { console.error('Error saving message:', error) }
-        })
+                const newMessage = new GMessage({
+                    sender: socket.email,
+                    message,
+                    group: room,
+                    time: formatTime()
+                });
+                await newMessage.save();
+                io.to(room).emit("receive_message", newMessage);
+            } catch (error) {
+                console.error('Error saving group message:', error);
+            }
+        });
 
-
-        socket.on('fetch_unread_messages', async (username) => {
+        socket.on("send_message", async ({ receiver, message }) => {
             try {
-                const user = await User.findOne({ username: username });
+                const newMessage = new Message({
+                    sender: socket.email,
+                    message,
+                    receiver,
+                    time: formatTime()
+                });
+                await newMessage.save();
+
+                const targetSocketId = userSockets.get(receiver);
+                if (targetSocketId) {
+                    io.to(targetSocketId).emit("receive_message", newMessage);
+                } else {
+                    await User.updateOne(
+                        { email: receiver },
+                        { $push: { unreads: { message, sender: socket.email } } }
+                    );
+                }
+
+                socket.emit("message_sent", newMessage);
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        });
+
+        socket.on('fetch_unread_messages', async () => {
+            try {
+                const user = await User.findOne({ email: socket.email });
                 if (user) {
-                    const unreadMessages = user.unreads;
-                    socket.emit('unread_messages', unreadMessages);
+                    socket.emit('unread_messages', user.unreads);
                 }
             } catch (error) {
                 console.error('Error fetching unread messages:', error);
             }
-        })
+        });
 
-        socket.on('typing', ({ username, receiver }) => {
+        socket.on('typing', ({ receiver }) => {
             const targetSocketId = userSockets.get(receiver);
-            if (!targetSocketId) return;
-            io.to(targetSocketId).emit('typing', { receiver, sender: username });
-        })
+            if (targetSocketId) {
+                io.to(targetSocketId).emit('typing', { sender: socket.email });
+            }
+        });
 
+        socket.on('not_typing', ({ receiver }) => {
+            const targetSocketId = userSockets.get(receiver);
+            if (targetSocketId) {
+                io.to(targetSocketId).emit('not_typing', { sender: socket.email });
+            }
+        });
 
-        socket.on('not_typing', ({ username, receiver }) => {
-            const targetSocketId = userSockets.get(receiver)
-            if (!targetSocketId) return;
-            io.to(targetSocketId).emit('not_typing', { sender: username, receiver });
-        })
-
-        socket.on('mark_messages_as_read', async ({ sender, receiver }) => {
-            const targetSocketId = userSockets.get(sender);
+        socket.on('mark_messages_as_read', async ({ receiver }) => {
             try {
-                await User.updateOne({ username: sender }, { $pull: { unreads: { sender: receiver } } })
-                io.to(targetSocketId).emit('marked_as_read');
+                await User.updateOne(
+                    { email: socket.email },
+                    { $pull: { unreads: { sender: receiver } } }
+                );
+                socket.emit('marked_as_read');
             } catch (error) {
                 console.error('Error marking messages as read:', error);
             }
-        })
+        });
 
         socket.on('disconnect', () => {
-            userSockets.delete(socket.username);
+            userSockets.delete(socket.email);
             io.emit('online_users', Array.from(userSockets.keys()));
-            socket.broadcast.emit('disconnected', socket.username);
-        })
-
-    })
-}
+            socket.broadcast.emit('disconnected', socket.email);
+        });
+    });
+};
 
 module.exports = { handlerChat };

@@ -2,11 +2,12 @@ const { Message, GMessage } = require('../models/models');
 
 
 const getMessage = async (req, res) => {
-  const { sender, receiver } = req.query;
+  const { receiver } = req.query;
+  const sender = req.user
   if (!sender && !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });
   try {
     const messages = await Message.find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] })
-    if (messages.length == 0) return res.status(200).json({messages:null})
+    if (messages.length == 0) return res.status(200).json({ messages: null })
     res.status(200).json({ messages });
   } catch (error) { res.status(500) }
 }

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useCallback } from "react"
 import { useNavigate, useParams } from 'react-router-dom'
@@ -9,9 +8,7 @@ const arrayBufferToBase64 = (buffer) => {
     let binary = '';
     const bytes = new Uint8Array(buffer);
     const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
+    for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]) }
     return window.btoa(binary);
 }
 
@@ -23,24 +20,18 @@ const ChatContent = ({ friends, socket }) => {
     const [unreadMessages, setUnreadMessages] = useState([])
     const [onlineUsers, setOnlineUsers] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
-    const username = Cookies.get('username')
+    const accessToken = Cookies.get('accessToken')
 
-    useEffect(() => {
-        if (!username) navigate('/login')
-    }, [navigate, username])
-
-    useEffect(() => {
-        socket.emit('fetch_online_users', username)
-    }, [])
-
+    useEffect(() => { if (!accessToken) navigate('/login') }, [navigate, accessToken])
+    useEffect(() => { socket.emit('fetch_online_users') }, [socket])
     useEffect(() => {
         if (!socket) return;
-        socket.on('connect', () => socket.emit('fetch_unread_messages', username))
+        socket.on('connect', () => socket.emit('fetch_unread_messages'))
         socket.on('unread_messages', messages => setUnreadMessages(messages))
         socket.on('receive_message', () => socket.emit('fetch_unread_messages'));
         socket.on('online_users', (data) => {
             setOnlineUsers(data)
-            socket.emit('fetch_unread_messages', username);
+            socket.emit('fetch_unread_messages');
         })
 
         return () => {
@@ -49,20 +40,19 @@ const ChatContent = ({ friends, socket }) => {
             socket.off('marked_as_read');
             socket.off('online_users');
         }
-    }, [socket, username]);
+    }, [socket, accessToken]);
 
-    const getUnreadCountForFriend = friendUsername => { return unreadMessages.filter(msg => msg.sender === friendUsername).length }
+    const getUnreadCountForFriend = friend => { return unreadMessages.filter(msg => msg.sender === friend).length }
 
     const chatNow = useCallback((friend) => {
         setFriend(friend.username)
         navigate(`/chat/${friend.username}`)
-        setSelectedUser(friend.username)
-        socket.emit('mark_messages_as_read', { sender: username, receiver: friend.username });
-    }, [navigate, socket, username])
+        setSelectedUser(friend.email)
+        socket.emit('mark_messages_as_read', { receiver: friend.email });
+        localStorage.setItem('selectedFriend',`${friend.email}`)
+    }, [navigate, socket])
 
-    const handleSearch = (e) => {
-        setSearchQuery(e.target.value.toLowerCase());
-    }
+    const handleSearch = (e) => setSearchQuery(e.target.value.toLowerCase());
 
     const filteredFriends = friends
         .filter(friend => friend.username.toLowerCase().includes(searchQuery))
@@ -79,15 +69,15 @@ const ChatContent = ({ friends, socket }) => {
                 <div>
                     {filteredFriends && filteredFriends.length > 0 ? (
                         filteredFriends
-                            .filter(friend => friend.username !== Cookies.get('username'))
+                            .filter(friend => friend.accessToken !== Cookies.get('accessToken'))
                             .map(friend => {
                                 let imageBase64 = '';
                                 if (friend.imageData && friend.imageData.data) imageBase64 = arrayBufferToBase64(friend.imageData.data);
-                                const unreadCount = getUnreadCountForFriend(friend.username)
-                                const isOnline = onlineUsers.includes(friend.username)
+                                const unreadCount = getUnreadCountForFriend(friend.email)
+                                const isOnline = onlineUsers.includes(friend.accessToken)
                                 return (
                                     <div onClick={() => chatNow(friend)}
-                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer ${selectedUser === friend.username ? 'bg-gray-200' : ''} hover:bg-gray-100`}
+                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer ${selectedUser === friend.email ? 'bg-gray-200' : ''} hover:bg-gray-100`}
                                         key={friend._id}>
                                         <div className="flex flex-row justify-between w-full mx-4">
                                             <span className="flex items-center w-full h-fit">
@@ -96,10 +86,9 @@ const ChatContent = ({ friends, socket }) => {
                                                     : <img src="/nopro.png" alt="No Image" className="h-14" />
                                                 }
                                                     {isOnline && (<span className="badge badge-sm border-green-500  bg-green-500  w-3 h-4 ml-12 -mt-3  "></span>)}
-
                                                 </div>
                                                 <div className="ml-4 font-semibold">
-                                                    <div> {friend.username}</div>
+                                                    <div> {friend.accessToken}</div>
                                                     <div className="text-sm text-gray-600">
                                                         {friend.latestMessage ? friend.latestMessage.message : ''}
                                                     </div>

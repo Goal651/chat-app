@@ -23,26 +23,27 @@ const Details = ({ onlineUsers, reload }) => {
     const [userInfo, setUserInfo] = useState({});
     const [usersImage, setUsersImage] = useState('');
     const [groupImage, setGroupImage] = useState('');
-    const username = Cookies.get('username');
+    const friend = localStorage.getItem('selectedFriend')
     const [userImage, setUserImage] = useState('');
+    const accessToken=Cookies.get('accessToken')
 
     const fetchUserDetails = async (userParam, setStateCallback) => {
         try {
-            const response = await fetch(`http://localhost:3001/getUser/${userParam}`);
-            if (!response.ok) navigate('/error')
+            const response = await fetch(`http://localhost:3001/getUser/${userParam}`, { headers: { 'accessToken': `${Cookies.get('accessToken')}` } });
+            if (response.status === 403) navigate('/login')
             const data = await response.json();
             setStateCallback(data.user);
         } catch (error) { navigate('/error') }
     };
 
-    useEffect(() => { if (user) fetchUserDetails(user, setUserInfo) }, [user]);
+    useEffect(() => { if (user) fetchUserDetails(friend, setUserInfo) }, [user]);
 
     useEffect(() => {
         if (name) {
             const fetchGroupDetails = async () => {
                 try {
-                    const response = await fetch(`http://localhost:3001/getGroup/${name}`);
-                    if (!response.ok) navigate('/error')
+                    const response = await fetch(`http://localhost:3001/getGroup/${name}`, { headers: { 'accessToken': `${Cookies.get('accessToken')}` } });
+                    if (response.status === 403) navigate('/login')
                     const data = await response.json()
                     setGroupInfo(data.group)
                 } catch (error) { navigate('/error') }
@@ -51,7 +52,16 @@ const Details = ({ onlineUsers, reload }) => {
         }
     }, [name, navigate]);
 
-    useEffect(() => { if (username) fetchUserDetails(username, setDetails) }, [username, reload]);
+    useEffect(() => {
+        const fetchUserDetails = async () => {
+            try {
+                const response = await fetch(`http://localhost:3001/getUserProfile`, { headers: { 'accessToken': `${accessToken}` } })
+                const data = await response.json()
+                setDetails(data.user)
+            } catch (error) { navigate('/error') }
+        }
+        fetchUserDetails()
+    }, [accessToken, reload, navigate])
 
     useEffect(() => {
         if (userInfo.imageData) {
@@ -90,14 +100,13 @@ const Details = ({ onlineUsers, reload }) => {
                             {isOnline() && (<span className="text-green-500">Online</span>)}
                         </div>
                         <div>
-                            <span className="text-left font-semibold">{userInfo.f_name}</span>
-                            <span className="text-right font-semibold">{userInfo.l_name}</span>
+                            <span className="text-left font-semibold">{userInfo.names}</span>
                         </div>
                     </div>
                 ) : (
                     <div className="flex flex-col p-10 text-xl text-black">
                         <div>{groupImage ?
-                            <img src={`data:image/jpeg;base64,${groupImage}`} className="h-28 w-28 rounded-full" />
+                            <img src={`data:image/jpeg;base64,${groupImage}`} className="max-h-28 max-w-28 rounded-full" />
                             : <img src="/nopro.png" alt="No Profile" className="h-14" />
                         }</div>
                         <h3 className="text-center font-semibold">{groupInfo.name}</h3>
@@ -107,7 +116,7 @@ const Details = ({ onlineUsers, reload }) => {
             ) : (
                 <div className="flex flex-col p-10 text-xl text-black">
                     <div>{userImage ?
-                        <img src={`data:image/jpeg;base64,${userImage}`} alt="Fetched Image" className="h-28 w-28 rounded-full" />
+                        <img src={`data:image/jpeg;base64,${userImage}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full" />
                         : <img src="/nopro.png" alt="No Profile" className="h-14" />
                     }</div>
                     <h3 className="text-center">{details.username}</h3>

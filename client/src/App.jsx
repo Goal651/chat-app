@@ -4,7 +4,6 @@ import { useMediaQuery } from 'react-responsive';
 import './App.css';
 import Test from './pages/testing';
 import ErrorPage from './pages/500_error';
-
 const Login = lazy(() => import('./pages/login'));
 const Signup = lazy(() => import('./pages/signup'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
@@ -12,13 +11,12 @@ const NotFound = lazy(() => import('./pages/construction'));
 
 function App() {
   const isMobile = useMediaQuery({ query: '(max-width: 760px)' });
-
   return (
     <div className="h-screen">
       <Router>
         <Suspense fallback={
           <div className='h-screen flex justify-center bg-slate-900'>
-            <span className='loading loading-spinner h-screen bg-white'></span>
+            <span className='loading loading-infinity h-screen bg-white'></span>
           </div>
         }>
           <Routes>

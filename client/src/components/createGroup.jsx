@@ -23,12 +23,12 @@ function CreateGroup() {
         formDataToSend.append('photo', group.image);
         formDataToSend.append('admin', username);
         try {
-            const response = await fetch("http://localhost:3001/create-group", { method: "POST", body: formDataToSend })
+            const response = await fetch("http://localhost:3001/create-group", { headers: { 'Authorization': `Bearer ${Cookies.get('accessToken')}` } }, { method: "POST", body: formDataToSend })
             if (response.ok) navigate('/group');
             else if (response.status === 400) navigate('/group');
             else if (response.status === 404) alert('no stop there');
             else throw new Error("Something went wrong");
-        } catch (error) {navigate('/error') }
+        } catch (error) { navigate('/error') }
     };
 
     return (

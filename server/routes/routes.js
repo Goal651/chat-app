@@ -1,8 +1,9 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, checkUser, getUsers, getUser, getGroups, getGroup, createGroup, updateUser } = require('../controllers/app')
+const { login, signup, getUsers, getUser, getGroups, getGroup, createGroup, updateUser } = require('../controllers/app')
 const { getMessage, getGMessage } = require('../controllers/messageController');
 const multer = require('multer');
+const jwt = require('jsonwebtoken')
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, './uploads/'),
@@ -13,29 +14,47 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage })
 
+const refreshToken = (data) => {
+    const newAccessToken = jwt.sign({ email: data }, process.env.JWT_SECRET, { expiresIn: '1h' })
+    return newAccessToken
+
+}
+
+const checkUser = async (req, res, next) => {
+    const accessToken = req.headers['accesstoken'];
+    if (!accessToken) return res.sendStatus(401); 
+    const decodedToken = jwt.decode(accessToken);
+    jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
+        if (err && err.name === 'TokenExpiredError') {
+            const newAccessToken = refreshToken(decodedToken.email);
+            return res.status(401).json({accessToken: newAccessToken });
+        }
+        if (err) return res.sendStatus(403); 
+        req.user = user.email;
+        next();
+    });
+};
 
 //Authentication
 router.post('/login', login)
-router.get('/checkUser', checkUser)
 
 //creation of groups and users
 router.post('/signup', upload.single('image'), signup)
-router.post('/create-group', upload.single('photo'), createGroup)
+router.post('/create-group', checkUser, upload.single('photo'), createGroup)
 
 //getting users and groups
-router.get('getUserProfile', getUser);
-router.get('/getUser/:username', getUser)
-router.get('/allFriends', getUsers)
-router.get('/allGroups', getGroups);
-router.get('/getGroup/:name', getGroup);
+router.get('/getUserProfile', checkUser, getUser);
+router.get('/getUser/:username', checkUser, getUser)
+router.get('/allFriends',checkUser, getUsers)
+router.get('/allGroups', checkUser, getGroups);
+router.get('/getGroup/:name', checkUser, getGroup);
 
 //getting messages
-router.get('/gmessage/:group', getGMessage)
-router.get('/message', getMessage)
+router.get('/gmessage/:group', checkUser, getGMessage)
+router.get('/message', checkUser, getMessage)
 
 //updating user and messages
-
-router.put('/editUser/profile', upload.single('image'), updateUser)
+router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)
 
 
 module.exports = router;

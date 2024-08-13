@@ -8,11 +8,11 @@ const Navigation = ({ socket }) => {
     const navigate = useNavigate()
     const logOut = () => {
         socket.emit('disconnected')
-        Cookies.remove('username')
+        Cookies.remove('accessToken')
         navigate('/login')
     }
 
-    const toChats = () => navigate('/')
+    const toChats = () => navigate('/chat')
     const toGroups = () => navigate('/group')
     const toProfile = () => navigate('/profile')
     const toSetting = () => navigate('/setting')
