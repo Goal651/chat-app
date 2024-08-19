@@ -7,105 +7,84 @@ import GroupArea from "./groupScreen";
 
 
 
-const GroupContent = ({ groups, socket, friends }) => {
-    const { name } = useParams();
+const GroupContent = ({ groups, socket, friends, isMobile }) => {
     const navigate = useNavigate();
-    const [selectedGroup, setSelectedGroup] = useState('');
-    const [group, setGroup] = useState({});
-    const username = Cookies.get('username');
-    const [groupName, setGroupName] = useState('');
+    const selectedGroup = localStorage.getItem('selectedGroup')
+    const [group, setGroup] = useState(null);
     const [searchQuery, setSearchQuery] = useState('')
+    const accessToken = Cookies.get('accessToken')
+    const { type, name } = useParams()
+    const currentUser = Cookies.get('user')
 
-
-    const arrayBufferToBase64 = useCallback((buffer) => {
-        let binary = '';
-        const bytes = new Uint8Array(buffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return window.btoa(binary);
-    }, []);
-
+    useEffect(() => { if (!accessToken) navigate('/login') }, [accessToken, navigate]);
+    useEffect(() => { if (selectedGroup) navigate(`/group/${selectedGroup}`) }, [navigate])
 
     useEffect(() => {
         if (!socket) return;
-        const addUser = () => socket.emit('join_room', { room: groupName, user: username });
-        socket.on('room_exists', addUser)
+        socket.on('room_exists', () => {
+            socket.emit('join_room', { room: selectedGroup })
+        })
         return () => {
-            socket.off('room_exists', addUser);
+            socket.off('room_exists');
         };
-    }, [groupName, username, socket]);
+    }, [selectedGroup, socket]);
 
 
     const chatNow = useCallback((g) => {
         setGroup(g)
         navigate(`/group/${g.name}`)
-        setGroupName(g.name)
+        setGroup(g.name)
+        localStorage.setItem('selectedGroup', g.name)
         socket.emit('connect_group', { room: g.name });
     }, [navigate, socket]);
 
-
-
-    useEffect(() => {
-        if (!username) navigate('/login');
-    }, [username, navigate]);
-
-
-    useEffect(() => {
-        const fetchGroup = async () => {
-            if (!name) return;
-            const result = await fetch(`http://localhost:3001/getGroup/${name}`);
-            const data = await result.json();
-            setGroup(data.group);
-            if (!result.ok) navigate('/error')
-        };
-        fetchGroup();
-    }, [name]);
-
-
     const handleSearch = e => setSearchQuery(e.target.value.toLowerCase());
-    const filteredGroups = groups.filter(group => group.name.toLowerCase().includes(searchQuery));
-
-
+    const filteredGroups = groups
+        .filter(group => group.name.toLowerCase().includes(searchQuery));
 
     const memoizedGroups = useMemo(() => {
         return filteredGroups && filteredGroups.length > 0 ? filteredGroups.map(group => {
-            let imageBase64 = '';
-            if (group.imageData && group.imageData.data) imageBase64 = arrayBufferToBase64(group.imageData.data);
             return (
-                <div onClick={() => { chatNow(group); setSelectedGroup(group.name) }}
-                    className={`menu ${selectedGroup === group.name ? 'bg-gray-300' : ''}`}
+                <div onClick={() => chatNow(group)}
+                    className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer ${selectedGroup === group.name ? 'bg-gray-200' : ''} hover:bg-gray-100`}
                     key={group._id} >
-                    <li>
-                        <div>
-                            {imageBase64 ? (
-                                <img src={`data:image/jpeg;base64,${imageBase64}`} alt="Group Image" className="w-14 h-14 rounded-lg" />
-                            ) : (
-                                <img src="/nogro.png" alt="No Group" />
-                            )}
-                            <span className="ml-4 font-semibold">
+                    <div className="flex flex-row justify-between w-full mx-4">
+                        <span className="flex items-center w-full h-fit">
+                            <div className="flex h-14 w-14 bg-slate-300 rounded-lg items-center align-middle justify-center">{group.imageData ?
+                                <img src={`data:image/jpeg;base64,${group.imageData}`} alt="Fetched Image" className="max-w-14 max-h-14 rounded-lg" />
+                                : <img src="/nopro.png" alt="No Image" className="h-14" />
+                            }
+                            </div>
+                            <div className="ml-4 font-semibold">
                                 <div> {group.name}</div>
                                 <div className="text-sm text-gray-600">
-                                    {group.latestMessage ? group.latestMessage.message : 'No messages yet'}
+                                    {group.latestMessage ? (group.latestMessage.sender == currentUser ? `you: ${group.latestMessage.message}` : group.latestMessage.message) : 'Say hi to your new friend'}
                                 </div>
-                            </span>
-                        </div>
-                    </li>
+                            </div>
+                            {/* {unreadCount > 0 && (
+                                                    <span className="badge ml-auto bg-red-500 text-white rounded-full px-2 py-1">
+                                                        {unreadCount}
+                                                    </span>
+                                                )} */}
+                        </span>
+                    </div>
                 </div>
             );
-        }) : <span className="loading loading-spinner text-neutral"></span>;
-    }, [chatNow, selectedGroup, arrayBufferToBase64, filteredGroups]);
-
+        }) : <span className="">No groups</span>;
+    }, [chatNow, selectedGroup, filteredGroups,currentUser]);
+    const navigateBackward = () => {
+        localStorage.removeItem('selectedFriend')
+        navigate('/')
+    }
     return (
-        <div className="flex flex-row ">
-            <div id="mobile" className="flex flex-col w-1/3">
-                <button className="btn btn-link" onClick={() => { navigate('/create-group'); }}>Create new group</button>
+        <div className="flex flex-row text-sm">
+            <div id="mobile" style={{ height: '90vh' }} className={`flex flex-col  overflow-y-auto overflow-x-hidden ${isMobile ? `${type ? `${name ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`}>
+                {isMobile && (<button onClick={navigateBackward}>←</button>)}                <button className="btn btn-link" onClick={() => { navigate('/create-group'); }}>Create new group</button>
                 <input type="text" value={searchQuery} onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
-                {memoizedGroups}
+                <div> {memoizedGroups}</div>
             </div>
-            <div className='overflow-hidden w-2/3' style={{ height: '90vh' }}>
-                <GroupArea group={group} socket={socket} friends={friends} />
+            <div className={`overflow-hidden  ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '90vh' }}>
+                <GroupArea group={group} socket={socket} friends={friends} isMobile={isMobile} />
             </div>
         </div>
     );

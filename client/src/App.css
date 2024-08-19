@@ -77,9 +77,3 @@ label {
 .Content {
   display: block;
 }
-
-@media screen and (max-width:360px) {
-  #mobile {
-    display: none;
-  }
-}

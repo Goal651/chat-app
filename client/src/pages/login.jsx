@@ -45,6 +45,7 @@ const Login = ({ isMobile }) => {
       if (response.status === 200) {
         const data = await response.json();
         Cookies.set('accessToken', data.accessToken)
+        Cookies.set('user', data.email)
         navigate("/home");
       } else if (response.status === 401) {
         document.getElementById('password').focus();

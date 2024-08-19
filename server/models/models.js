@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
     password: String,
     image: String,
     username: String,
-    names:String,
+    names: String,
     unreads: [{
         sender: String,
         message: String,
@@ -14,21 +14,21 @@ const userSchema = new mongoose.Schema({
     }]
 });
 
-const tokenSchema = mongoose.Schema(
-    {
-        email: String,
-        accessToken: String,
-        createdAt: { type: Date, default: Date.now },
-    }
-)
+const tokenSchema = mongoose.Schema({
+    email: String,
+    accessToken: String,
+    createdAt: { type: Date, default: Date.now },
+})
 
 const messageSchema = mongoose.Schema({
     sender: { type: String, require: true },
     message: { type: String, require: true },
     receiver: { type: String, require: true },
+    type: { type: String, require: true },
     time: { type: String, require: true },
     timestamp: { type: Date, default: Date.now }
 })
+
 
 const groupMessageSchema = mongoose.Schema({
     sender: { type: String, require: true },
@@ -38,14 +38,12 @@ const groupMessageSchema = mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 });
 
-const groupSchema = mongoose.Schema(
-    {
-        name: { type: String, require: true },
-        admin: { type: String, require: true },
-        image: { type: String },
-        createdAt: { type: Date, default: Date.now },
-    }
-)
+const groupSchema = mongoose.Schema({
+    name: { type: String, require: true },
+    admin: { type: String, require: true },
+    image: { type: String, require: true },
+    createdAt: { type: Date, default: Date.now },
+})
 
 const User = mongoose.model("users", userSchema);
 const Tokens = mongoose.model("tokens", tokenSchema);

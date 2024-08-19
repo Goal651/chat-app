@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, getUsers, getUser, getGroups, getGroup, createGroup, updateUser } = require('../controllers/app')
-const { getMessage, getGMessage } = require('../controllers/messageController');
+const { login, signup, getUsers, getUser, getGroups, getGroup, createGroup, updateUser, getUserProfile } = require('../controllers/app')
+const { getMessage, getGMessage,deleteMessage } = require('../controllers/messageController');
 const multer = require('multer');
 const jwt = require('jsonwebtoken')
 
@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
     }
 })
 const upload = multer({ storage: storage })
-
+9
 const refreshToken = (data) => {
     const newAccessToken = jwt.sign({ email: data }, process.env.JWT_SECRET, { expiresIn: '1h' })
     return newAccessToken
@@ -43,8 +43,8 @@ router.post('/signup', upload.single('image'), signup)
 router.post('/create-group', checkUser, upload.single('photo'), createGroup)
 
 //getting users and groups
-router.get('/getUserProfile', checkUser, getUser);
-router.get('/getUser/:username', checkUser, getUser)
+router.get('/getUserProfile', checkUser, getUserProfile);
+router.get('/getUser/:email', checkUser, getUser)
 router.get('/allFriends',checkUser, getUsers)
 router.get('/allGroups', checkUser, getGroups);
 router.get('/getGroup/:name', checkUser, getGroup);
@@ -52,6 +52,7 @@ router.get('/getGroup/:name', checkUser, getGroup);
 //getting messages
 router.get('/gmessage/:group', checkUser, getGMessage)
 router.get('/message', checkUser, getMessage)
+router.delete('/deleteMessage/:id',checkUser,deleteMessage)
 
 //updating user and messages
 router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)

@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
 
 function CreateGroup() {
-    const username = Cookies.get('username')
+
     const navigate = useNavigate()
+    const accessToken=Cookies.get('accessToken')
     const [group, setGroup] = useState({ name: '', image: null })
 
     const handleChange = (e) => {
@@ -21,9 +22,8 @@ function CreateGroup() {
         const formDataToSend = new FormData();
         formDataToSend.append('name', group.name);
         formDataToSend.append('photo', group.image);
-        formDataToSend.append('admin', username);
         try {
-            const response = await fetch("http://localhost:3001/create-group", { headers: { 'Authorization': `Bearer ${Cookies.get('accessToken')}` } }, { method: "POST", body: formDataToSend })
+            const response = await fetch("http://localhost:3001/create-group", { headers: { 'accessToken': ` ${accessToken}` } , method: "POST", body: formDataToSend })
             if (response.ok) navigate('/group');
             else if (response.status === 400) navigate('/group');
             else if (response.status === 404) alert('no stop there');

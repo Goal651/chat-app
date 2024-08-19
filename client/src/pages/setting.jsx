@@ -1,45 +1,45 @@
 /* eslint-disable no-unused-vars */
-// client/src/pages/settings.jsx
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Cookies from 'js-cookie';
 import { Disclosure } from '@headlessui/react';
+import { useNavigate } from 'react-router-dom'
 
 const Settings = () => {
     const [user, setUser] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [theme, setTheme] = useState('light'); // Default theme
+    const navigate = useNavigate()
+    const accessToken = Cookies.get('accessToken')
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const username = Cookies.get('username');
-                const response = await axios.get(`/api/users/${username}`);
-                setUser(response.data);
+                const response = await fetch(`http://localhost:3001/getUserProfile`, { headers: { accessToken: `${accessToken}` }, });
+                const data = await response.json();
+                if (response.status === 401) {
+                    Cookies.set("accessToken", data);
+                    window.location.reload();
+                } else if (response.status === 403) navigate("/login");
+                else if (response.ok) setUser(data.user)
             } catch (err) {
-                setError('Failed to fetch user data');
+                navigate('/error')
             } finally {
                 setLoading(false);
             }
-        };
-
-        fetchUser();
-    }, []);
+        }
+        fetchUser()
+    }, [navigate, accessToken]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setUser(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
+        setUser(prevState => ({ ...prevState, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`/api/users/${user.username}`, user);
-            alert('Profile updated successfully');
+            const response = await fetch('http://localhost:3001/', { headers: { 'accessToken': `${accessToken}` }, method: 'PUT' });
         } catch (err) {
             setError('Failed to update profile');
         }
@@ -54,7 +54,7 @@ const Settings = () => {
     if (error) return <div>{error}</div>;
 
     return (
-        <div className="settings-page">
+        <div className="">
             <h2>Settings</h2>
             <div className="space-y-4">
                 <Disclosure>
@@ -64,29 +64,11 @@ const Settings = () => {
                                 Profile Information
                             </Disclosure.Button>
                             <Disclosure.Panel className="p-4">
-                                <form onSubmit={handleSubmit}>
-                                    <label>
-                                        First Name:
-                                        <input type="text" name="f_name" value={user.f_name || ''} onChange={handleChange} />
-                                    </label>
-                                    <label>
-                                        Last Name:
-                                        <input type="text" name="l_name" value={user.l_name || ''} onChange={handleChange} />
-                                    </label>
-                                    <label>
-                                        Email:
-                                        <input type="email" name="email" value={user.email || ''} onChange={handleChange} />
-                                    </label>
-                                    <label>
-                                        Username:
-                                        <input type="text" name="username" value={user.username || ''} onChange={handleChange} readOnly />
-                                    </label>
-                                    <label>
-                                        Password:
-                                        <input type="password" name="password" value={user.password || ''} onChange={handleChange} />
-                                    </label>
-                                    <button type="submit">Update Profile</button>
-                                </form>
+                                <div className='font-semibold'>
+                                    <div>Names:{user.names}</div>
+                                    <div>Username:{user.username}</div>
+                                    <div>Email:{user.email}</div>
+                                </div>
                             </Disclosure.Panel>
                         </>
                     )}
@@ -105,7 +87,7 @@ const Settings = () => {
                                         <option value="light">Light</option>
                                         <option value="dark">Dark</option>
                                         <option value="blue">Blue</option>
-                                        {/* Add more themes as needed */}
+
                                     </select>
                                 </label>
                             </Disclosure.Panel>

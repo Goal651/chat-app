@@ -16,15 +16,14 @@ const ChatContent = lazy(() => import("../components/ChatContent"));
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
-
     useEffect(() => {
         const newSocket = io(url, { withCredentials: true });
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [url]);
-
     return socket;
 };
+
 
 const Dashboard = ({ isMobile }) => {
     const navigate = useNavigate();
@@ -36,15 +35,13 @@ const Dashboard = ({ isMobile }) => {
     const [groups, setGroups] = useState([]);
     const socket = useSocket("http://localhost:3001");
     const [onlineUsers, setOnlineUsers] = useState([]);
+    const [reloadProfile, setReloadProfile] = useState(false)
 
-    useEffect(() => {
-        if (!accessToken) {
-            navigate('/login');
-        }
-    }, [navigate, accessToken]);
+    useEffect(() => { if (!accessToken) navigate('/login') }, [navigate, accessToken]);
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!accessToken) return;
             try {
                 const [friendsResponse, groupsResponse] = await Promise.all([
                     fetch('http://localhost:3001/allFriends', { headers: { 'accessToken': accessToken } }),
@@ -95,12 +92,26 @@ const Dashboard = ({ isMobile }) => {
         const interval = setInterval(updateFriends, 10000);
         return () => clearInterval(interval);
     }, []);
+    useEffect(() => {
+        const interval = setInterval(updateGroups, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     const updateFriends = async () => {
         try {
             const friendsResponse = await fetch(`http://localhost:3001/allFriends`, { headers: { 'accessToken': Cookies.get('accessToken') } });
             const friendsData = await friendsResponse.json();
             setFriends(friendsData.users);
+        } catch (error) {
+            console.error("Error updating friends:", error);
+        }
+    };
+
+    const updateGroups = async () => {
+        try {
+            const groupsResponse = await fetch(`http://localhost:3001/allGroups`, { headers: { 'accessToken': Cookies.get('accessToken') } });
+            const groupsData = await groupsResponse.json();
+            setGroups(groupsData.groups);
         } catch (error) {
             console.error("Error updating friends:", error);
         }
@@ -126,6 +137,8 @@ const Dashboard = ({ isMobile }) => {
         });
     };
 
+    const handleDataFromChild = (data) =>         setReloadProfile(data)
+    
     const renderContent = () => {
         if (loading || loadingGroup) {
             return (
@@ -172,26 +185,26 @@ const Dashboard = ({ isMobile }) => {
             group: <GroupContent groups={groups} socket={socket} onlineUsers={onlineUsers} friends={friends} isMobile={isMobile} />,
             'create-group': <CreateGroup isMobile={isMobile} />,
             chat: <ChatContent friends={friends} socket={socket} isMobile={isMobile} />,
-            profile: <Profile isMobile={isMobile} />,
+            profile: <Profile isMobile={isMobile} dataFromProfile={handleDataFromChild} />,
             setting: <Settings isMobile={isMobile} />,
             default: <NotFound />,
         };
 
-        if (name) return <GroupContent groups={groups} socket={socket} />;
-        if (user) return <ChatContent friends={friends} socket={socket} />;
-        return contentMap[type] || <ChatContent friends={friends} socket={socket} />;
+        if (name) return <GroupContent groups={groups} socket={socket} isMobile={isMobile} />;
+        if (user) return <ChatContent friends={friends} socket={socket} isMobile={isMobile} />;
+        return contentMap[type] || <ChatContent friends={friends} socket={socket} isMobile={isMobile} />;
     };
 
     return (
-        <div className="flex flex-row bg-black h-full">
-            <div id="mobile" className="w-1/12">
+        <div className={`flex flex-row bg-black h-full text-sm ${isMobile ? '' : ''}`}>
+            <div className={` ${isMobile ? `${type || name || user ? 'hidden' : ''}` : 'w-1/12'}`}>
                 <Navigation socket={socket} isMobile={isMobile} />
             </div>
-            <div className="bg-white text-black mr-4 my-4 pt-6 pl-0 w-5/6 rounded-3xl">
+            <div className={`bg-white rounded-3xl  ${isMobile ? 'w-full m-4 p-4' : '  text-black mr-4 my-4 pt-6 pl-0 w-5/6 rounded-3xl'}`}>
                 {renderContent()}
             </div>
-            <div id="mobile" className="w-1/6 bg-white my-4 mr-4 rounded-3xl">
-                <Details onlineUsers={onlineUsers} isMobile={isMobile} />
+            <div id="mobile" className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? 'hidden' : ''}`}>
+                <Details onlineUsers={onlineUsers} isMobile={isMobile} reloadProfile={reloadProfile} />
             </div>
         </div>
     );
