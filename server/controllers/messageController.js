@@ -1,24 +1,58 @@
 const { Message, GMessage, User } = require('../models/models');
 const fs = require('fs').promises;
 const path = require('path');
-const uploadsDir = path.join(__dirname, '../');
+const uploadsDir = path.join(__dirname, './');
 
 const getMessage = async (req, res) => {
   try {
     const { receiver } = req.query;
     const sender = req.user;
-    if (!sender && !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });
-    const messages = await Message.find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] });
-    if (messages.length === 0) return res.status(200).json({ messages: null });
-    res.status(200).json({ messages });
+
+    if (!sender || !receiver) {
+      return res.status(400).json({ message: 'Sender and receiver are required' });
+    }
+
+    const messages = await Message.find({
+      $or: [
+        { sender: sender, receiver: receiver },
+        { sender: receiver, receiver: sender }
+      ]
+    });
+
+    if (messages.length === 0) {
+      return res.status(200).json({ messages: null });
+    }
+
+    const messageWithDetails = await Promise.all(messages.map(async (message) => {
+      let imageData = null;
+
+      if (message.type === 'file') {
+        const imagePath = path.join(message.message); // Ensure this path is correct
+
+        try {
+          const data = await fs.readFile(imagePath);
+          imageData = data.toString('base64');
+        } catch (err) {
+          console.log(`Error reading image for user ${message.sender}:`, err);
+        }
+      }
+
+      return {
+        ...message._doc, // Copy existing message fields
+        image: imageData
+      };
+    }));
+
+    res.status(200).json({ messages: messageWithDetails });
   } catch (error) {
     res.sendStatus(500);
     console.log(error);
   }
 };
 
+
 const getGMessage = async (req, res) => {
-      
+
   const { group } = req.params;
   if (!group) return res.sendStatus(400);
   const users = await User.find();

@@ -4,7 +4,15 @@ import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
 import { Picker } from 'emoji-mart';
 
-
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
 
 const DMArea = ({ socket, isMobile }) => {
     const navigate = useNavigate()
@@ -12,12 +20,14 @@ const DMArea = ({ socket, isMobile }) => {
     const friend = localStorage.getItem('selectedFriend')
     const [refresh, setRefresh] = useState(false)
     const [message, setMessage] = useState("")
+    const [fileMessage, setFileMessage] = useState(null)
     const [scrollToBottom, setScrollToBottom] = useState(false)
     const [history, setHistory] = useState([])
     const [beingTyped, setBeingTyped] = useState(false)
     const [info, setInfo] = useState([])
     const [loading, setLoading] = useState(true)
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [filePreview, setFilePreview] = useState(null)
     const messagesEndRef = useRef(null)
     const accessToken = Cookies.get('accessToken')
     const [focusedMessage, setFocusedMessage] = useState('')
@@ -36,8 +46,8 @@ const DMArea = ({ socket, isMobile }) => {
 
     const handleScrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-            setScrollToBottom(false);
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+            setScrollToBottom(false)
         }
     }, []);
 
@@ -88,21 +98,58 @@ const DMArea = ({ socket, isMobile }) => {
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
-        if (message.length === 0) return;
         if (!socket) return;
-        const newMessage = { _id: Date.now(), sender: user, receiver: friend, message: message, time: new Date().toISOString().slice(11, 16), };
-        socket.emit("send_message", { receiver: friend, message });
-        setHistory(prevHistory => [...prevHistory, newMessage]);
-        setMessage("");
+        const newMessage = { _id: Date.now(), sender: user, receiver: friend, type: 'text', message: message, time: new Date().toISOString().slice(11, 16), };
+        if (message) {
+            socket.emit("send_message", { receiver: friend, message });
+            setHistory(prevHistory => [...prevHistory, newMessage]);
+            setMessage("");
+        }
         setScrollToBottom(true);
         socket.emit("not_typing", { receiver: friend });
     }, [message, socket, friend, user]);
 
+    const sendFileMessage = useCallback((e) => {
+        e.preventDefault();
+        if (!socket || !fileMessage) return;
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const arrayBuffer = event.target.result;
+            const base64String = arrayBufferToBase64(arrayBuffer);
+            const newFileMessage = {
+                _id: Date.now(),
+                sender: user,
+                receiver: friend,
+                type: 'file',
+                fileName: fileMessage.name,
+                fileType: fileMessage.type,
+                fileSize: fileMessage.size,
+                file: arrayBuffer,
+                time: new Date().toISOString().slice(11, 16),
+            }
+            console.log('Emitting event:', newFileMessage);
+            socket.emit('send_file_message', { message: newFileMessage });
+            setHistory(prevHistory => [...prevHistory, { ...newFileMessage, image: base64String }])
+            setFileMessage(null);
+            setFilePreview(null);
+            setScrollToBottom(true);
+        };
+        reader.readAsArrayBuffer(fileMessage);
+    }, [fileMessage, socket, friend, user]);
+
+
 
     const handleChange = useCallback((e) => {
-        const { value } = e.target
-        setMessage(value)
-        socket.emit("typing", { receiver: friend })
+        const { name, value, files } = e.target
+        if (name === 'media') {
+            const file = files[0]
+            setFilePreview(URL.createObjectURL(file))
+            setFileMessage(files[0])
+        }
+        else {
+            setMessage(value)
+            socket.emit("typing", { receiver: friend })
+        }
         setScrollToBottom(true)
     }, [socket, friend])
 
@@ -128,6 +175,11 @@ const DMArea = ({ socket, isMobile }) => {
             const response = await fetch(`http://localhost:3001/deleteMessage/${data}`, { headers: { 'accessToken': `${accessToken}` }, method: 'DELETE', })
             if (response.ok) setRefresh(true)
         } catch (err) { console.error(err) }
+    }
+
+    const handleCancel = () => {
+        setFileMessage(null)
+        setFilePreview(null)
     }
 
     return (
@@ -170,20 +222,30 @@ const DMArea = ({ socket, isMobile }) => {
                                         message.sender === friend ? (
                                             <div key={message._id} className="w-full h-full" >
                                                 <div className="grid grid-flow-col-dense chat chat-start">
-                                                    <div className="grid-cols-2 flex flex-col chat-bubble bg-slate-300 text-black font-medium " >
-                                                        <div className="text-sm grow font-semibold max-w-96 break-words"> {message.message}</div>
-                                                        <time className="text-xs opacity-50 text-end">{message.time}</time>
-                                                    </div>
+                                                    {message.type === 'file' ? (
+                                                        <div className="flex flex-col text-white font-medium">
+                                                            <img src={`data:image/jpeg;base64,${message.image}`} className="max-h-20 max-w-20" />
+                                                            <div className="text-xs opacity-50 text-end">{message.time}</div>
+                                                        </div>) : (
+                                                        <div className="grid-cols-2 flex flex-col chat-bubble bg-slate-300 text-black font-medium " >
+                                                            <div className="text-sm grow font-semibold max-w-96 break-words"> {message.message}</div>
+                                                            <time className="text-xs opacity-50 text-end">{message.time}</time>
+                                                        </div>)}
                                                 </div>
                                             </div>
                                         ) : (
                                             <div key={message._id} className="w-full h-full">
                                                 <div onMouseEnter={() => handleMouseEnter(message._id)} onMouseLeave={handleMouseLeave} className="chat chat-end grid-flow-col-dense ">
                                                     {focusedMessage == message._id && (<div className="cursor-pointer" onClick={() => handleDeleteMessage(message._id)}>Delete</div>)}
-                                                    <div className="flex flex-col chat-bubble bg-indigo-500 text-white font-medium ">
-                                                        <div className="grow text-sm break-words max-w-96 font-semibold"> {message.message}</div>
-                                                        <time className="text-xs opacity-50 text-end">{message.time}</time>
-                                                    </div>
+                                                    {message.type === 'file' ? (
+                                                        <div className="flex flex-col text-white font-medium">
+                                                            <img src={`data:image/jpeg;base64,${message.image}`} className="max-h-20 max-w-20" />
+                                                            <div className="text-xs opacity-50 text-end">{message.time}</div>
+                                                        </div>) : (
+                                                        <div className="grid-cols-2 flex flex-col chat-bubble bg-slate-300 text-black font-medium " >
+                                                            <div className="text-sm grow font-semibold max-w-96 break-words"> {message.message}</div>
+                                                            <time className="text-xs opacity-50 text-end">{message.time}</time>
+                                                        </div>)}
 
                                                 </div>
                                             </div>
@@ -221,7 +283,7 @@ const DMArea = ({ socket, isMobile }) => {
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6" viewBox="0 0 24 24">
                                     <path d="M12 2a5 5 0 0 0-5 5v7a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7a5 5 0 0 0-5-5zM9 8h6v4H9zm8 7h-2a3 3 0 0 0-6 0H7v3h10v-3z" />
                                 </svg>
-                                <input className="hidden" type="file" name="media" id="" />
+                                <input className="hidden" type="file" onChange={handleChange} name="media" id="" />
                             </label>
                         </form>
                         {showEmojiPicker && (
@@ -232,6 +294,15 @@ const DMArea = ({ socket, isMobile }) => {
                     </div></div>) : (
                 <div className="flex h-full text-center">Start Chatting with friends</div>
             )}
+            {filePreview && (<div className="fixed flex flex-col justify-center bg-black h-screen w-screen rounded-box top-0 left-0">
+                <div className="relative m-8 ml-72 w-full">
+                    {filePreview && (<img src={filePreview} alt="Image Preview" className="max-h-96 max-w-xl rounded-box" />)}
+                </div>
+                <div className="flex space-x-10 relative justify-center">
+                    <button onClick={handleCancel} className="btn text-gray-400">Cancel</button>
+                    <button onClick={sendFileMessage} className="btn btn-success">Send</button>
+                </div>
+            </div>)}
         </div>
     );
 };

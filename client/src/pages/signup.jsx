@@ -18,11 +18,9 @@ const SignUp = ({ isMobile }) => {
         const { name, value, files } = e.target;
         if (name === 'image') {
             const file = files[0];
-            setFormData({ ...formData, image: file });
-            setImagePreview(URL.createObjectURL(file));
-        } else {
-            setFormData({ ...formData, [name]: value });
-        }
+            setFormData({ ...formData, image: file })
+            setImagePreview(URL.createObjectURL(file))
+        } else setFormData({ ...formData, [name]: value })
     }
 
     const handleDrop = (e) => {

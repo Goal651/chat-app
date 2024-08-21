@@ -1,20 +1,8 @@
 const { Message, GMessage, User } = require('../models/models');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, '../uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
-});
-
-const upload = multer({ storage });
-
 
 const userSockets = new Map();
 const rooms = {};
@@ -73,7 +61,7 @@ const handlerChat = (io) => {
 
         socket.on("send_message", async ({ receiver, message }) => {
             try {
-                const newMessage = new Message({ sender: socket.user, message, type: "message", receiver, time: formatTime() });
+                const newMessage = new Message({ sender: socket.user, message, type: "text", receiver, time: formatTime() });
                 const savedMessage = await newMessage.save();
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
@@ -83,27 +71,26 @@ const handlerChat = (io) => {
             } catch (error) { console.error('Error sending message:', error) }
         });
 
-        socket.on('send_file_message', (data) => {
-            upload.single('file')(data, {}, async (err) => {
-                if (err) {
-                    console.error('Error uploading file:', err);
-                    return socket.emit('file_upload_error', err.message);
-                }
-                const filePath = path.join('uploads', data.file.filename);
-                const newMessage = new Message({ sender: socket.user, message: filePath, type: 'file', receiver: data.receiver, time: formatTime(), });
-                try {
-                    const savedMessage = await newMessage.save();
-                    const senderSocketId = userSockets.get(socket.user);
-                    const receiverSocketId = userSockets.get(data.receiver);
-                    if (receiverSocketId) io.to(receiverSocketId).emit('receive_message', newMessage);
-                    else await User.updateOne({ email: data.receiver }, { $push: { unreads: { message: data.message, sender: socket.user, file: filePath } } });
-                    if (savedMessage) io.to(senderSocketId).emit('message_sent', newMessage);
-                } catch (error) {
-                    console.error('Error sending file message:', error);
-                }
-            });
+        socket.on('send_file_message', async (data) => {
+            try {
+                const { message } = data;
+                const uploadDir = path.join(__dirname, 'uploads');
+                await fs.mkdir(uploadDir, { recursive: true });
+                const filePath = path.join(uploadDir, `${Date.now()}_${message.fileName}`);
+                await fs.writeFile(filePath, Buffer.from(message.file)); 
+                const newMessage = new Message({ sender: socket.user, message: filePath, type: 'file', receiver: message.receiver, time: formatTime(), });
+                const savedMessage = await newMessage.save();
+                console.log(filePath)
+                const senderSocketId = userSockets.get(socket.user);
+                const receiverSocketId = userSockets.get(message.receiver);
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_message', newMessage);
+                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
+                if (savedMessage) io.to(senderSocketId).emit('message_sent', newMessage);
+            } catch (err) {
+                console.error('Error sending file message:', err);
+                socket.emit('file_upload_error', err.message);
+            }
         });
-
 
         socket.on('fetch_unread_messages', async () => {
             try {

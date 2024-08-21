@@ -101,7 +101,7 @@ const ChatContent = ({ friends, socket, isMobile }) => {
                                                 <div className="ml-4 font-semibold w-full">
                                                     <div className="w-1/2"> {friend.username}</div>
                                                     <div className="text-sm text-gray-600 break-words line-clamp-1 w-40 ">
-                                                        {friend.latestMessage ? (friend.latestMessage.sender == currentUser ? `you: ${friend.latestMessage.message}` : friend.latestMessage.message) : 'Say hi to your new friend'}
+                                                        {friend.latestMessage ? (friend.latestMessage.sender == currentUser ? (friend.latestMessage.type === 'file' ? 'you: sent file' : `you: ${friend.latestMessage.message}`) : (friend.latestMessage.type === 'file' ? 'sent file' : friend.latestMessage.message)) : 'Say hi to your new friend'}
                                                     </div>
                                                 </div>
                                                 {unreadCount > 0 && (
