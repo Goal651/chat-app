@@ -36,6 +36,7 @@ const Dashboard = ({ isMobile }) => {
     const socket = useSocket("http://localhost:3001");
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [reloadProfile, setReloadProfile] = useState(false)
+    const theme = localStorage.getItem('theme')
 
     useEffect(() => { if (!accessToken) navigate('/login') }, [navigate, accessToken]);
 
@@ -137,8 +138,8 @@ const Dashboard = ({ isMobile }) => {
         });
     };
 
-    const handleDataFromChild = (data) =>         setReloadProfile(data)
-    
+    const handleDataFromChild = (data) => setReloadProfile(data)
+
     const renderContent = () => {
         if (loading || loadingGroup) {
             return (
@@ -182,29 +183,29 @@ const Dashboard = ({ isMobile }) => {
         }
 
         const contentMap = {
-            group: <GroupContent groups={groups} socket={socket} onlineUsers={onlineUsers} friends={friends} isMobile={isMobile} />,
-            'create-group': <CreateGroup isMobile={isMobile} />,
-            chat: <ChatContent friends={friends} socket={socket} isMobile={isMobile} />,
-            profile: <Profile isMobile={isMobile} dataFromProfile={handleDataFromChild} />,
+            group: <GroupContent groups={groups} socket={socket} onlineUsers={onlineUsers} friends={friends} isMobile={isMobile} theme={theme}/>,
+            'create-group': <CreateGroup isMobile={isMobile} theme={theme}/>,
+            chat: <ChatContent friends={friends} socket={socket} isMobile={isMobile} theme={theme}/>,
+            profile: <Profile isMobile={isMobile} dataFromProfile={handleDataFromChild} theme={theme}/>,
             setting: <Settings isMobile={isMobile} />,
             default: <NotFound />,
         };
 
-        if (name) return <GroupContent groups={groups} socket={socket} isMobile={isMobile} />;
-        if (user) return <ChatContent friends={friends} socket={socket} isMobile={isMobile} />;
-        return contentMap[type] || <ChatContent friends={friends} socket={socket} isMobile={isMobile} />;
+        if (name) return <GroupContent groups={groups} socket={socket} isMobile={isMobile} theme={theme}/>;
+        if (user) return <ChatContent friends={friends} socket={socket} isMobile={isMobile} theme={theme}/>;
+        return contentMap[type] || <ChatContent friends={friends} socket={socket} isMobile={isMobile} theme={theme}/>;
     };
 
     return (
-        <div className={`flex flex-row bg-black h-full text-sm ${isMobile ? '' : ''}`}>
-            <div className={` ${isMobile ? `${type || name || user ? 'hidden' : ''}` : 'w-1/12'}`}>
-                <Navigation socket={socket} isMobile={isMobile} />
+        <div className={`flex flex-row w-full h-screen text-sm ${theme==='dark-theme' ? 'bg-black' : 'bg-white'}`}>
+            <div className={` ${isMobile ? `${type || name || user ? 'hidden' : ''}` : 'w-1/12 h-full'}`}>
+                <Navigation socket={socket} isMobile={isMobile} theme={theme}/>
             </div>
-            <div className={`bg-white rounded-3xl  ${isMobile ? 'w-full m-4 p-4' : '  text-black mr-4 my-4 pt-6 pl-0 w-5/6 rounded-3xl'}`}>
+            <div className={`${theme==='dark-theme'?'bg-black ':'bg-white '} rounded-3xl  ${isMobile ? 'w-full m-4 p-4' : '  text-black mr-4 my-4 pt-6 pl-0 w-full rounded-3xl'}`}>
                 {renderContent()}
             </div>
-            <div id="mobile" className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? 'hidden' : ''}`}>
-                <Details onlineUsers={onlineUsers} isMobile={isMobile} reloadProfile={reloadProfile} />
+            <div id="mobile" className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? 'hidden' : 'hidden'}`}>
+                <Details onlineUsers={onlineUsers} isMobile={isMobile} reloadProfile={reloadProfile} theme={theme}/>
             </div>
         </div>
     );

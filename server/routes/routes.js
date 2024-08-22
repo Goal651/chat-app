@@ -6,14 +6,14 @@ const multer = require('multer');
 const jwt = require('jsonwebtoken')
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads/'),
+    destination: (req, file, cb) => cb(null, './uploads/photo/'),
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now();
         cb(null, uniqueSuffix + file.originalname)
     }
 })
 const upload = multer({ storage: storage })
-9
+
 const refreshToken = (data) => {
     const newAccessToken = jwt.sign({ email: data }, process.env.JWT_SECRET, { expiresIn: '1h' })
     return newAccessToken
@@ -56,6 +56,5 @@ router.delete('/deleteMessage/:id',checkUser,deleteMessage)
 
 //updating user and messages
 router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)
-
 
 module.exports = router;

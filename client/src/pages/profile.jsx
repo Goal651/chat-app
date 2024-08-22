@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 
 
-const Profile = ({ dataFromProfile }) => {
+const Profile = ({ dataFromProfile,theme }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const accessToken = Cookies.get("accessToken");
@@ -60,12 +60,12 @@ const Profile = ({ dataFromProfile }) => {
     return (
         <div>
             {user ? (
-                <div className="flex p-10 text-xl text-black w-1/3">
+                <div className={`flex p-10 text-xl  w-1/3 ${theme==='dark-theme'?'bg-black ':'bg-white shadow-md'}`}>
                     <div>  <label htmlFor="profile" className="profile rounded-full hover:cursor-pointer"                    >
                         {user.imageData ? (
                             <img src={`data:image/png;base64,${user.imageData}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full pro-img" />
                         ) : (
-                            <img src="/nopro.png" alt="No Profile" className="h-14 pro-img" />
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme==='dark-theme'?'white':'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z"/></svg>
                         )}
                         <h1 className="edit text-white">Edit</h1>
                     </label>

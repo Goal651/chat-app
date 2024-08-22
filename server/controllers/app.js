@@ -45,17 +45,24 @@ const getUsers = async (req, res) => {
         const usersWithDetails = await Promise.all(users.map(async user => {
             let latestMessage = null;
             if (email) latestMessage = await Message.findOne({ $or: [{ sender: user.email, receiver: email }, { sender: email, receiver: user.email }] }).sort({ timestamp: -1 }).exec();
-            let imageData = null;
-            if (user.image) {
+            let imageData = "";
+            if (user.image && user.image !== "") {
                 try {
                     const imagePath = path.join(uploadsDir, user.image);
-                    imageData = await fs.readFile(imagePath);
-                } catch (err) { res.sendStatus(500) }
+                    let data = await fs.readFile(imagePath);
+                    imageData = data.toString('base64')
+                } catch (err) {
+                    console.log(`Error reading image for user ${user.email}:`, err);
+                    res.sendStatus(500)
+                }
             }
-            return { ...user.toObject(), imageData: imageData.toString('base64'), latestMessage }
+            return { ...user.toObject(), imageData: imageData, latestMessage }
         }))
         res.status(200).json({ users: usersWithDetails });
-    } catch (err) { res.sendStatus(500) }
+    } catch (err) {
+        console.log(err)
+        res.sendStatus(500)
+    }
 }
 
 
@@ -137,7 +144,7 @@ const getGroups = async (req, res) => {
                 const imagePath = path.join(uploadsDir, group.image);
                 imageData = await fs.readFile(imagePath);
             }
-            return { ...group.toObject(), imageData:imageData.toString('base64'), latestMessage }
+            return { ...group.toObject(), imageData: imageData.toString('base64'), latestMessage }
         }))
         res.status(200).json({ groups: groupsWithImages });
     } catch (err) { res.sendStatus(500) }
