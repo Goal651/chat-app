@@ -1,14 +1,15 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { Disclosure } from '@headlessui/react';
 import { useNavigate } from 'react-router-dom'
 
-const Settings = () => {
+const Settings = ({ isMobile }) => {
     const [user, setUser] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const theme=localStorage.getItem('theme')
+    const theme = localStorage.getItem('theme')
     const navigate = useNavigate()
     const accessToken = Cookies.get('accessToken')
 
@@ -60,8 +61,18 @@ const Settings = () => {
     if (loading) return <div>Loading...</div>;
     if (error) return navigate('/error');
 
+    const navigateBackward = () => {
+        localStorage.removeItem('selectedFriend')
+        navigate('/')
+    }
+
     return (
-        <div className={`${theme==='dark-theme'?'bg-black text-gray-300':'bg-white text-gray-800 shadow-md'}`}>
+        <div className={`${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
+            {isMobile && (
+                <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
+                    ←
+                </button>
+            )}
             <h2>Settings</h2>
             <div className="space-y-4">
                 <Disclosure>
@@ -103,7 +114,7 @@ const Settings = () => {
                                         <path
                                             d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
                                     </svg>
-                                    <input type="checkbox" value='dark-theme' onChange={handleThemeChange} checked={theme==='dark-theme'?true:false} className="toggle theme-controller" />
+                                    <input type="checkbox" value='dark-theme' onChange={handleThemeChange} checked={theme === 'dark-theme' ? true : false} className="toggle theme-controller" />
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"

@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
     image: String,
     username: String,
     names: String,
+    lastActiveTime: Date,
     unreads: [{
         sender: String,
         message: String,
@@ -34,6 +35,7 @@ const groupMessageSchema = mongoose.Schema({
     sender: { type: String, require: true },
     message: { type: String, require: true },
     group: { type: String, require: true },
+    type: { type: String, require: true },
     time: { type: String, require: true },
     timestamp: { type: Date, default: Date.now }
 });

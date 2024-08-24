@@ -40,15 +40,24 @@ const getGMessage = async (req, res) => {
     const gmsWithDetails = await Promise.all(gmessages.map(async gm => {
       let imageData = null;
       let senderUsername = ''
+      let image = null;
+      if (gm.type.startsWith('image')) {
+        const imagePath = path.join(gm.message);
+        try {
+          const data = await fs.readFile(imagePath);
+          image= data.toString('base64');
+        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+      }
       const user = userMap.get(gm.sender);
+      senderUsername = user.username
       if (user && user.image) {
         const imagePath = path.join(user.image);
-        senderUsername = user.username
         try {
-          imageData = await fs.readFile(imagePath);
+          let data = await fs.readFile(imagePath);
+          imageData = data.toString('base64');
         } catch (err) { console.log(`Error reading image for user ${user.email}:`, err) }
       }
-      return { ...gm._doc, imageData: imageData ? imageData.toString('base64') : null, senderImage: user ? user.image : null, senderUsername };
+      return { ...gm._doc, imageData, senderImage: user ? user.image : null, senderUsername, image };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

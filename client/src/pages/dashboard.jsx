@@ -201,7 +201,7 @@ const Dashboard = ({ isMobile }) => {
             <div className={` ${isMobile ? `${type || name || user ? 'hidden' : ''}` : 'w-1/12 h-full'}`}>
                 <Navigation socket={socket} isMobile={isMobile} theme={theme}/>
             </div>
-            <div className={`${theme==='dark-theme'?'bg-black ':'bg-white '} rounded-3xl  ${isMobile ? 'w-full m-4 p-4' : '  text-black mr-4 my-4 pt-6 pl-0 w-full rounded-3xl'}`}>
+            <div className={`${theme==='dark-theme'?'bg-black ':'bg-white '} rounded-3xl  ${isMobile ? 'w-full ' : '  text-black mr-4 my-4 pl-0 w-full rounded-3xl'}`}>
                 {renderContent()}
             </div>
             <div id="mobile" className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? 'hidden' : 'hidden'}`}>

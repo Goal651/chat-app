@@ -124,7 +124,7 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
                         </div>
                     )}</div>
             </div>
-            <div className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '90vh' }}>
+            <div className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '95vh' }}>
                 <ChatArea socket={socket} friend={friend} isMobile={isMobile} theme={theme} />
             </div>
         </div>

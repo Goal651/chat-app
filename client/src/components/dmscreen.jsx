@@ -83,8 +83,14 @@ const DMArea = ({ socket, isMobile, theme }) => {
         if (!socket) return;
 
         const handleReceiveMessage = (data) => {
+            console.log(data);
             setHistory((prevHistory) => [...prevHistory, data]);
             setScrollToBottom(true);
+        };
+
+        const handleFileMessage = ({ data }) => {
+            console.log(data.message);
+
         };
 
         const handleTyping = ({ sender }) => {
@@ -154,6 +160,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
 
         socket.on("online_users", handleOnlineUsers)
         socket.on("receive_message", handleReceiveMessage);
+        socket.on("receive_file", handleFileMessage);
         socket.on("typing", handleTyping);
         socket.on("not_typing", handleNotTyping);
         socket.on('message_sent', handleMessageSent);
@@ -182,7 +189,6 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 const data = await response.json();
                 setHistory(data.messages);
                 setScrollToBottom(true);
-                setRefresh(false);
                 setLoading(false);
                 if (response.status === 403) navigate('/login');
             } catch (error) {
@@ -190,7 +196,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
             }
         };
         fetchMessages();
-    }, [friend, refresh, user, navigate, accessToken]);
+    }, [friend, user, navigate, accessToken]);
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
@@ -217,9 +223,6 @@ const DMArea = ({ socket, isMobile, theme }) => {
         setMessage((prevMessage) => prevMessage + emoji.native);
     };
 
-
-
-
     const toggleEmojiPicker = () => {
         setShowEmojiPicker(!showEmojiPicker);
     };
@@ -238,6 +241,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 fileName: fileMessage.name,
                 fileType: fileMessage.type,
                 fileSize: fileMessage.size,
+                preview: filePreview,
                 file: arrayBuffer,
                 time: new Date().toISOString().slice(11, 16),
             };
@@ -375,22 +379,20 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 className={`${theme === 'dark-theme' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
                     {isMobile && (
-                        <button onClick={navigateBackward} className="mr-4 text-gray-600 hover:text-gray-800">
+                        <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                             ←
                         </button>
                     )}
                     <div className={`flex items-center ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
-                        <div className="avatar  ">
+                        <div className="avatar">
                             <div className="h-20 w-20 rounded-full ">
-                                {info.imageData ? (
-                                    <img
-                                        src={`data:image/jpeg;base64,${info.imageData}`}
-                                        alt="Profile"
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark-theme' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
-                                )}
+                                {info.imageData ? <img
+                                    src={`data:image/jpeg;base64,${info.imageData}`}
+                                    alt="Profile"
+                                    className="h-full w-full object-cover"
+                                />
+                                    : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark-theme' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
+                                }
                             </div>
                         </div>
                         <div className="ml-4">
@@ -481,7 +483,6 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 <div ref={messagesEndRef}></div>
             </div>
 
-            {/* Input */}
             <div className={`p-4  ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
                 <form onSubmit={sendMessage} className="flex items-center">
                     <button

@@ -49,9 +49,7 @@ const handlerChat = (io) => {
                 } else {
                     socket.emit('roomNotFound', room);
                 }
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err) }
         });
 
         socket.on('fetch_online_users', () => {
@@ -62,16 +60,38 @@ const handlerChat = (io) => {
             }
         });
 
-        socket.on('send_group_message', async ({ message, room }) => {
+        socket.on('send_group_message', async ({ message }) => {
             try {
-                const newMessage = new GMessage({ sender: socket.user, message, group: room, time: formatTime() });
+                const newMessage = new GMessage({
+                    sender: socket.user,
+                    message: message.message,
+                    group: message.group,
+                    type: message.type,
+                    time: formatTime()
+                });
+
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return;
-                io.to(room).emit("receive_message", newMessage);
+
+                const roomMembers = rooms[message.group];
+                if (!roomMembers) return;
+
+                roomMembers.forEach(member => {
+                    console.log(member)
+                    const receiverSocketId = userSockets.get(member);
+                    if (receiverSocketId) {
+                        io.to(receiverSocketId).emit("receive_group_message", newMessage);
+                    }
+                });
+
+                const senderSocketId = socket.id;
+                io.to(senderSocketId).emit("message_sent", newMessage);
+
             } catch (error) {
-                console.error('Error saving group message:', error);
+                console.error('Error sending group message:', error);
             }
         });
+
 
         socket.on("send_message", async ({ receiver, message }) => {
             try {
@@ -127,11 +147,53 @@ const handlerChat = (io) => {
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(message.receiver);
-                if (receiverSocketId) {
-                    io.to(receiverSocketId).emit('receive_message', newMessage);
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { message: { ...newMessage, preview: message.preview } });
+                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
+                io.to(senderSocketId).emit('message_sent', newMessage);
+            } catch (err) {
+                console.error('Error sending file message:', err);
+                socket.emit('file_upload_error', err.message);
+            }
+        });
+        socket.on('send_group_file_message', async (data) => {
+            console.log(data)
+            try {
+                const { message } = data;
+                const uploadDir = path.join(__dirname, '../uploads');
+                const photoDir = path.join(uploadDir, 'photo')
+                const videoDir = path.join(uploadDir, 'video')
+                await fs.mkdir(videoDir, { recursive: true });
+                await fs.mkdir(photoDir, { recursive: true });
+                const fileExtension = path.extname(message.fileName);
+                const fileName = `${Date.now()}_${message.fileName}`;
+                const isVideo = message.fileType.startsWith('video/');
+                const isPhoto = message.fileType.startsWith('image/');
+                console.log(isVideo)
+                let filePath;
+                if (isVideo) {
+                    console.log('Video path:', videoDir, fileName);
+                    filePath = path.join(videoDir, fileName);
+                } else if (isPhoto) {
+                    console.log('Video path:', photoDir, fileName);
+                    filePath = path.join(photoDir, fileName);
                 } else {
-                    await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
+                    return socket.emit('file_upload_error', 'Unsupported file type');
                 }
+                await fs.writeFile(filePath, Buffer.from(message.file));
+                const newMessage = new GMessage({
+                    sender: socket.user,
+                    message: filePath,
+                    group: message.group,
+                    type: message.fileType,
+                    receiver: message.receiver,
+                    time: formatTime(),
+                });
+                const savedMessage = await newMessage.save();
+                if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
+                const senderSocketId = userSockets.get(socket.user);
+                const receiverSocketId = userSockets.get(message.receiver);
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { message: { ...newMessage, preview: message.preview } });
+                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
                 io.to(senderSocketId).emit('message_sent', newMessage);
             } catch (err) {
                 console.error('Error sending file message:', err);

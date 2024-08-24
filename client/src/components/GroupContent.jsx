@@ -7,7 +7,7 @@ import GroupArea from "./groupScreen";
 
 
 
-const GroupContent = ({ groups, socket, friends, isMobile }) => {
+const GroupContent = ({ groups, socket, friends, isMobile, theme }) => {
     const navigate = useNavigate();
     const selectedGroup = localStorage.getItem('selectedGroup')
     const [group, setGroup] = useState(null);
@@ -50,10 +50,13 @@ const GroupContent = ({ groups, socket, friends, isMobile }) => {
                     key={group._id} >
                     <div className="flex flex-row justify-between w-full mx-4">
                         <span className="flex items-center w-full h-fit">
-                            <div className="flex h-14 w-14 bg-slate-300 rounded-lg items-center align-middle justify-center">{group.imageData ?
-                                <img src={`data:image/jpeg;base64,${group.imageData}`} alt="Fetched Image" className="max-w-14 max-h-14 rounded-lg" />
-                                : <img src="/nopro.png" alt="No Image" className="h-14" />
-                            }
+                            <div className="avatar">
+                                <div className="w-16 rounded-full">
+                                {group.imageData ?
+                                <img src={`data:image/jpeg;base64,${group.imageData}`} alt="Fetched Image" className="" />
+                                : <img src="/nopro.png" alt="No Image" className="h-14" />}
+                            
+                                </div>
                             </div>
                             <div className="ml-4 font-semibold">
                                 <div> {group.name}</div>
@@ -71,7 +74,7 @@ const GroupContent = ({ groups, socket, friends, isMobile }) => {
                 </div>
             );
         }) : <span className="">No groups</span>;
-    }, [chatNow, selectedGroup, filteredGroups,currentUser]);
+    }, [chatNow, selectedGroup, filteredGroups, currentUser]);
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend')
         navigate('/')
@@ -83,8 +86,8 @@ const GroupContent = ({ groups, socket, friends, isMobile }) => {
                 <input type="text" value={searchQuery} onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
                 <div> {memoizedGroups}</div>
             </div>
-            <div className={`overflow-hidden  ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '90vh' }}>
-                <GroupArea group={group} socket={socket} friends={friends} isMobile={isMobile} />
+            <div className={`overflow-hidden  ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '95vh' }}>
+                <GroupArea group={group} socket={socket} friends={friends} isMobile={isMobile} theme={theme} />
             </div>
         </div>
     );
