@@ -381,8 +381,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                     {isMobile && (
                         <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                             ←
-                        </button>
-                    )}
+                        </button>)}
                     <div className={`flex items-center ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
                         <div className="avatar">
                             <div className="h-20 w-20 rounded-full ">
@@ -396,7 +395,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                             </div>
                         </div>
                         <div className="ml-4">
-                            <div className="text-lg font-semibold">{info.username || friend}</div>
+                            <div className="text-lg font-semibold">{info.username}</div>
                             {onlineUsers.includes(info.email) ? (
                                 <div className="text-sm ">Online</div>) :
                                 null}
@@ -445,7 +444,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                             )}
                         </div>
                     ) : (
-                        <div key={message._id} className={`chat chat-end rounded-lg p-2  `} >
+                        <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
                             {msg.type === 'text' ? (
                                 <div
                                     className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"

@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import GroupInfo from "./groupInfo";
 
 
 function arrayBufferToBase64(buffer) {
@@ -32,6 +33,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
     const [callType, setCallType] = useState(null);
     const [isCalling, setIsCalling] = useState(false);
     const [loading, setLoading] = useState(false)
+    const [showingGroupInfo, setShowingGroupInfo] = useState(false)
     const user = Cookies.get('user')
     const accessToken = Cookies.get('accessToken')
 
@@ -51,7 +53,6 @@ const GroupArea = ({ socket, isMobile, theme }) => {
             const data = await result.json();
             if (result.ok) setGroup(data.group);
             else navigate('/error');
-
         };
         fetchGroup();
     }, [name, accessToken, navigate]);
@@ -220,6 +221,12 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         setShowEmojiPicker(!showEmojiPicker);
     };
 
+    const isLastMessage = (id) => {
+        let lastID = history[history.length - 1]._id
+        let equal = id === lastID
+        return equal
+    }
+
     const sendFileMessage = useCallback((e) => {
         e.preventDefault();
         if (!socket || !fileMessage) return;
@@ -384,7 +391,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                     <div>Loading messages...</div>
                 ) : history.length > 0 ? (history.map((msg) => (
                     msg.sender !== user ? (
-                        <div key={message._id} className={` chat chat-start rounded-lg p-2  `} >
+                        <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
                             <div className="chat-image avatar">
                                 <div className="w-10 rounded-full bg-gray-500 ">
                                     {msg.imageData ? <img
@@ -400,7 +407,8 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                                 <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
                                     <div className="font-semibold text-blue-800 mb-1">{msg.senderUsername}</div>
                                     <div className="max-w-96 h-auto  break-words">{msg.message}</div>
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}{isLastMessage(msg._id) && ('last m')}</div>
+
                                 </div>
                             ) : (
                                 <div className="bg-white text-gray-800 max-w-96">
@@ -416,7 +424,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                                     className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"
                                 >
                                     <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div> </div>
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}{isLastMessage(msg._id)}</div> </div>
                             ) : (msg.type === 'image' ? (
                                 <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
                                     <img
@@ -459,7 +467,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                     </button>
                     {showEmojiPicker && (
                         <div className="absolute bottom-20">
-                            <Picker data={data} onEmojiSelect={addEmoji} theme="light" />
+                            <Picker data={data} onEmojiSelect={addEmoji} theme={theme} />
                         </div>
                     )}
                     <input
@@ -474,9 +482,19 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                         📎
                         <input type="file" onChange={handleChange} name="media" className="hidden" />
                     </label>
+                    <label htmlFor="">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-mic" viewBox="0 0 16 16">
+                            <path d="M8 12a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 8 12z" />
+                            <path d="M10.5 8.5v-5a2.5 2.5 0 0 0-5 0v5a2.5 2.5 0 0 0 5 0z" />
+                            <path d="M6.5 11a4.5 4.5 0 0 0 9 0v-1h1v1a5.5 5.5 0 0 1-11 0v-1h1v1z" />
+                            <path d="M8 13a5 5 0 0 0 5-5h1a6 6 0 0 1-12 0h1a5 5 0 0 0 5 5z" />
+                        </svg>
+
+                    </label>
                     <button
                         type="submit"
                         className="ml-4 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none"
+                        disabled={!message.trim() || fileMessage}
                     >
                         ➤
                     </button>
@@ -568,6 +586,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                     </div>
                 </div>
             )}
+            {showingGroupInfo && <GroupInfo theme={theme} groupInfo={group} />}
         </div>
     );
 };

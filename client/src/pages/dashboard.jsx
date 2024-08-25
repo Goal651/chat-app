@@ -1,7 +1,6 @@
 /* eslint-disable react/prop-types */
-/* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState, lazy } from "react";
-import Cookies from 'js-cookie';
+import { useEffect, useState, lazy, Suspense } from "react";
+import Cookies from "js-cookie";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import Settings from "./setting";
@@ -16,93 +15,104 @@ const ChatContent = lazy(() => import("../components/ChatContent"));
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
+
     useEffect(() => {
         const newSocket = io(url, { withCredentials: true });
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [url]);
+
     return socket;
 };
-
 
 const Dashboard = ({ isMobile }) => {
     const navigate = useNavigate();
     const { name, user, type } = useParams();
     const [friends, setFriends] = useState([]);
-    const [loadingGroup, setLoadingGroup] = useState(true);
-    const [loading, setLoading] = useState(true);
-    const accessToken = Cookies.get('accessToken');
     const [groups, setGroups] = useState([]);
-    const socket = useSocket("http://localhost:3001");
     const [onlineUsers, setOnlineUsers] = useState([]);
-    const [reloadProfile, setReloadProfile] = useState(false)
-    const theme = localStorage.getItem('theme')
-
-    useEffect(() => { if (!accessToken) navigate('/login') }, [navigate, accessToken]);
+    const [loading, setLoading] = useState(true);
+    const [reloadProfile, setReloadProfile] = useState(false);
+    const accessToken = Cookies.get("accessToken");
+    const socket = useSocket("http://localhost:3001");
+    const theme = localStorage.getItem("theme");
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (!accessToken) return;
+        if (!accessToken) navigate("/login");
+    }, [navigate, accessToken]);
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
             try {
                 const [friendsResponse, groupsResponse] = await Promise.all([
-                    fetch('http://localhost:3001/allFriends', { headers: { 'accessToken': accessToken } }),
-                    fetch('http://localhost:3001/allGroups', { headers: { 'accessToken': accessToken } }),
+                    fetch("http://localhost:3001/allFriends", {
+                        headers: { accessToken },
+                    }),
+                    fetch("http://localhost:3001/allGroups", {
+                        headers: { accessToken },
+                    }),
                 ]);
 
-                if (friendsResponse.status === 401 && groupsResponse.status === 401) {
-                    const newToken = await groupsResponse.json();
-                    Cookies.set('accessToken', newToken.accessToken);
+                if (friendsResponse.status === 401 || groupsResponse.status === 401) {
+                    const newToken = await friendsResponse.json();
+                    Cookies.set("accessToken", newToken.accessToken);
                     window.location.reload();
-                } else if (friendsResponse.status === 400 && groupsResponse.status === 400) {
-                    navigate('/login');
-                } else {
-                    const friendsData = await friendsResponse.json();
-                    const groupsData = await groupsResponse.json();
-                    setFriends(friendsData.users);
-                    setGroups(groupsData.groups);
+                } else if (friendsResponse.status === 400 || groupsResponse.status === 400) navigate("/login");
+                else {
+                    setFriends(sortByLatestMessage((await friendsResponse.json()).users));
+                    setGroups(sortByLatestMessage((await groupsResponse.json()).groups));
                 }
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
-                setLoading(false);
-                setLoadingGroup(false);
-            }
+            } catch (error) { console.error("Error fetching data:", error) }
+            finally { setLoading(false) }
         };
 
-        fetchData();
+        fetchInitialData();
     }, [accessToken, navigate]);
+
 
     useEffect(() => {
         if (!socket) return;
 
-        socket.emit('fetch_online_users');
-        socket.on('online_users', setOnlineUsers);
-        socket.on('marked_as_read', updateFriends);
-        socket.on('receive_message', updateFriendsWithMessage);
-        socket.on('message_sent', updateFriendsWithMessage);
+        socket.emit("fetch_online_users");
+        socket.on("online_users", setOnlineUsers);
+        socket.on("marked_as_read", updateAllData);
+        socket.on("receive_message", handleIncomingMessage);
+        socket.on("receive_group_message", handleIncomingGroupMessage);
+        socket.on("message_sent", handleIncomingMessage);
+        socket.on("group_message_sent", handleIncomingGroupMessage);
 
         return () => {
-            socket.off('online_users');
-            socket.off('marked_as_read');
-            socket.off('receive_message');
-            socket.off('message_sent');
-        };
-    }, [socket]);
+            socket.off("online_users");
+            socket.off("marked_as_read");
+            socket.off("receive_message");
+            socket.off("receive_group_message");
+            socket.off("message_sent");
+            socket.off("group_message_sent");
+        }
+    }, [socket])
 
     useEffect(() => {
-        const interval = setInterval(updateFriends, 10000);
-        return () => clearInterval(interval);
+        const friendsInterval = setInterval(updateFriends, 10000);
+        const groupsInterval = setInterval(updateGroups, 10000);
+
+        return () => {
+            clearInterval(friendsInterval);
+            clearInterval(groupsInterval);
+        };
     }, []);
-    useEffect(() => {
-        const interval = setInterval(updateGroups, 10000);
-        return () => clearInterval(interval);
-    }, []);
+
+    const updateAllData = async () => {
+        await updateFriends();
+        await updateGroups();
+    };
 
     const updateFriends = async () => {
         try {
-            const friendsResponse = await fetch(`http://localhost:3001/allFriends`, { headers: { 'accessToken': Cookies.get('accessToken') } });
-            const friendsData = await friendsResponse.json();
-            setFriends(friendsData.users);
+            const response = await fetch("http://localhost:3001/allFriends", {
+                headers: { accessToken: Cookies.get("accessToken") },
+            });
+            const data = await response.json();
+            setFriends(sortByLatestMessage(data.users));
         } catch (error) {
             console.error("Error updating friends:", error);
         }
@@ -110,38 +120,51 @@ const Dashboard = ({ isMobile }) => {
 
     const updateGroups = async () => {
         try {
-            const groupsResponse = await fetch(`http://localhost:3001/allGroups`, { headers: { 'accessToken': Cookies.get('accessToken') } });
-            const groupsData = await groupsResponse.json();
-            setGroups(groupsData.groups);
+            const response = await fetch("http://localhost:3001/allGroups", {
+                headers: { accessToken: Cookies.get("accessToken") },
+            });
+            const data = await response.json();
+            setGroups(sortByLatestMessage(data.groups));
         } catch (error) {
-            console.error("Error updating friends:", error);
+            console.error("Error updating groups:", error);
         }
     };
 
-    const updateFriendsWithMessage = (message) => {
-        setFriends(friends => {
-            const updatedFriends = friends.map(friend => {
-                if (friend.email === message.sender || friend.email === message.receiver) {
-                    return { ...friend, latestMessage: message };
-                }
-                return friend;
-            });
-            return sortFriendsByLatestMessage(updatedFriends);
-        });
+    const handleIncomingMessage = (message) => {
+        setFriends((prevFriends) =>
+            sortByLatestMessage(
+                prevFriends.map((friend) =>
+                    [message.sender, message.receiver].includes(friend.email)
+                        ? { ...friend, latestMessage: message }
+                        : friend
+                )
+            )
+        );
     };
 
-    const sortFriendsByLatestMessage = (friends) => {
-        return friends.sort((a, b) => {
-            const aTimestamp = a.latestMessage ? new Date(a.latestMessage.timestamp) : new Date(0);
-            const bTimestamp = b.latestMessage ? new Date(b.latestMessage.timestamp) : new Date(0);
-            return bTimestamp - aTimestamp;
-        });
+    const handleIncomingGroupMessage = (message) => {
+        setGroups((prevGroups) =>
+            sortByLatestMessage(
+                prevGroups.map((group) =>
+                    group.name === message.group
+                        ? { ...group, latestMessage: message }
+                        : group
+                )
+            )
+        );
     };
 
-    const handleDataFromChild = (data) => setReloadProfile(data)
+    const sortByLatestMessage = (items) =>
+        items.sort(
+            (a, b) =>
+                new Date(b.latestMessage?.timestamp || 0) -
+                new Date(a.latestMessage?.timestamp || 0)
+        );
+
+    const handleDataFromChild = (data) => setReloadProfile(data);
 
     const renderContent = () => {
-        if (loading || loadingGroup) {
+        if (loading) {
             return (
                 <div className="flex h-full w-full">
                     <div className="flex flex-col w-1/3 justify-around h-full gap-4 pl-10">
@@ -163,13 +186,12 @@ const Dashboard = ({ isMobile }) => {
                             </div>
                         </div>
                         <div className="flex flex-col justify-around h-4/6">
-                            {[...Array(3)].map((_, index) => (
-                                <div key={index} className="chat chat-start">
-                                    <div className="skeleton chat-bubble w-60"></div>
-                                </div>
-                            ))}
-                            {[...Array(3)].map((_, index) => (
-                                <div key={index} className="chat chat-end">
+                            {[...Array(6)].map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={`chat ${index % 2 === 0 ? "chat-start" : "chat-end"
+                                        }`}
+                                >
                                     <div className="skeleton chat-bubble w-60"></div>
                                 </div>
                             ))}
@@ -183,30 +205,88 @@ const Dashboard = ({ isMobile }) => {
         }
 
         const contentMap = {
-            group: <GroupContent groups={groups} socket={socket} onlineUsers={onlineUsers} friends={friends} isMobile={isMobile} theme={theme}/>,
-            'create-group': <CreateGroup isMobile={isMobile} theme={theme}/>,
-            chat: <ChatContent friends={friends} socket={socket} isMobile={isMobile} theme={theme}/>,
-            profile: <Profile isMobile={isMobile} dataFromProfile={handleDataFromChild} theme={theme}/>,
+            group: (
+                <GroupContent
+                    groups={groups}
+                    socket={socket}
+                    onlineUsers={onlineUsers}
+                    friends={friends}
+                    isMobile={isMobile}
+                    theme={theme}
+                />
+            ),
+            "create-group": <CreateGroup isMobile={isMobile} theme={theme} />,
+            chat: (
+                <ChatContent
+                    friends={friends}
+                    socket={socket}
+                    isMobile={isMobile}
+                    theme={theme}
+                />
+            ),
+            profile: (
+                <Profile
+                    isMobile={isMobile}
+                    dataFromProfile={handleDataFromChild}
+                    theme={theme}
+                />
+            ),
             setting: <Settings isMobile={isMobile} />,
             default: <NotFound />,
         };
 
-        if (name) return <GroupContent groups={groups} socket={socket} isMobile={isMobile} theme={theme}/>;
-        if (user) return <ChatContent friends={friends} socket={socket} isMobile={isMobile} theme={theme}/>;
-        return contentMap[type] || <ChatContent friends={friends} socket={socket} isMobile={isMobile} theme={theme}/>;
+        if (name)
+            return (
+                <GroupContent
+                    groups={groups}
+                    socket={socket}
+                    isMobile={isMobile}
+                    theme={theme}
+                />
+            );
+        if (user)
+            return (
+                <ChatContent
+                    friends={friends}
+                    socket={socket}
+                    isMobile={isMobile}
+                    theme={theme}
+                />
+            );
+        return contentMap[type] || contentMap["default"];
     };
 
     return (
-        <div className={`flex flex-row w-full h-screen text-sm ${theme==='dark-theme' ? 'bg-black' : 'bg-white'}`}>
-            <div className={` ${isMobile ? `${type || name || user ? 'hidden' : ''}` : 'w-1/12 h-full'}`}>
-                <Navigation socket={socket} isMobile={isMobile} theme={theme}/>
-            </div>
-            <div className={`${theme==='dark-theme'?'bg-black ':'bg-white '} rounded-3xl  ${isMobile ? 'w-full ' : '  text-black mr-4 my-4 pl-0 w-full rounded-3xl'}`}>
-                {renderContent()}
-            </div>
-            <div id="mobile" className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? 'hidden' : 'hidden'}`}>
-                <Details onlineUsers={onlineUsers} isMobile={isMobile} reloadProfile={reloadProfile} theme={theme}/>
-            </div>
+        <div
+            className={`flex flex-row w-full h-screen text-sm ${theme === "dark-theme" ? "bg-black" : "bg-white"
+                }`}
+        >
+            <Suspense fallback={<div>Loading...</div>}>
+                <div
+                    className={`${isMobile ? `${type || name || user ? "hidden" : ""}` : "w-1/12 h-full"
+                        }`}
+                >
+                    <Navigation socket={socket} isMobile={isMobile} theme={theme} />
+                </div>
+                <div
+                    className={`${theme === "dark-theme" ? "bg-black " : "bg-white "
+                        } rounded-3xl  ${isMobile ? "w-full " : "text-black mr-4 my-4 pl-0 w-full"}`}
+                >
+                    {renderContent()}
+                </div>
+                <div
+                    id="mobile"
+                    className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? "hidden" : "hidden"
+                        }`}
+                >
+                    <Details
+                        onlineUsers={onlineUsers}
+                        isMobile={isMobile}
+                        reloadProfile={reloadProfile}
+                        theme={theme}
+                    />
+                </div>
+            </Suspense>
         </div>
     );
 };

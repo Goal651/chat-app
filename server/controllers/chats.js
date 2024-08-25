@@ -1,4 +1,4 @@
-const { Message, GMessage, User } = require('../models/models');
+const { Message, GMessage, User, Group } = require('../models/models');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 const path = require('path');
@@ -12,7 +12,7 @@ const formatTime = () => {
     return now.toISOString().slice(11, 16);
 };
 
-const handlerChat = (io) => {
+const handlerChat = async (io) => {
     io.use((socket, next) => {
         const cookies = cookie.parse(socket.handshake.headers.cookie || '');
         const accessToken = cookies['accessToken'];
@@ -23,35 +23,18 @@ const handlerChat = (io) => {
             next();
         });
     });
-
+    const groups = await Group.find();
+    groups.map(group => rooms[group.name] = new Set())
     io.on('connection', (socket) => {
         userSockets.set(socket.user, socket.id);
         io.emit('online_users', Array.from(userSockets.keys()));
 
-        socket.on('connect_group', ({ room }) => {
-            try {
-                if (!rooms[room]) {
-                    rooms[room] = new Set();
-                } else {
-                    socket.emit('room_exists', room);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        });
-
-        socket.on("join_room", ({ room }) => {
-            try {
-                if (rooms[room]) {
-                    rooms[room].add(socket.user);
-                    socket.join(room);
-                    socket.emit('joined_room', room);
-                } else {
-                    socket.emit('roomNotFound', room);
-                }
-            } catch (err) { console.error(err) }
-        });
-
+        for (const groupName of Object.keys(rooms)) {
+            rooms[groupName].add(socket.user);
+            socket.join(groupName);
+            socket.emit('joined_room', groupName);
+        }
+        console.log(rooms)
         socket.on('fetch_online_users', () => {
             try {
                 socket.emit('online_users', Array.from(userSockets.keys()));
@@ -72,20 +55,20 @@ const handlerChat = (io) => {
 
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return;
-
                 const roomMembers = rooms[message.group];
                 if (!roomMembers) return;
 
                 roomMembers.forEach(member => {
-                    console.log(member)
-                    const receiverSocketId = userSockets.get(member);
-                    if (receiverSocketId) {
-                        io.to(receiverSocketId).emit("receive_group_message", newMessage);
+                    if (member !== socket.user) {
+                        const receiverSocketId = userSockets.get(member);
+                        if (receiverSocketId) {
+                            io.to(receiverSocketId).emit("receive_group_message", newMessage);
+                        }
                     }
-                });
+                })
 
                 const senderSocketId = socket.id;
-                io.to(senderSocketId).emit("message_sent", newMessage);
+                io.to(senderSocketId).emit("group_message_sent", newMessage);
 
             } catch (error) {
                 console.error('Error sending group message:', error);
@@ -270,6 +253,9 @@ const handlerChat = (io) => {
         socket.on('disconnect', () => {
             userSockets.delete(socket.user);
             io.emit('online_users', Array.from(userSockets.keys()));
+            for (const groupName of Object.keys(rooms)) {
+                rooms[groupName].delete(socket.user)
+            }
             socket.broadcast.emit('disconnected', socket.user);
         });
     });

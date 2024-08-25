@@ -68,8 +68,7 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
             const aTime = a.latestMessage ? new Date(a.latestMessage.timestamp).getTime() : 0;
             const bTime = b.latestMessage ? new Date(b.latestMessage.timestamp).getTime() : 0;
             return bTime - aTime;
-        });
-
+        })
 
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend')
@@ -77,7 +76,9 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
     }
     return (
         <div className="flex flex-row">
-            <div id="mobile" style={{ height: '90vh' }} className={`${theme === 'dark-theme' ? 'bg-black text-white' : 'bg-white text-gray-800'} flex flex-col  overflow-y-auto overflow-x-hidden ${isMobile ? `${type ? `${user ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`} >
+            <div id="mobile"
+                style={{ height: '90vh' }}
+                className={`${theme === 'dark-theme' ? 'bg-black text-white' : 'bg-white text-gray-800'} flex flex-col  overflow-y-auto overflow-x-hidden ${isMobile ? `${type ? `${user ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`} >
                 {isMobile && (<button onClick={navigateBackward}>←</button>)}
                 <input type="text" onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
                 <div>
