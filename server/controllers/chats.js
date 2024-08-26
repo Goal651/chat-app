@@ -34,7 +34,6 @@ const handlerChat = async (io) => {
             socket.join(groupName);
             socket.emit('joined_room', groupName);
         }
-        console.log(rooms)
         socket.on('fetch_online_users', () => {
             try {
                 socket.emit('online_users', Array.from(userSockets.keys()));
@@ -50,6 +49,7 @@ const handlerChat = async (io) => {
                     message: message.message,
                     group: message.group,
                     type: message.type,
+                    imageData:message.imageData,
                     time: formatTime()
                 });
 
@@ -169,6 +169,7 @@ const handlerChat = async (io) => {
                     group: message.group,
                     type: message.fileType,
                     receiver: message.receiver,
+                    imageData:message.imageData,
                     time: formatTime(),
                 });
                 const savedMessage = await newMessage.save();

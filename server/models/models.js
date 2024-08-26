@@ -8,12 +8,17 @@ const userSchema = new mongoose.Schema({
     username: String,
     names: String,
     lastActiveTime: Date,
-    unreads: [{
-        sender: String,
-        message: String,
-        timestamp: Date
-    }]
+    groups: [{ type: String, require: true }],
+    unreads: [{ sender: String, message: String, timestamp: Date }]
 });
+
+const groupSchema = mongoose.Schema({
+    name: { type: String, require: true },
+    admin: { type: String, require: true },
+    image: { type: String, require: true },
+    members: [{ email: String, role: { type: String, default: '' } }],
+    createdAt: { type: Date, default: Date.now },
+})
 
 const tokenSchema = mongoose.Schema({
     email: String,
@@ -25,7 +30,7 @@ const messageSchema = mongoose.Schema({
     sender: { type: String, require: true },
     message: { type: String, require: true },
     receiver: { type: String, require: true },
-    seen: { type: String, require: true },
+    seen: { type: Boolean, require: true },
     type: { type: String, require: true },
     time: { type: String, require: true },
     timestamp: { type: Date, default: Date.now }
@@ -36,7 +41,7 @@ const groupMessageSchema = mongoose.Schema({
     sender: { type: String, require: true },
     message: { type: String, require: true },
     group: { type: String, require: true },
-    seen:[{
+    seen: [{
         sender: { type: String, require: true },
         timestamp: { type: Date, default: Date.now }
     }],
@@ -45,12 +50,7 @@ const groupMessageSchema = mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 });
 
-const groupSchema = mongoose.Schema({
-    name: { type: String, require: true },
-    admin: { type: String, require: true },
-    image: { type: String, require: true },
-    createdAt: { type: Date, default: Date.now },
-})
+
 
 const User = mongoose.model("users", userSchema);
 const Tokens = mongoose.model("tokens", tokenSchema);

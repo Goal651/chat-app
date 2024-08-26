@@ -49,11 +49,11 @@ const Settings = ({ isMobile }) => {
     const handleThemeChange = (e) => {
         const data = e.target.checked;
         if (data) {
-            localStorage.setItem('theme', 'dark-theme')
+            localStorage.setItem('theme', 'dark')
             console.log(e.target.checked)
         }
         else {
-            localStorage.setItem('theme', 'light-theme')
+            localStorage.setItem('theme', 'light')
             console.log(e.target.checked)
         }
     };
@@ -67,7 +67,7 @@ const Settings = ({ isMobile }) => {
     }
 
     return (
-        <div className={`${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
+        <div className={`${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
             {isMobile && (
                 <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                     ←
@@ -114,7 +114,7 @@ const Settings = ({ isMobile }) => {
                                         <path
                                             d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
                                     </svg>
-                                    <input type="checkbox" value='dark-theme' onChange={handleThemeChange} checked={theme === 'dark-theme' ? true : false} className="toggle theme-controller" />
+                                    <input type="checkbox" value='dark-theme' onChange={handleThemeChange} checked={theme === 'dark' ? true : false} className="toggle theme-controller" />
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"

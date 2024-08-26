@@ -376,13 +376,13 @@ const DMArea = ({ socket, isMobile, theme }) => {
     return (
         <div className="flex flex-col h-full" >
             <div onClick={() => { setShowEmojiPicker(false) }}
-                className={`${theme === 'dark-theme' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
+                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
                     {isMobile && (
                         <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                             ←
                         </button>)}
-                    <div className={`flex items-center ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
+                    <div className={`flex items-center ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
                         <div className="avatar">
                             <div className="h-20 w-20 rounded-full ">
                                 {info.imageData ? <img
@@ -425,7 +425,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
             </div>
 
             {/* Messages */}
-            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark-theme' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
+            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
                 {loading ? (
                     <div>Loading messages...</div>
                 ) : history.length > 0 ? (history.map((msg) => (
@@ -482,7 +482,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 <div ref={messagesEndRef}></div>
             </div>
 
-            <div className={`p-4  ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
+            <div className={`p-4  ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
                 <form onSubmit={sendMessage} className="flex items-center">
                     <button
                         type="button"
@@ -493,7 +493,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                     </button>
                     {showEmojiPicker && (
                         <div className="absolute bottom-20">
-                            <Picker data={data} onEmojiSelect={addEmoji} theme="light" />
+                            <Picker data={data} onEmojiSelect={addEmoji} theme={theme} />
                         </div>
                     )}
                     <input

@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, getUsers, getUser, getGroups, getGroup, createGroup, updateUser, getUserProfile } = require('../controllers/app')
+const { login, signup, getUsers, getUser, getGroups, getGroup, createGroup, updateUser, getUserProfile,addMember } = require('../controllers/app')
 const { getMessage, getGMessage,deleteMessage } = require('../controllers/messageController');
 const multer = require('multer');
 const jwt = require('jsonwebtoken')
@@ -56,5 +56,6 @@ router.delete('/deleteMessage/:id',checkUser,deleteMessage)
 
 //updating user and messages
 router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)
+router.post('/addMember',checkUser, addMember)
 
 module.exports = router;

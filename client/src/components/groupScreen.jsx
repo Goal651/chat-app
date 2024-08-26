@@ -65,6 +65,8 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         }
     }, []);
 
+    const dataFromGroupInfo = (data) => { setShowingGroupInfo(data) }
+
     useEffect(() => {
         handleScrollToBottom();
     }, [scrollToBottom, handleScrollToBottom]);
@@ -222,9 +224,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
     };
 
     const isLastMessage = (id) => {
-        let lastID = history[history.length - 1]._id
-        let equal = id === lastID
-        return equal
+        return id === history[history.length - 1]._id
     }
 
     const sendFileMessage = useCallback((e) => {
@@ -339,14 +339,18 @@ const GroupArea = ({ socket, isMobile, theme }) => {
     return (
         <div className="flex flex-col h-full" >
             <div onClick={() => { setShowEmojiPicker(false) }}
-                className={`${theme === 'dark-theme' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
-                <div className="flex items-center">
+                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
+                <div
+                    onClick={() => {
+                        setShowingGroupInfo(true)
+                    }}
+                    className="flex items-center">
                     {isMobile && (
                         <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                             ←
                         </button>
                     )}
-                    <div className={`flex items-center ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
+                    <div className={`flex items-center ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
                         <div className="avatar">
                             <div className="h-20 w-20 rounded-full ">
                                 {group.imageData ? <img
@@ -354,7 +358,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                                     alt="Profile"
                                     className="h-full w-full object-cover"
                                 />
-                                    : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark-theme' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
+                                    : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
                                 }
                             </div>
                         </div>
@@ -386,7 +390,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
             </div>
 
             {/* Messages */}
-            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark-theme' ? 'bg-gray-800 ' : 'bg-gray-200'}`}>
+            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-200'}`}>
                 {loading ? (
                     <div>Loading messages...</div>
                 ) : history.length > 0 ? (history.map((msg) => (
@@ -456,7 +460,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                 <div ref={messagesEndRef}></div>
             </div>
 
-            <div className={`p-4  ${theme === 'dark-theme' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
+            <div className={`p-4  ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
                 <form onSubmit={sendMessage} className="flex items-center">
                     <button
                         type="button"
@@ -586,7 +590,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                     </div>
                 </div>
             )}
-            {showingGroupInfo && <GroupInfo theme={theme} groupInfo={group} />}
+            {showingGroupInfo && <GroupInfo theme={theme} dataFromGroupInfo={dataFromGroupInfo} groupInfo={group} />}
         </div>
     );
 };
