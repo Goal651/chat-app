@@ -3,6 +3,8 @@ const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs').promises;
+const mongoose = require('mongoose');
+const newObjectId = new mongoose.Types.ObjectId();
 
 const userSockets = new Map();
 const rooms = {};
@@ -23,6 +25,7 @@ const handlerChat = async (io) => {
             next();
         });
     });
+
     const groups = await Group.find();
     groups.map(group => rooms[group.name] = new Set())
     io.on('connection', (socket) => {
@@ -34,6 +37,7 @@ const handlerChat = async (io) => {
             socket.join(groupName);
             socket.emit('joined_room', groupName);
         }
+
         socket.on('fetch_online_users', () => {
             try {
                 socket.emit('online_users', Array.from(userSockets.keys()));
@@ -45,11 +49,13 @@ const handlerChat = async (io) => {
         socket.on('send_group_message', async ({ message }) => {
             try {
                 const newMessage = new GMessage({
+                    _id: new mongoose.Types.ObjectId(),
                     sender: socket.user,
                     message: message.message,
                     group: message.group,
                     type: message.type,
-                    imageData:message.imageData,
+                    imageData: message.imageData,
+                    seen: [],
                     time: formatTime()
                 });
 
@@ -67,9 +73,8 @@ const handlerChat = async (io) => {
                     }
                 })
 
-                const senderSocketId = socket.id;
+                const senderSocketId = userSockets.get(socket.user);
                 io.to(senderSocketId).emit("group_message_sent", newMessage);
-
             } catch (error) {
                 console.error('Error sending group message:', error);
             }
@@ -102,21 +107,17 @@ const handlerChat = async (io) => {
                 const videoDir = path.join(uploadDir, 'video')
                 await fs.mkdir(videoDir, { recursive: true });
                 await fs.mkdir(photoDir, { recursive: true });
-                const fileExtension = path.extname(message.fileName);
                 const fileName = `${Date.now()}_${message.fileName}`;
                 const isVideo = message.fileType.startsWith('video/');
                 const isPhoto = message.fileType.startsWith('image/');
-                console.log(isVideo)
                 let filePath;
                 if (isVideo) {
                     console.log('Video path:', videoDir, fileName);
                     filePath = path.join(videoDir, fileName);
                 } else if (isPhoto) {
-                    console.log('Video path:', photoDir, fileName);
+                    console.log('audio path:', photoDir, fileName);
                     filePath = path.join(photoDir, fileName);
-                } else {
-                    return socket.emit('file_upload_error', 'Unsupported file type');
-                }
+                } else return socket.emit('file_upload_error', 'Unsupported file type');
                 await fs.writeFile(filePath, Buffer.from(message.file));
 
                 const newMessage = new Message({
@@ -138,6 +139,7 @@ const handlerChat = async (io) => {
                 socket.emit('file_upload_error', err.message);
             }
         });
+
         socket.on('send_group_file_message', async (data) => {
             console.log(data)
             try {
@@ -169,7 +171,7 @@ const handlerChat = async (io) => {
                     group: message.group,
                     type: message.fileType,
                     receiver: message.receiver,
-                    imageData:message.imageData,
+                    imageData: message.imageData,
                     time: formatTime(),
                 });
                 const savedMessage = await newMessage.save();
@@ -212,14 +214,36 @@ const handlerChat = async (io) => {
             }
         });
 
-        socket.on('mark_messages_as_read', async ({ receiver }) => {
+
+        // Handling Seen Messages for DMs
+        socket.on('message_seen', async ({ receiver, messageId }) => {
             try {
-                const markedAsRead = await User.updateOne({ email: socket.user }, { $pull: { unreads: { sender: receiver } } });
-                if (markedAsRead) socket.emit('marked_as_read');
+                const updateResult = await Message.updateOne({ _id: messageId, receiver: socket.user }, { $set: { seen: true } });
+                if (updateResult.nModified > 0) {
+                    const receiverSocketId = userSockets.get(receiver);
+                    if (receiverSocketId) {
+                        io.to(receiverSocketId).emit('message_seen', { messageId, seenBy: socket.user });
+                    }
+                }
             } catch (error) {
-                console.error('Error marking messages as read:', error);
+                console.error('Error marking message as seen:', error);
             }
         });
+
+        socket.on('mark_group_messages_seen', ({ group, messages, user }) => {
+            // Update each message in the database to include the user in the seen array
+            messages.forEach(async (messageId) => {
+                await GMessage.updateOne(
+                    { _id: messageId, group: group, 'seen.member': { $ne: socket.user } }, // Check if the user is not already in the seen array
+                    { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } } // Add user to seen if not already present
+                );
+            });
+
+            // Optionally, emit an event to notify others in the group
+            socket.to(group).emit('group_message_seen', { messages, user });
+        });
+
+
 
         socket.on('call-offer', ({ offer, receiver }) => {
             const receiverSocketId = userSockets.get(receiver);

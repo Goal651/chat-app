@@ -56,7 +56,16 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         };
         fetchGroup();
     }, [name, accessToken, navigate]);
-    useEffect(() => { if (!socket) return socket.emit('connect_group', { room: name }); }, [socket, navigate])
+    useEffect(() => {
+        if (socket && history.length > 0) {
+            // Emit event to mark messages as seen when the user views them
+            socket.emit('mark_group_messages_seen', {
+                group: name,
+                messages: history.map(msg => msg._id),
+                user: user,
+            });
+        }
+    }, [history, socket, name, user]);
 
     const handleScrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
@@ -85,6 +94,15 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         };
 
         const handleNotTyping = () => setTyping(false);
+
+        const handleMessageSeen = () => {
+
+        }
+        const handleGroupMessageSent = (newMessage) => {
+            setHistory(prevHistory => [...prevHistory, newMessage]);
+            setScrollToBottom(true);
+
+        }
 
         const handleCallOffer = async ({ offer, sender, type }) => {
             if (sender !== name) return;
@@ -137,6 +155,8 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         socket.on('typing', handleTyping);
         socket.on('not_typing', handleNotTyping);
         socket.on('group-message', handleReceiveMessage);
+        socket.on('group_message_sent', handleGroupMessageSent);
+        socket.on('group_message_seen', handleMessageSeen)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
@@ -146,6 +166,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
             socket.off('group-message', handleReceiveMessage);
+            socket.off('group_message_sent', handleGroupMessageSent);
             socket.off('call-offer', handleCallOffer);
             socket.off('call-answer', handleCallAnswer);
             socket.off('ice-candidate', handleICECandidate);
@@ -182,37 +203,35 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         if (!socket) return;
 
         const newMessage = {
-            _id: Date.now(),
             sender: user,
             type: 'text',
             message: message,
             group: name,
             time: new Date().toISOString().slice(11, 16),
+            seen: [], // Initialize as an empty array
         };
+
         if (message.trim() !== "") {
             socket.emit("send_group_message", { message: newMessage });
-            setHistory(prevHistory => [...prevHistory, newMessage]);
             setMessage("")
         }
         setScrollToBottom(true)
         socket.emit("not_typing", { group: name });
     }, [message, socket, name, user]);
 
-    const handleChange = useCallback(
-        (e) => {
-            const { name, value, files } = e.target;
-            if (name === 'media') {
-                const file = files[0];
-                setFilePreview(URL.createObjectURL(file));
-                setFileMessage(files[0]);
-            } else {
-                setMessage(value);
-                socket.emit("typing", { group: name });
-            }
-            setScrollToBottom(true);
-        },
-        [socket, name]
-    );
+    const handleChange = useCallback((e) => {
+        const { name, value, files } = e.target;
+        if (name === 'media') {
+            socket.emit("member_typing", { group: name });
+            const file = files[0];
+            setFilePreview(URL.createObjectURL(file));
+            setFileMessage(files[0]);
+        } else {
+            setMessage(value);
+            socket.emit("member_typing", { group: name });
+        }
+        setScrollToBottom(true);
+    }, [socket, name]);
 
 
     const addEmoji = (emoji) => {
@@ -335,6 +354,14 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         setCallType(null);
     };
 
+    const getMemberPhoto = (data) => {
+        let image
+        if (group && group.members) {
+            const member = group.members.filter(member => member.email === data)[0]
+            image = member.imageData
+        }
+        return image
+    }
 
     return (
         <div className="flex flex-col h-full" >
@@ -411,8 +438,20 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                                 <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
                                     <div className="font-semibold text-blue-800 mb-1">{msg.senderUsername}</div>
                                     <div className="max-w-96 h-auto  break-words">{msg.message}</div>
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}{isLastMessage(msg._id) && ('last m')}</div>
-
+                                    <div className="">
+                                        <div className="text-xs opacity-70 mt-1 text-right">
+                                            {msg.time}
+                                        </div>
+                                        <div className="avatar-group -space-x-2 rtl:space-x-reverse">
+                                            {msg.seen.map((s) => (
+                                                <div key={s._id} className="avatar">
+                                                    <div className="w-5">
+                                                        <img src={`data:image/jpeg;base64,${getMemberPhoto(s.member)}`} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="bg-white text-gray-800 max-w-96">
@@ -424,11 +463,10 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                     ) : (
                         <div key={message._id} className={`chat chat-end rounded-lg p-2  `} >
                             {msg.type === 'text' ? (
-                                <div
-                                    className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"
-                                >
+                                <div className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"                                >
                                     <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}{isLastMessage(msg._id)}</div> </div>
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                                </div>
                             ) : (msg.type === 'image' ? (
                                 <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
                                     <img
@@ -444,6 +482,18 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                                 </div>
                             )
                             )}
+                            <div className="text-xs opacity-70 mt-1 text-right">
+                                {msg.time}
+                            </div>
+                            <div className="avatar-group -space-x-2 rtl:space-x-reverse">
+                                {msg.seen.map((s) => (
+                                    <div key={s._id} className="avatar">
+                                        <div className="w-5">
+                                            <img src={`data:image/jpeg;base64,${getMemberPhoto(s.member)}`} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )
                 ))

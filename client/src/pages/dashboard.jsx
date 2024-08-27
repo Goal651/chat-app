@@ -7,7 +7,6 @@ import Settings from "./setting";
 
 const Navigation = lazy(() => import("../components/navigation"));
 const CreateGroup = lazy(() => import("../components/createGroup"));
-const NotFound = lazy(() => import("./construction"));
 const Details = lazy(() => import("../components/info"));
 const Profile = lazy(() => import("./profile"));
 const GroupContent = lazy(() => import("../components/GroupContent"));
@@ -31,6 +30,7 @@ const Dashboard = ({ isMobile }) => {
     const [friends, setFriends] = useState([]);
     const [groups, setGroups] = useState([]);
     const [onlineUsers, setOnlineUsers] = useState([]);
+    const [userInfo,setUserInfo]=useState([])
     const [loading, setLoading] = useState(true);
     const [reloadProfile, setReloadProfile] = useState(false);
     const accessToken = Cookies.get("accessToken");
@@ -40,6 +40,22 @@ const Dashboard = ({ isMobile }) => {
     useEffect(() => {
         if (!accessToken) navigate("/login");
     }, [navigate, accessToken]);
+
+    useEffect(() => {
+        const fetchUserDetails = async () => {
+            if (!accessToken) return
+            try {
+                const response = await fetch(`http://localhost:3001/getUserProfile`, { headers: { accessToken: `${accessToken}` }, });
+                const data = await response.json();
+                if (response.status === 401) {
+                    Cookies.set("accessToken", data);
+                    window.location.reload();
+                } else if (response.status === 403) navigate("/login");
+                else if (response.ok) setUserInfo(data.user)
+            } catch (error) { navigate("/error"); console.log(error) }
+        }
+        fetchUserDetails()
+    }, [accessToken, reloadProfile, navigate]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -161,7 +177,7 @@ const Dashboard = ({ isMobile }) => {
                 new Date(a.latestMessage?.timestamp || 0)
         );
 
-    const handleDataFromChild = (data) => setReloadProfile(data);
+    const handleDataFromChild = () => setReloadProfile(!reloadProfile);
 
     const renderContent = () => {
         if (loading) {
@@ -213,6 +229,7 @@ const Dashboard = ({ isMobile }) => {
                     friends={friends}
                     isMobile={isMobile}
                     theme={theme}
+                    userInfo={userInfo}
                 />
             ),
             "create-group": <CreateGroup isMobile={isMobile} theme={theme} />,
@@ -229,10 +246,15 @@ const Dashboard = ({ isMobile }) => {
                     isMobile={isMobile}
                     dataFromProfile={handleDataFromChild}
                     theme={theme}
+                    userInfo={userInfo}
                 />
             ),
             setting: <Settings isMobile={isMobile} />,
-            default: <NotFound />,
+            default: <ChatContent
+                friends={friends}
+                socket={socket}
+                isMobile={isMobile}
+                theme={theme} />,
         };
 
         if (name)
@@ -242,6 +264,7 @@ const Dashboard = ({ isMobile }) => {
                     socket={socket}
                     isMobile={isMobile}
                     theme={theme}
+                    userInfo={userInfo}
                 />
             );
         if (user)
@@ -258,7 +281,7 @@ const Dashboard = ({ isMobile }) => {
 
     return (
         <div
-            className={`flex flex-row w-full h-screen text-sm ${theme === "dark-theme" ? "bg-black" : "bg-white"
+            className={`flex flex-row w-full h-screen text-sm ${theme === "dark" ? "bg-black" : "bg-white"
                 }`}
         >
             <Suspense fallback={<div>Loading...</div>}>
@@ -269,7 +292,7 @@ const Dashboard = ({ isMobile }) => {
                     <Navigation socket={socket} isMobile={isMobile} theme={theme} />
                 </div>
                 <div
-                    className={`${theme === "dark-theme" ? "bg-black " : "bg-white "
+                    className={`${theme === "dark" ? "bg-black " : "bg-white "
                         } rounded-3xl  ${isMobile ? "w-full " : "text-black mr-4 my-4 pl-0 w-full"}`}
                 >
                     {renderContent()}
@@ -282,7 +305,7 @@ const Dashboard = ({ isMobile }) => {
                     <Details
                         onlineUsers={onlineUsers}
                         isMobile={isMobile}
-                        reloadProfile={reloadProfile}
+                        userInfo={userInfo}
                         theme={theme}
                     />
                 </div>

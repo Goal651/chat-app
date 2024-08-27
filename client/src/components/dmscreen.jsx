@@ -20,6 +20,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
     const friend = localStorage.getItem('selectedFriend');
     const [refresh, setRefresh] = useState(false);
     const [message, setMessage] = useState("");
+    const [lastMessage, setLastMessage] = useState("");
     const [fileMessage, setFileMessage] = useState(null);
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
@@ -51,6 +52,25 @@ const DMArea = ({ socket, isMobile, theme }) => {
         if (!socket) return
         socket.emit('fetch_online_users')
     }, [navigate, socket])
+
+    useEffect(() => {
+        if (lastMessage && socket) {
+            socket.emit('message_seen', { receiver: friend, messageId: lastMessage });
+        }
+    }, [lastMessage, socket, friend,navigate]);
+    
+
+    useEffect(() => {
+        const isLastMessage = () => {
+            if (!user) return
+            if (!history) return
+            const lastM = history[history.length - 1]
+            if (lastM && lastM.sender === friend) {
+                setLastMessage(lastM._id)
+            }
+        }
+        isLastMessage()
+    }, [history])
 
     useEffect(() => {
         if (!user) return;
@@ -86,6 +106,9 @@ const DMArea = ({ socket, isMobile, theme }) => {
             console.log(data);
             setHistory((prevHistory) => [...prevHistory, data]);
             setScrollToBottom(true);
+            if (data.sender === friend) {
+                socket.emit('message_seen', { receiver: friend, messageId: data._id });
+            }
         };
 
         const handleFileMessage = ({ data }) => {
@@ -106,6 +129,9 @@ const DMArea = ({ socket, isMobile, theme }) => {
         const handleMessageSent = () => {
             setScrollToBottom(true);
         };
+        const handleMessageSeen = () => {
+
+        }
 
         const handleCallOffer = async ({ offer, sender, type }) => {
             if (sender !== friend) return;
@@ -164,6 +190,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
         socket.on("typing", handleTyping);
         socket.on("not_typing", handleNotTyping);
         socket.on('message_sent', handleMessageSent);
+        socket.on('message_seen', handleMessageSeen)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
@@ -197,6 +224,8 @@ const DMArea = ({ socket, isMobile, theme }) => {
         };
         fetchMessages();
     }, [friend, user, navigate, accessToken]);
+
+
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
@@ -430,7 +459,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                     <div>Loading messages...</div>
                 ) : history.length > 0 ? (history.map((msg) => (
                     msg.sender === friend ? (
-                        <div key={message._id} className={` chat chat-start rounded-lg p-2  `} >
+                        <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
                             {msg.type === 'text' ? (
                                 <div className="max-w-96 h-auto bg-white text-gray-800 chat-bubble">
                                     <div className="max-w-96 h-auto break-words">{msg.message}</div>
