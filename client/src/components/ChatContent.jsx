@@ -95,13 +95,12 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
                                         <div className="flex flex-row justify-between w-full mx-4">
                                             <span className="flex items-center w-full h-fit">
                                                 <div className="flex h-14 w-14 ">
-                                                    <div className="avatar">
+                                                    <div className={`avatar ${isOnline ? 'online' : 'offline'}`}>
                                                         <div className="h-16 w-16 rounded-full">{friend.imageData ?
                                                             <img src={`data:image/png;base64,${friend.imageData}`} alt="Fetched Image" className="h-full w-full object-cover" />
                                                             : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
                                                         }</div>
                                                     </div>
-                                                    {isOnline && (<span className={`relative badge badge-sm border-white border-solid border-  bg-green-500  top-12 right-5`}></span>)}
                                                 </div>
                                                 <div className="ml-4 font-semibold w-full">
                                                     <div className="w-1/2"> {friend.username}</div>

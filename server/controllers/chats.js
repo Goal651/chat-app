@@ -47,6 +47,8 @@ const handlerChat = async (io) => {
         });
 
         socket.on('send_group_message', async ({ message }) => {
+            console.log(message)
+
             try {
                 const newMessage = new GMessage({
                     _id: new mongoose.Types.ObjectId(),
@@ -54,11 +56,9 @@ const handlerChat = async (io) => {
                     message: message.message,
                     group: message.group,
                     type: message.type,
-                    imageData: message.imageData,
                     seen: [],
                     time: formatTime()
                 });
-
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return;
                 const roomMembers = rooms[message.group];
@@ -68,13 +68,13 @@ const handlerChat = async (io) => {
                     if (member !== socket.user) {
                         const receiverSocketId = userSockets.get(member);
                         if (receiverSocketId) {
-                            io.to(receiverSocketId).emit("receive_group_message", newMessage);
+                            io.to(receiverSocketId).emit("receive_group_message", { ...newMessage, imageData: message.imageData });
                         }
                     }
                 })
 
                 const senderSocketId = userSockets.get(socket.user);
-                io.to(senderSocketId).emit("group_message_sent", newMessage);
+                io.to(senderSocketId).emit("group_message_sent", { ...newMessage, imageData: message.imageData });
             } catch (error) {
                 console.error('Error sending group message:', error);
             }

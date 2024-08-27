@@ -7,7 +7,7 @@ import GroupArea from "./groupScreen";
 
 
 
-const GroupContent = ({ groups, socket, friends, isMobile, theme }) => {
+const GroupContent = ({ groups, socket, friends, isMobile, theme, userInfo }) => {
     const navigate = useNavigate();
     const selectedGroup = localStorage.getItem('selectedGroup')
     const [group, setGroup] = useState(null);
@@ -93,7 +93,13 @@ const GroupContent = ({ groups, socket, friends, isMobile, theme }) => {
                 <div> {memoizedGroups}</div>
             </div>
             <div className={`overflow-hidden  ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '95vh' }}>
-                <GroupArea group={group} socket={socket} friends={friends} isMobile={isMobile} theme={theme} />
+                <GroupArea
+                    group={group}
+                    socket={socket}
+                    friends={friends}
+                    isMobile={isMobile}
+                    theme={theme}
+                    userInfo={userInfo} />
             </div>
         </div>
     );

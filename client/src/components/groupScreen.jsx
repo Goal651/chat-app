@@ -16,7 +16,7 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
-const GroupArea = ({ socket, isMobile, theme }) => {
+const GroupArea = ({ socket, isMobile, theme, userInfo }) => {
     const { name } = useParams()
     const navigate = useNavigate()
     const [message, setMessage] = useState("")
@@ -83,7 +83,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
     useEffect(() => {
         if (!socket || !name) return;
 
-        const handleReceiveMessage = (newMessage) => {
+        const handleReceiveMessage = ({newMessage}) => {
             setHistory(prevHistory => [...prevHistory, newMessage]);
             setScrollToBottom(true);
         };
@@ -98,7 +98,7 @@ const GroupArea = ({ socket, isMobile, theme }) => {
         const handleMessageSeen = () => {
 
         }
-        const handleGroupMessageSent = (newMessage) => {
+        const handleGroupMessageSent = ({newMessage}) => {
             setHistory(prevHistory => [...prevHistory, newMessage]);
             setScrollToBottom(true);
 
@@ -200,17 +200,16 @@ const GroupArea = ({ socket, isMobile, theme }) => {
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
-        if (!socket) return;
-
+        if (!socket && !userInfo.imageData) return;
         const newMessage = {
             sender: user,
             type: 'text',
             message: message,
             group: name,
             time: new Date().toISOString().slice(11, 16),
-            seen: [], // Initialize as an empty array
+            seen: [],
+            imageData: userInfo.imageData
         };
-
         if (message.trim() !== "") {
             socket.emit("send_group_message", { message: newMessage });
             setMessage("")
@@ -264,7 +263,6 @@ const GroupArea = ({ socket, isMobile, theme }) => {
                 time: new Date().toISOString().slice(11, 16),
             };
             socket.emit('send_group_file_message', { message: newFileMessage });
-            console.log(newFileMessage)
             setHistory((prevHistory) => [...prevHistory, { ...newFileMessage, image: base64String },]);
             setFileMessage(null);
             setFilePreview(null);
