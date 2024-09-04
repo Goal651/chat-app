@@ -14,9 +14,9 @@ const Login = ({ isMobile }) => {
 
 
   useEffect(() => {
-    const accessToken = Cookies.get('accessToken');
+    const accessToken = Cookies.get('accessToken')
     if (accessToken) navigate('/')
-  }, [navigate]);
+  }, [navigate])
 
   const shake = (element) => {
     const duration = 200
@@ -44,9 +44,9 @@ const Login = ({ isMobile }) => {
       const response = await fetch("http://localhost:3001/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) })
       if (response.status === 200) {
         const data = await response.json();
-        Cookies.set('accessToken', data.accessToken)
-        Cookies.set('user', data.email)
-        navigate("/home");
+        Cookies.set('accessToken', data.accessToken, { expires: 7 });
+        Cookies.set('user', data.email, { expires: 7 });
+        navigate("/chat");
       } else if (response.status === 401) {
         document.getElementById('password').focus();
         setWrongPass(true)

@@ -20,22 +20,23 @@ const handlerChat = async (io) => {
         const accessToken = cookies['accessToken'];
         if (!accessToken) return next(new Error('Invalid token'));
         jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
-            if (err) return next(new Error('Invalid token'));
-            socket.user = user.email;
-            next();
-        });
-    });
+            if (err) return next(new Error('Invalid token'))
+            socket.user = user.email
+            next()
+        })
+    })
 
-    const groups = await Group.find();
+    const groups = await Group.find()
     groups.map(group => rooms[group.name] = new Set())
+
     io.on('connection', (socket) => {
-        userSockets.set(socket.user, socket.id);
+        userSockets.set(socket.user, socket.id)
         io.emit('online_users', Array.from(userSockets.keys()));
 
         for (const groupName of Object.keys(rooms)) {
-            rooms[groupName].add(socket.user);
-            socket.join(groupName);
-            socket.emit('joined_room', groupName);
+            rooms[groupName].add(socket.user)
+            socket.join(groupName)
+            socket.emit('joined_room', groupName)
         }
 
         socket.on('fetch_online_users', () => {
@@ -47,34 +48,19 @@ const handlerChat = async (io) => {
         });
 
         socket.on('send_group_message', async ({ message }) => {
-            console.log(message)
-
             try {
                 const newMessage = new GMessage({
-                    _id: new mongoose.Types.ObjectId(),
                     sender: socket.user,
                     message: message.message,
                     group: message.group,
                     type: message.type,
-                    seen: [],
-                    time: formatTime()
+                    time: message.time
                 });
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return;
-                const roomMembers = rooms[message.group];
-                if (!roomMembers) return;
-
-                roomMembers.forEach(member => {
-                    if (member !== socket.user) {
-                        const receiverSocketId = userSockets.get(member);
-                        if (receiverSocketId) {
-                            io.to(receiverSocketId).emit("receive_group_message", { ...newMessage, imageData: message.imageData });
-                        }
-                    }
-                })
-
+                socket.to(message.group).emit("receive_group_message", { message: newMessage });
                 const senderSocketId = userSockets.get(socket.user);
-                io.to(senderSocketId).emit("group_message_sent", { ...newMessage, imageData: message.imageData });
+                io.to(senderSocketId).emit("group_message_sent", { message: newMessage });
             } catch (error) {
                 console.error('Error sending group message:', error);
             }
@@ -89,11 +75,11 @@ const handlerChat = async (io) => {
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
                 if (receiverSocketId) {
-                    io.to(receiverSocketId).emit("receive_message", newMessage);
+                    io.to(receiverSocketId).emit("receive_message", { newMessage });
                 } else {
                     await User.updateOne({ email: receiver }, { $push: { unreads: { message, sender: socket.user } } });
                 }
-                io.to(senderSocketId).emit("message_sent", newMessage);
+                io.to(senderSocketId).emit("message_sent", { newMessage });
             } catch (error) {
                 console.error('Error sending message:', error);
             }
@@ -102,24 +88,20 @@ const handlerChat = async (io) => {
         socket.on('send_file_message', async (data) => {
             try {
                 const { message } = data;
+                const preview = message.file.toString('base64')
                 const uploadDir = path.join(__dirname, '../uploads');
-                const photoDir = path.join(uploadDir, 'photo')
-                const videoDir = path.join(uploadDir, 'video')
+                const photoDir = path.join(uploadDir, 'photo');
+                const videoDir = path.join(uploadDir, 'video');
                 await fs.mkdir(videoDir, { recursive: true });
                 await fs.mkdir(photoDir, { recursive: true });
                 const fileName = `${Date.now()}_${message.fileName}`;
                 const isVideo = message.fileType.startsWith('video/');
                 const isPhoto = message.fileType.startsWith('image/');
                 let filePath;
-                if (isVideo) {
-                    console.log('Video path:', videoDir, fileName);
-                    filePath = path.join(videoDir, fileName);
-                } else if (isPhoto) {
-                    console.log('audio path:', photoDir, fileName);
-                    filePath = path.join(photoDir, fileName);
-                } else return socket.emit('file_upload_error', 'Unsupported file type');
+                if (isVideo) filePath = path.join(videoDir, fileName);
+                else if (isPhoto) filePath = path.join(photoDir, fileName);
+                else return socket.emit('file_upload_error', 'Unsupported file type');
                 await fs.writeFile(filePath, Buffer.from(message.file));
-
                 const newMessage = new Message({
                     sender: socket.user,
                     message: filePath,
@@ -131,9 +113,9 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(message.receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { message: { ...newMessage, preview: message.preview } });
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, image: preview } });
                 else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
-                io.to(senderSocketId).emit('message_sent', newMessage);
+                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, image: preview } });
             } catch (err) {
                 console.error('Error sending file message:', err);
                 socket.emit('file_upload_error', err.message);
@@ -141,7 +123,6 @@ const handlerChat = async (io) => {
         });
 
         socket.on('send_group_file_message', async (data) => {
-            console.log(data)
             try {
                 const { message } = data;
                 const uploadDir = path.join(__dirname, '../uploads');
@@ -153,34 +134,27 @@ const handlerChat = async (io) => {
                 const fileName = `${Date.now()}_${message.fileName}`;
                 const isVideo = message.fileType.startsWith('video/');
                 const isPhoto = message.fileType.startsWith('image/');
-                console.log(isVideo)
                 let filePath;
-                if (isVideo) {
-                    console.log('Video path:', videoDir, fileName);
-                    filePath = path.join(videoDir, fileName);
-                } else if (isPhoto) {
-                    console.log('Video path:', photoDir, fileName);
-                    filePath = path.join(photoDir, fileName);
-                } else {
-                    return socket.emit('file_upload_error', 'Unsupported file type');
-                }
+                if (isVideo) filePath = path.join(videoDir, fileName);
+                else if (isPhoto) filePath = path.join(photoDir, fileName);
+                else return socket.emit('file_upload_error', 'Unsupported file type');
                 await fs.writeFile(filePath, Buffer.from(message.file));
                 const newMessage = new GMessage({
                     sender: socket.user,
                     message: filePath,
                     group: message.group,
                     type: message.fileType,
-                    receiver: message.receiver,
-                    imageData: message.imageData,
                     time: formatTime(),
                 });
+                const sentMessage = {
+                    ...newMessage._doc,
+                    image: message.imageData
+                };
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
-                const receiverSocketId = userSockets.get(message.receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { message: { ...newMessage, preview: message.preview } });
-                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
-                io.to(senderSocketId).emit('message_sent', newMessage);
+                io.to(senderSocketId).emit('group_message_sent', { message: sentMessage })
+                socket.to(message.group).emit('receive_group_message', { message: sentMessage })
             } catch (err) {
                 console.error('Error sending file message:', err);
                 socket.emit('file_upload_error', err.message);
@@ -196,6 +170,14 @@ const handlerChat = async (io) => {
             }
         });
 
+        socket.on('mark_message_as_read', async ({ sender }) => {
+            try {
+                const result = await User.updateOne({ email: socket.user }, { $pull: { unreads: { sender: sender } } })
+            } catch (err) {
+                console.error(err)
+            }
+        })
+
         socket.on('typing', ({ receiver }) => {
             try {
                 const receiverSocketId = userSockets.get(receiver);
@@ -204,6 +186,10 @@ const handlerChat = async (io) => {
                 console.error(err);
             }
         });
+
+        socket.on('member_typing', ({ group }) => {
+            socket.to(group).emit('member_typing', { member: socket.user, group })
+        })
 
         socket.on('not_typing', ({ receiver }) => {
             try {
@@ -219,10 +205,10 @@ const handlerChat = async (io) => {
         socket.on('message_seen', async ({ receiver, messageId }) => {
             try {
                 const updateResult = await Message.updateOne({ _id: messageId, receiver: socket.user }, { $set: { seen: true } });
-                if (updateResult.nModified > 0) {
+                if (updateResult) {
                     const receiverSocketId = userSockets.get(receiver);
                     if (receiverSocketId) {
-                        io.to(receiverSocketId).emit('message_seen', { messageId, seenBy: socket.user });
+                        io.to(receiverSocketId).emit('user_saw_message', { messageId, sender: socket.user });
                     }
                 }
             } catch (error) {
@@ -231,49 +217,79 @@ const handlerChat = async (io) => {
         });
 
         socket.on('mark_group_messages_seen', ({ group, messages, user }) => {
-            // Update each message in the database to include the user in the seen array
             messages.forEach(async (messageId) => {
                 await GMessage.updateOne(
                     { _id: messageId, group: group, 'seen.member': { $ne: socket.user } }, // Check if the user is not already in the seen array
                     { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } } // Add user to seen if not already present
                 );
             });
-
-            // Optionally, emit an event to notify others in the group
             socket.to(group).emit('group_message_seen', { messages, user });
         });
 
+        socket.on('group_message_seen', async ({ id, group }) => {
+            try {
+                const updateResult = await GMessage.updateOne({ _id: id, group: group, 'seen.member': { $ne: socket.user } }, { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } });
+                if (!updateResult) return
+                socket.to(group).emit('member_saw_message', { id, member: socket.user })
+            } catch (err) { console.error(err) }
+
+        })
 
 
         socket.on('call-offer', ({ offer, receiver }) => {
-            const receiverSocketId = userSockets.get(receiver);
-            if (receiverSocketId) {
-                io.to(receiverSocketId).emit('call-offer', { offer, sender: socket.user });
-            } else {
-                socket.emit('call_error', 'User not online');
+            try {
+                const receiverSocketId = userSockets.get(receiver);
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit('call-offer', { offer, sender: socket.user });
+                } else {
+                    socket.emit('call_error', 'User not online');
+                }
+            } catch (error) {
+                console.error('Error handling call offer:', error);
+                socket.emit('call_error', 'Unable to send call offer');
             }
         });
 
         socket.on('answer_call', ({ answer, sender }) => {
-            const callerSocketId = userSockets.get(sender);
-            if (callerSocketId) {
-                io.to(callerSocketId).emit('call-answer', { answer, receiver: socket.user });
+            try {
+                const callerSocketId = userSockets.get(sender);
+                if (callerSocketId) {
+                    io.to(callerSocketId).emit('call-answer', { answer, receiver: socket.user });
+                } else {
+                    socket.emit('call_error', 'Caller not available');
+                }
+            } catch (error) {
+                console.error('Error handling call answer:', error);
+                socket.emit('call_error', 'Unable to send call answer');
             }
         });
 
         socket.on('ice-candidate', ({ candidate, to }) => {
-            const targetSocketId = userSockets.get(to);
-            if (targetSocketId) {
-                io.to(targetSocketId).emit('ice-candidate', { candidate, from: socket.user });
+            try {
+                const targetSocketId = userSockets.get(to);
+                if (targetSocketId) {
+                    io.to(targetSocketId).emit('ice-candidate', { candidate, from: socket.user });
+                } else {
+                    socket.emit('call_error', 'Target user not available for ICE candidate');
+                }
+            } catch (error) {
+                console.error('Error handling ICE candidate:', error);
+                socket.emit('call_error', 'Unable to send ICE candidate');
             }
         });
 
         socket.on('end_call', ({ to }) => {
-            const targetSocketId = userSockets.get(to);
-            if (targetSocketId) {
-                io.to(targetSocketId).emit('call_ended', { from: socket.user });
+            try {
+                const targetSocketId = userSockets.get(to);
+                if (targetSocketId) {
+                    io.to(targetSocketId).emit('call_ended', { from: socket.user });
+                }
+            } catch (error) {
+                console.error('Error handling call end:', error);
+                socket.emit('call_error', 'Unable to end call');
             }
         });
+
 
         socket.on('disconnect', () => {
             userSockets.delete(socket.user);

@@ -2,7 +2,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useCallback } from "react"
 import { useNavigate, useParams } from 'react-router-dom'
-import ChatArea from "./dmscreen"
+import ChatArea from "./Dms"
 import Cookies from 'js-cookie'
 
 const ChatContent = ({ friends, socket, isMobile, theme }) => {
@@ -18,11 +18,15 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
     const currentUser = Cookies.get('user');
 
     useEffect(() => { if (!accessToken) navigate('/login') }, [navigate, accessToken])
-    useEffect(() => { socket.emit('fetch_online_users') }, [socket])
+    useEffect(() => {
+        socket.emit('fetch_online_users')
+
+    }, [socket])
     useEffect(() => {
         if (!lastFriend) return
         navigate(`/chat/${lastFriend.username}`)
     }, [lastFriend])
+
 
     useEffect(() => {
         if (!selectedFriend) return
@@ -30,6 +34,7 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
         let current = friends.filter(friend => friend.email === selectedFriend)
         if (current) setLastFriend(current[0])
     }, [navigate, selectedFriend, lastFriend])
+
 
     useEffect(() => {
         if (!socket) return;
@@ -56,7 +61,6 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
     const chatNow = useCallback((friend) => {
         setFriend(friend.username)
         navigate(`/chat/${friend.username}`)
-        socket.emit('mark_messages_as_read', { receiver: friend.email });
         localStorage.setItem('selectedFriend', `${friend.email}`)
     }, [navigate, socket])
 
@@ -77,7 +81,7 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
     return (
         <div className="flex flex-row">
             <div id="mobile"
-                style={{ height: '90vh' }}
+                style={{ height: '95vh' }}
                 className={`${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-gray-800'} flex flex-col  overflow-y-auto overflow-x-hidden ${isMobile ? `${type ? `${user ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`} >
                 {isMobile && (<button onClick={navigateBackward}>←</button>)}
                 <input type="text" onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
@@ -90,15 +94,15 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
                                 const isOnline = onlineUsers.includes(friend.email)
                                 return (
                                     <div onClick={() => chatNow(friend)}
-                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-1 ${theme === 'dark' ? `${selectedFriend === friend.email ? 'bg-gray-800 hover:bg-gray-900' : ''} hover:bg-gray-700 ` : `${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}`}
+                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2 ${theme === 'dark' ? `${selectedFriend === friend.email ? 'bg-gray-800 hover:bg-gray-900' : ''} hover:bg-gray-700 ` : `${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}`}
                                         key={friend._id}>
                                         <div className="flex flex-row justify-between w-full mx-4">
                                             <span className="flex items-center w-full h-fit">
                                                 <div className="flex h-14 w-14 ">
                                                     <div className={`avatar ${isOnline ? 'online' : 'offline'}`}>
-                                                        <div className="h-16 w-16 rounded-full">{friend.imageData ?
+                                                        <div className="h-14 w-14 rounded-full bg-gray-200">{friend.imageData ?
                                                             <img src={`data:image/png;base64,${friend.imageData}`} alt="Fetched Image" className="h-full w-full object-cover" />
-                                                            : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
+                                                            : <svg className="ml-4 mt-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark' ? 'white' : 'gray'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
                                                         }</div>
                                                     </div>
                                                 </div>
@@ -124,8 +128,14 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
                         </div>
                     )}</div>
             </div>
-            <div className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`} style={{ height: '95vh' }}>
-                <ChatArea socket={socket} friend={friend} isMobile={isMobile} theme={theme} />
+            <div
+                className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`}
+                style={{ height: '95vh' }}>
+                <ChatArea
+                    socket={socket}
+                    friend={friend}
+                    isMobile={isMobile}
+                    theme={theme} />
             </div>
         </div>
     )

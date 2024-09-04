@@ -1,9 +1,22 @@
 const express = require('express')
 const router = express.Router();
-const { login, signup, getUsers, getUser, getGroups, getGroup, createGroup, updateUser, getUserProfile,addMember } = require('../controllers/app')
-const { getMessage, getGMessage,deleteMessage } = require('../controllers/messageController');
+const { getMessage, getGMessage, deleteMessage } = require('../controllers/messageController');
 const multer = require('multer');
 const jwt = require('jsonwebtoken')
+const {
+    login,
+    signup,
+    getUsers,
+    getUser,
+    getGroups,
+    getGroup,
+    createGroup,
+    updateUser,
+    updateGroup,
+    getUserProfile,
+    addMember
+} = require('../controllers/app')
+
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, './uploads/photo/'),
@@ -17,26 +30,26 @@ const upload = multer({ storage: storage })
 const refreshToken = (data) => {
     const newAccessToken = jwt.sign({ email: data }, process.env.JWT_SECRET, { expiresIn: '1h' })
     return newAccessToken
-
 }
 
 const checkUser = async (req, res, next) => {
     const accessToken = req.headers['accesstoken'];
-    if (!accessToken) return res.sendStatus(401); 
+    if (!accessToken) return res.sendStatus(401);
     const decodedToken = jwt.decode(accessToken);
     jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
         if (err && err.name === 'TokenExpiredError') {
-            const newAccessToken = refreshToken(decodedToken.email);
-            return res.status(401).json({accessToken: newAccessToken });
+            const newAccessToken = refreshToken(decodedToken.email)
+            return res.status(401).json({ accessToken: newAccessToken })
         }
-        if (err) return res.sendStatus(403); 
+        if (err) return res.sendStatus(403);
         req.user = user.email;
         next();
-    });
-};
+    })
+}
 
 //Authentication
 router.post('/login', login)
+router.get('/', checkUser)
 
 //creation of groups and users
 router.post('/signup', upload.single('image'), signup)
@@ -45,17 +58,18 @@ router.post('/create-group', checkUser, upload.single('photo'), createGroup)
 //getting users and groups
 router.get('/getUserProfile', checkUser, getUserProfile);
 router.get('/getUser/:email', checkUser, getUser)
-router.get('/allFriends',checkUser, getUsers)
+router.get('/allFriends', checkUser, getUsers)
 router.get('/allGroups', checkUser, getGroups);
 router.get('/getGroup/:name', checkUser, getGroup);
 
 //getting messages
 router.get('/gmessage/:group', checkUser, getGMessage)
 router.get('/message', checkUser, getMessage)
-router.delete('/deleteMessage/:id',checkUser,deleteMessage)
+router.delete('/deleteMessage/:id', checkUser, deleteMessage)
 
-//updating user and messages
+//updating user,groups and messages
 router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)
-router.post('/addMember',checkUser, addMember)
+router.put('/updateGroupProfile/:group', checkUser, upload.single('image'), updateGroup)
+router.post('/addMember', checkUser, addMember)
 
 module.exports = router;

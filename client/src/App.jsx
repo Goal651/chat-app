@@ -2,12 +2,12 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
 import './App.css';
-import Test from './pages/testing';
-import ErrorPage from './pages/500_error';
-const Login = lazy(() => import('./pages/login'));
-const Signup = lazy(() => import('./pages/signup'));
-const Dashboard = lazy(() => import('./pages/dashboard'));
-const NotFound = lazy(() => import('./pages/construction'));
+const Test = lazy(() => import('./pages/Testing'))
+const ErrorPage = lazy(() => import('./pages/Error'))
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const NotFound = lazy(() => import('./pages/Build'));
 
 function App() {
   const isMobile = useMediaQuery({ query: '(max-width: 760px)' });
@@ -20,8 +20,8 @@ function App() {
           </div>
         }>
           <Routes>
-            <Route path='/login' element={<Login isMobile={isMobile}/>} />
-            <Route path='/signup' element={<Signup isMobile={isMobile}/>} />
+            <Route path='/login' element={<Login isMobile={isMobile} />} />
+            <Route path='/signup' element={<Signup isMobile={isMobile} />} />
             <Route path='/' element={<Dashboard isMobile={isMobile} />} />
             <Route path='/chat/:user' element={<Dashboard isMobile={isMobile} />} />
             <Route path='/group/:name' element={<Dashboard isMobile={isMobile} />} />

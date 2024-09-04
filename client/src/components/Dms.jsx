@@ -1,12 +1,10 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { useState, useEffect, useRef, useCallback, } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
-import GroupInfo from "./GroupInfo";
-
 
 function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -16,28 +14,29 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
-const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
-    const { name } = useParams()
-    const navigate = useNavigate()
-    const [message, setMessage] = useState("")
+const DMArea = ({ socket, isMobile, theme }) => {
+    const navigate = useNavigate();
+    const { user } = useParams();
+    const friend = localStorage.getItem('selectedFriend');
+    const [refresh, setRefresh] = useState(false);
+    const [message, setMessage] = useState("");
+    const [lastMessage, setLastMessage] = useState("");
     const [fileMessage, setFileMessage] = useState(null);
-    const [filePreview, setFilePreview] = useState(null);
-    const [scrollToBottom, setScrollToBottom] = useState(false)
-    const [history, setHistory] = useState([])
-    const [typingMember, setTypingMember] = useState([])
-    const [typing, setTyping] = useState(false)
+    const [scrollToBottom, setScrollToBottom] = useState(false);
+    const [history, setHistory] = useState([]);
+    const [beingTyped, setBeingTyped] = useState(false);
+    const [info, setInfo] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [group, setGroup] = useState([])
+    const [filePreview, setFilePreview] = useState(null);
+    const [focusedMessage, setFocusedMessage] = useState('');
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
     const [peerConnection, setPeerConnection] = useState(null);
     const [callType, setCallType] = useState(null);
     const [isCalling, setIsCalling] = useState(false);
-    const [loading, setLoading] = useState(false)
-    const [showingGroupInfo, setShowingGroupInfo] = useState(false)
-    const user = Cookies.get('user')
-    const accessToken = Cookies.get('accessToken')
-    const selectedGroup = localStorage.getItem('selectedGroup')
+    const accessToken = Cookies.get('accessToken');
+    const [onlineUsers, setOnlineUsers] = useState([]);
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -48,27 +47,48 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             { urls: "stun:stun.l.google.com:19302" },
         ],
     };
-    useEffect(() => {
-        const fetchGroup = async () => {
-            if (!name || !accessToken) return;
-            const result = await fetch(`http://localhost:3001/getGroup/${name}`, { headers: { 'accessToken': `${accessToken}` } });
-            const data = await result.json();
-            if (result.ok) setGroup(data.group);
-            else navigate('/error');
-        };
-        fetchGroup();
-    }, [name, accessToken, navigate]);
-
 
     useEffect(() => {
-        if (socket && history.length > 0) {
-            socket.emit('mark_group_messages_seen', {
-                group: name,
-                messages: history.map(msg => msg._id),
-                user: user,
-            });
+        if (!socket) return
+        socket.emit('fetch_online_users')
+    }, [navigate, socket])
+
+    useEffect(() => {
+        if (lastMessage && socket) {
+            socket.emit('message_seen', { receiver: friend, messageId: lastMessage });
         }
-    }, [history, socket, name, user]);
+    }, [lastMessage, socket, friend, navigate]);
+
+
+    useEffect(() => {
+        const isLastMessage = () => {
+            if (!user) return
+            if (!history) return
+            const lastM = history[history.length - 1]
+            if (lastM && lastM.sender === friend) {
+                setLastMessage(lastM._id)
+            }
+        }
+        isLastMessage()
+    }, [history, friend, user, navigate])
+
+    useEffect(() => {
+        if (!user) return;
+        const fetchUserDetails = async () => {
+            try {
+                const response = await fetch(`http://localhost:3001/getUser/${friend}`, {
+                    headers: { 'accessToken': `${accessToken}` },
+                });
+                const data = await response.json();
+                if (response.ok) setInfo(data.user);
+                if (response.status === 403) navigate('/login');
+            } catch (error) {
+                console.error("Error fetching user details:", error);
+            }
+        };
+        setMessage("");
+        fetchUserDetails();
+    }, [friend, user, navigate, accessToken]);
 
     const handleScrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
@@ -77,57 +97,45 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
         }
     }, []);
 
-    const dataFromGroupInfo = (data) => { setShowingGroupInfo(data) }
+    useEffect(() => handleScrollToBottom(), [scrollToBottom, handleScrollToBottom]);
 
     useEffect(() => {
-        handleScrollToBottom();
-    }, [scrollToBottom, handleScrollToBottom]);
+        if (!socket) return;
 
-    useEffect(() => {
-        if (!socket || !name) return;
-
-        const handleReceiveMessage = ({ message }) => {
-            setHistory((prevHistory) => [...prevHistory, message,]);
+        const handleReceiveMessage = ({ newMessage }) => {
+            setHistory((prevHistory) => [...prevHistory, newMessage]);
             setScrollToBottom(true);
-            socket.emit('group_message_seen', { id: message._id, group: message.group })
+            if (newMessage.sender === friend) {
+                socket.emit('message_seen', { receiver: friend, messageId: newMessage._id });
+            }
         };
 
-        const handleTyping = ({ group, member }) => {
-            if (group === selectedGroup) {
-                setTypingMember((prevTypingMember) => [...prevTypingMember, member])
-            }
-            else setTyping(false)
-            setScrollToBottom(true)
-        }
+        const handleTyping = ({ sender }) => {
+            if (sender === friend) setBeingTyped(true);
+            else setBeingTyped(false);
+            setScrollToBottom(true);
+        };
 
-        const handleNotTyping = () => setTyping(false);
+        const handleNotTyping = ({ sender }) => {
+            if (sender === friend) setBeingTyped(false);
+        };
 
-        const handleMessageSeen = (data, id) => {
-            setHistory(prevHistory => {
-                return prevHistory.map(message => {
-                    if (message._id === id) return { ...message, seen: [...message.seen, data] }
-                    return message;
-                });
-            });
-
-        }
-
-        const handleMemberSawMessage = ({ id, member }) => {
-            setHistory(prevHistory => {
-                return prevHistory.map(message => {
-                    if (message._id === id) return { ...message, seen: [...message.seen, member] };
-                    return message;
-                })
+        const handleMessageSent = ({ newMessage }) => {
+            console.log(newMessage)
+            setHistory((prevHistory) => [...prevHistory, newMessage]);
+            setScrollToBottom(true);
+        };
+        const handleMessageSeen = ({ messageId }) => {
+            const result = history.map(msg => {
+                if (msg._id === messageId) {
+                    return { ...msg, seen: true }
+                } else return msg
             })
-        }
-
-        const handleGroupMessageSent = ({ message }) => {
-            setHistory((prevHistory) => [...prevHistory, message])
-            setScrollToBottom(true)
+            console.log(result)
         }
 
         const handleCallOffer = async ({ offer, sender, type }) => {
-            if (sender !== name) return;
+            if (sender !== friend) return;
 
             setCallType(type);
             setIsCalling(true);
@@ -173,92 +181,73 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             }
         };
 
-        socket.on("receive_group_message", handleReceiveMessage);
-        socket.on('member_typing', handleTyping);
-        socket.on('not_typing', handleNotTyping);
-        socket.on('group-message', handleReceiveMessage);
-        socket.on('group_message_sent', handleGroupMessageSent);
-        socket.on('group_message_seen', handleMessageSeen)
-        socket.on('member_saw_message', handleMemberSawMessage)
+        const handleOnlineUsers = (data) => {
+            setOnlineUsers(data)
+        }
+        socket.emit("mark_message_as_read", { sender: friend })
+        socket.on("online_users", handleOnlineUsers)
+        socket.on("receive_message", handleReceiveMessage);
+        socket.on("receive_file", handleReceiveMessage);
+        socket.on("typing", handleTyping);
+        socket.on("not_typing", handleNotTyping);
+        socket.on('message_sent', handleMessageSent);
+        socket.on('user_saw_message', handleMessageSeen)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
 
         return () => {
-            socket.off("receive_group_message", handleReceiveMessage);
+            socket.off("receive_message", handleReceiveMessage);
             socket.off("typing", handleTyping);
             socket.off("not_typing", handleNotTyping);
-            socket.off('group-message', handleReceiveMessage);
-            socket.off('group_message_sent', handleGroupMessageSent);
+            socket.off('message_sent', handleMessageSent);
             socket.off('call-offer', handleCallOffer);
             socket.off('call-answer', handleCallAnswer);
             socket.off('ice-candidate', handleICECandidate);
+            socket.off('receive_file', handleReceiveMessage)
         };
-    }, [socket, name]);
+    }, [socket, friend, user, peerConnection]);
 
     useEffect(() => {
+        if (!user) return;
         const fetchMessages = async () => {
             try {
-                if (!name || !accessToken) return;
-                const response = await fetch(`http://localhost:3001/gmessage/${name}`, {
-                    headers: { 'accessToken': `${accessToken}` }
-                })
+                const response = await fetch(`http://localhost:3001/message?receiver=${friend}`, {
+                    headers: { 'accessToken': `${accessToken}` },
+                });
                 const data = await response.json();
-                if (response.status === 403) {
-                    navigate('/login');
-                } else if (data.gmessages && Array.isArray(data.gmessages)) {
-                    setHistory(data.gmessages);
-                    setScrollToBottom(true);
-                } else {
-                    console.error('Unexpected data structure:', data);
-                }
+                setHistory(data.messages);
+                setScrollToBottom(true);
+                setLoading(false);
+                if (response.status === 403) navigate('/login');
+            } catch (error) {
+                console.error("Error fetching messages:", error);
             }
-            catch (err) { console.log(err) }
-            finally { setLoading(false) }
         };
-
         fetchMessages();
-    }, [name, accessToken, navigate]);
+    }, [friend, user, navigate, accessToken]);
 
-    const chatNow = useCallback((friend) => {
-        navigate(`/chat/${friend}`)
-        localStorage.setItem('selectedFriend', `${friend}`)
-    }, [navigate, socket])
 
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
         if (!socket) return;
         const newMessage = {
+            _id: Date.now(),
             sender: user,
+            receiver: friend,
             type: 'text',
             message: message,
-            group: name,
             time: new Date().toISOString().slice(11, 16),
-            seen: [],
         };
         if (message.trim() !== "") {
-            socket.emit("send_group_message", { message: newMessage });
-            setMessage("")
-        }
-        setScrollToBottom(true)
-        socket.emit("not_typing", { group: name });
-    }, [message, socket, name, user]);
-
-    const handleChange = useCallback((e) => {
-        const { name, value, files } = e.target;
-        if (name === 'media') {
-            socket.emit("member_typing", { group: selectedGroup });
-            const file = files[0];
-            setFilePreview(URL.createObjectURL(file));
-            setFileMessage(files[0]);
-        } else {
-            setMessage(value);
-            if (value.trim() !== "") socket.emit("member_typing", { group: selectedGroup });
+            socket.emit("send_message", { receiver: friend, message });
+            setMessage("");
+            setShowEmojiPicker(false)
         }
         setScrollToBottom(true);
-    }, [socket, name]);
-
+        socket.emit("not_typing", { receiver: friend });
+    }, [message, socket, friend, user]);
 
     const addEmoji = (emoji) => {
         setMessage((prevMessage) => prevMessage + emoji.native);
@@ -278,24 +267,72 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             const newFileMessage = {
                 _id: Date.now(),
                 sender: user,
-                group: name,
+                receiver: friend,
                 fileName: fileMessage.name,
                 fileType: fileMessage.type,
-                imageData: base64String,
+                fileSize: fileMessage.size,
+                preview: filePreview,
                 file: arrayBuffer,
                 time: new Date().toISOString().slice(11, 16),
             };
-            socket.emit('send_group_file_message', { message: newFileMessage });
+            socket.emit('send_file_message', { message: newFileMessage });
             setFileMessage(null);
             setFilePreview(null);
             setScrollToBottom(true);
+            socket.emit('not_typing', { receiver: friend })
         };
-        reader.readAsArrayBuffer(fileMessage);
-    }, [fileMessage, socket, name, user]);
+        reader.readAsArrayBuffer(fileMessage)
+    }, [fileMessage, socket, friend, user]);
+
+    const handleChange = useCallback((e) => {
+        const { name, value, files } = e.target;
+        if (name === 'media') {
+            const file = files[0];
+            setFilePreview(URL.createObjectURL(file));
+            setFileMessage(files[0]);
+            socket.emit('typing', { receiver: friend })
+        } else {
+            setMessage(value);
+            if (value.trim() !== "") socket.emit("typing", { receiver: friend });
+            if (value.trim() === "") socket.emit('not_typing', { receiver: friend })
+        }
+        setScrollToBottom(true);
+    }, [socket, friend]);
+
+    const handlePaste = (e) => {
+        const file = e.clipboardData.files[0];
+        setFilePreview(URL.createObjectURL(file));
+        setFileMessage(file);
+    };
+    const handleDragover = (e) => {
+    }
+
+    const handleDrop = (e) => {
+        e.preventDefault()
+        const file = e.dataTransfer.files[0];
+        setFilePreview(URL.createObjectURL(file));
+        setFileMessage(file);
+
+    }
 
     const navigateBackward = () => {
-        localStorage.removeItem('selectedGroup');
-        navigate('/group');
+        localStorage.removeItem('selectedFriend');
+        navigate('/chat');
+    };
+
+    const handleMouseEnter = (data) => setFocusedMessage(data);
+    const handleMouseLeave = () => setFocusedMessage('');
+    const handleDeleteMessage = async (data) => {
+        if (!data) return;
+        try {
+            const response = await fetch(`http://localhost:3001/deleteMessage/${data}`, {
+                headers: { 'accessToken': `${accessToken}` },
+                method: 'DELETE',
+            });
+            if (response.ok) setRefresh(true);
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const handleCancel = () => {
@@ -335,7 +372,7 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
         setCallType(type);
         setIsCalling(true);
 
-        const pc = createPeerConnection(name);
+        const pc = createPeerConnection(friend);
         setPeerConnection(pc);
 
         try {
@@ -350,7 +387,7 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            socket.emit('call-offer', { offer, receiver: name, type, });
+            socket.emit('call-offer', { offer, receiver: friend, type, });
         } catch (error) {
             console.error("Error starting call:", error);
             endCall();
@@ -374,59 +411,34 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
         setCallType(null);
     };
 
-    const getMemberPhoto = (data) => {
-        let image;
-        if (!data) return null
-        if (group && group.members) {
-            const member = group.members.filter(member => member.email === data)[0]
-            image = member.imageData
-        }
-        return image
-    }
-    const getMemberName = (data) => {
-        let name;
-        if (!data) return ""
-        if (group && group.members) {
-            const member = group.members.filter(member => member.email === data)[0]
-            name = member.username
-        } return name
-    }
-    const isOnline = (data) => {
-        if (!onlineUsers) return false
-        return onlineUsers.includes(data)
-    }
-
     if (loading) return <div className="loading loading-spinner"></div>
-
     return (
         <div className="flex flex-col h-full" >
             <div onClick={() => { setShowEmojiPicker(false) }}
-                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white'} flex items-center justify-between p-4 `}>
-                <div
-                    className="flex items-center">
+                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
+                <div className="flex items-center">
                     {isMobile && (
                         <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                             ←
-                        </button>
-                    )}
-                    <div
-                        onClick={() => {
-                            setShowingGroupInfo(true)
-                        }}
-                        className={`flex items-center ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
+                        </button>)}
+                    <div className={`flex items-center ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
                         <div className="avatar">
-                            <div className="h-20 w-20 rounded-full ">
-                                {group.imageData ? <img
-                                    src={`data:image/jpeg;base64,${group.imageData}`}
+                            <div className="h-16 w-16 rounded-full ">
+                                {info.imageData ? <img
+                                    src={`data:image/jpeg;base64,${info.imageData}`}
                                     alt="Profile"
                                     className="h-full w-full object-cover"
                                 />
-                                    : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
+                                    : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark-theme' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
                                 }
                             </div>
                         </div>
                         <div className="ml-4">
-                            <div className="text-lg font-semibold">{group.name}</div>
+                            <div className="text-lg font-semibold">{info.username}</div>
+                            {onlineUsers.includes(info.email) ? (beingTyped ? (
+                                <div className="text-md text-green-600 ">typing ...</div>) :
+                                <div className="text-sm ">Online</div>) :
+                                null}
                         </div>
                     </div>
                 </div>
@@ -453,17 +465,81 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             </div>
 
             {/* Messages */}
-            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-200'}`}>
+            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
                 {loading ? (
                     <div>Loading messages...</div>
-                ) : history.length > 0 ? (history.map((msg) => (msg.sender !== user ? (
-                    <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
-                        <div className={`chat-image avatar  ${isOnline(msg.sender) ? 'online' : 'offline'}`}>
+                ) : history && history.length > 0 ? (history.map((msg) => (
+                    msg.sender === friend ? (
+                        <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
+                            <div className="chat-image avatar">
+                                <div
+                                    className="w-10 rounded-full bg-gray-500 ">
+                                    {info.imageData ? <img
+                                        src={`data:image/jpeg;base64,${info.imageData}`}
+                                        alt="Profile"
+                                        className=""
+                                    /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
+                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                    </svg>}
+                                </div>
+                            </div>
+                            {msg.type === 'text' ? (
+                                <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
+                                    <div className="max-w-96 h-auto  break-words">{msg.message}</div>
+                                    <div className="flex float-right">
+                                        <div className="text-xs opacity-70 mt-1 text-right">
+                                            {msg.time}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
+                                    <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded" />
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
+                            {msg.type === 'text' ? (
+                                <div className="max-w-96 min-w-24  h-auto bg-blue-500 text-white chat-bubble">
+                                    <div className="max-w-80  h-auto break-words">{msg.message}</div>
+                                    <div className="text-xs opacity-70 mt-1 text-right">
+                                        {msg.time}
+                                        {msg.seen && (<div className="text-green-400 text-end">✓✓</div>)}
+                                    </div>
+                                </div>
+                            ) : (msg.type === 'image' ? (
+                                <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
+                                    <img
+                                        src={`data:image/jpeg;base64,${msg.image}`}
+                                        alt="attachment"
+                                        className="rounded max-w-80 max-h-96 justify-center "
+                                    />
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                                </div>) : (
+                                <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
+                                    <img
+                                        src={`data:video/mp4;base64,${msg.image}`}
+                                        alt="attachment"
+                                        className="rounded max-w-80 max-h-96 justify-center"
+                                    />
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                ))
+                ) : (
+                    <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
+                )}
+                {beingTyped && (
+                    <div className="chat chat-start mb-2">
+                        <div className="chat-image avatar">
                             <div
-                                onClick={() => chatNow(msg.sender)}
                                 className="w-10 rounded-full bg-gray-500 ">
-                                {msg.sender ? <img
-                                    src={`data:image/jpeg;base64,${getMemberPhoto(msg.sender)}`}
+                                {info.imageData ? <img
+                                    src={`data:image/jpeg;base64,${info.imageData}`}
                                     alt="Profile"
                                     className=""
                                 /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
@@ -471,89 +547,20 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                                 </svg>}
                             </div>
                         </div>
-                        {msg.type === 'text' ? (
-                            <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-                                <div className="font-semibold text-blue-800 mb-1">{getMemberName(msg.sender)}</div>
-                                <div className="max-w-96 h-auto  break-words">{msg.message}</div>
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> seen:{msg.seen.length}</div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-                                <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded" />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> seen:{msg.seen.length}</div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div key={msg._id} className={`chat  chat-end rounded-lg p-2  `} >
-                        {msg.type === 'text' ? (
-                            <div className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"                                >
-                                <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> seen:{msg.seen.length}</div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>                            </div>
-                        ) : (msg.type === 'image' ? (
-                            <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                <img
-                                    src={`data:image/jpeg;base64,${msg.image}`}
-                                    alt="attachment"
-                                    className="rounded max-w-80 max-h-96 justify-center "
-                                />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> seen:{msg.seen.length}</div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>                            </div>) : (
-                            <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> seen:{msg.seen.length}</div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>                            </div>
-                        )
-                        )}
-                        <div></div>
-                    </div>
-                )
-                ))
-                ) : (
-                    <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-                )}
-                {typing && typingMember.length > 0 && (
-                    <div className="flex justify-start mb-2">
-                        <div className="bg-white text-gray-800 rounded-lg p-2 max-w-xs">
-                            {group.members.map((tm) => (
-                                typingMember.includes(tm.email) && <div key={tm._id}>{tm.username} typing</div>
-                            ))}
+                        <div className="chat-bubble bg-white h-14 min-w-18">
+                            <span className="loading loading-dots bg-slate-800 h-full w-full"></span>
                         </div>
                     </div>
                 )}
                 <div ref={messagesEndRef}></div>
             </div>
-
             <div className={`p-4  ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
                 <form onSubmit={sendMessage} className="flex items-center">
                     <button
                         type="button"
                         onClick={toggleEmojiPicker}
                         className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                    >
-                        😊
+                    >😊
                     </button>
                     {showEmojiPicker && (
                         <div className="absolute bottom-20">
@@ -565,6 +572,9 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                         placeholder="Type a message"
                         value={message}
                         onChange={handleChange}
+                        onPaste={handlePaste}
+                        onDragOver={handleDragover}
+                        onDrop={handleDrop}
                         className="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
                         autoFocus={true}
                     />
@@ -572,19 +582,9 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                         📎
                         <input type="file" onChange={handleChange} name="media" className="hidden" />
                     </label>
-                    <label htmlFor="">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-mic" viewBox="0 0 16 16">
-                            <path d="M8 12a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 8 12z" />
-                            <path d="M10.5 8.5v-5a2.5 2.5 0 0 0-5 0v5a2.5 2.5 0 0 0 5 0z" />
-                            <path d="M6.5 11a4.5 4.5 0 0 0 9 0v-1h1v1a5.5 5.5 0 0 1-11 0v-1h1v1z" />
-                            <path d="M8 13a5 5 0 0 0 5-5h1a6 6 0 0 1-12 0h1a5 5 0 0 0 5 5z" />
-                        </svg>
-
-                    </label>
                     <button
                         type="submit"
                         className="ml-4 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none"
-                        disabled={!message.trim() || fileMessage}
                     >
                         ➤
                     </button>
@@ -597,7 +597,7 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                     <div className="bg-white rounded-lg overflow-hidden w-full max-w-2xl">
                         <div className="flex justify-between items-center p-4 bg-gray-800">
                             <div className="text-white font-semibold">
-                                {callType === 'video' ? 'Video Call' : 'Audio Call'} with {group.name}
+                                {callType === 'video' ? 'Video Call' : 'Audio Call'} with {info.username || friend}
                             </div>
                             <button
                                 onClick={endCall}
@@ -635,7 +635,7 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                                             <path d="M6.62 10.79a15.05 15.05 0 006.58 6.58l2.2-2.2a1 1 0 011.11-.21 12.38 12.38 0 004.55 1.45 1 1 0 01.89 1v3.75a1 1 0 01-1 1A18 18 0 013 5a1 1 0 011-1h3.75a1 1 0 011 .89 12.38 12.38 0 001.45 4.55 1 1 0 01-.21 1.11l-2.2 2.2z" />
                                         </svg>
                                     </div>
-                                    <div className="text-lg font-semibold">{group.name}</div>
+                                    <div className="text-lg font-semibold">{info.username || friend}</div>
                                     <div className="text-gray-500">Audio Call</div>
                                 </div>
                             )}
@@ -676,9 +676,8 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                     </div>
                 </div>
             )}
-            {showingGroupInfo && <GroupInfo theme={theme} dataFromGroupInfo={dataFromGroupInfo} groupInfo={group} />}
         </div>
     );
 };
 
-export default GroupArea;
+export default DMArea;

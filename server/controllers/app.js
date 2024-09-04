@@ -3,8 +3,6 @@ const fs = require('fs').promises;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Group, GMessage, Message } = require('../models/models');
-const { readFile } = require('fs');
-
 const uploadsDir = path.join(__dirname, '../');
 
 // User Signup
@@ -13,17 +11,13 @@ const signup = async (req, res) => {
         const { email, password, names, username } = req.body;
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.sendStatus(400);
-
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
-
         let image = '';
         if (req.file) image = req.file.path;
-
         const newUser = new User({ email, password: hash, image, username, names });
         const savedUser = await newUser.save();
         if (!savedUser) return res.sendStatus(500);
-
         res.status(201).json(savedUser);
     } catch (err) {
         res.sendStatus(500);
@@ -35,30 +29,25 @@ const login = async (req, res) => {
     try {
         const user = await User.findOne({ email: req.body.email });
         if (!user) return res.sendStatus(404);
-
         const validated = bcrypt.compareSync(req.body.password, user.password);
         if (!validated) return res.sendStatus(401);
-
         const accessToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
         if (!accessToken) return res.sendStatus(500);
-
         res.status(200).json({ accessToken, email: user.email });
     } catch (err) {
         res.sendStatus(500);
     }
-};
+}
 
 // Fetch All Users Except Logged-in User
 const getUsers = async (req, res) => {
     try {
         const email = req.user;
         const users = await User.find({ email: { $ne: email } });
-
         const usersWithDetails = await Promise.all(users.map(async (user) => {
             let latestMessage = await Message.findOne({
                 $or: [{ sender: user.email, receiver: email }, { sender: email, receiver: user.email }]
             }).sort({ timestamp: -1 }).exec();
-
             let imageData = "";
             if (user.image) {
                 try {
@@ -69,7 +58,6 @@ const getUsers = async (req, res) => {
                     console.error(`Error reading image for user ${user.email}:`, err);
                 }
             }
-
             return { ...user.toObject(), imageData, latestMessage };
         }));
 
@@ -85,13 +73,10 @@ const getUserProfile = async (req, res) => {
     try {
         const email = req.user;
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ user: null });
-
-        const imageData = user.image ? await readImage(user.image) : null;
-        res.status(200).json({ user: { ...user.toObject(), imageData } });
-    } catch (err) {
-        res.sendStatus(500);
-    }
+        if (!user) return res.status(404).json({ user: null })
+        const imageData = user.image ? await readImage(user.image) : null
+        res.status(200).json({ user: { ...user.toObject(), imageData } })
+    } catch (err) { res.sendStatus(500) }
 };
 
 // Fetch a Specific User by Email
@@ -102,9 +87,7 @@ const getUser = async (req, res) => {
         if (!user) return res.status(404).json({ user: null });
         const imageData = user.image ? await readImage(user.image) : null;
         res.status(200).json({ user: { ...user.toObject(), imageData } });
-    } catch (err) {
-        res.sendStatus(500);
-    }
+    } catch (err) { res.sendStatus(500) }
 };
 
 // Update User Profile
@@ -115,10 +98,10 @@ const updateUser = async (req, res) => {
         const updatedUser = await User.updateOne({ email }, { image });
         if (!updatedUser) return res.sendStatus(400);
         res.status(201).json({});
-    } catch (err) {
-        res.sendStatus(500);
-    }
+    } catch (err) { res.sendStatus(500) }
 };
+
+
 const createGroup = async (req, res) => {
     try {
         const { name } = req.body;
@@ -150,9 +133,7 @@ const getGroups = async (req, res) => {
             return { ...group.toObject(), imageData, latestMessage };
         }));
         res.status(200).json({ groups: groupsWithImages });
-    } catch (err) {
-        res.sendStatus(500);
-    }
+    } catch (err) { res.sendStatus(500) }
 };
 
 
@@ -162,10 +143,9 @@ const getGroup = async (req, res) => {
         const { name } = req.params;
         const group = await Group.findOne({ name });
         if (!group) return res.status(404).json({ group: null });
-
         const members = await Promise.all(group.members.map(async (member) => {
             const user = await User.findOne({ email: member.email });
-            if (!user) return null; // Handle the case where the user is not found
+            if (!user) return null
             return { ...user.toObject(), role: member.role };
         }));
 
@@ -197,6 +177,19 @@ const getGroup = async (req, res) => {
         res.sendStatus(500);
     }
 };
+
+const updateGroup = async (req, res) => {
+
+    try {
+        const { group } = req.params
+        const filePath = req.file.path
+        const result = await Group.updateOne({ name: group }, { image: filePath })
+        if (!result) res.sendStatus(500)
+        res.status(200).json({ message: 'group updated' })
+    } catch (err) {
+        console.error(err)
+    }
+}
 
 const readImage = async (imagePath) => {
     try {
@@ -242,5 +235,6 @@ module.exports = {
     getUserProfile,
     createGroup,
     updateUser,
+    updateGroup,
     addMember
 };

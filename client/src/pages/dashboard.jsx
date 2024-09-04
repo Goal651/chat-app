@@ -3,24 +3,21 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import Cookies from "js-cookie";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import Settings from "./setting";
-
-const Navigation = lazy(() => import("../components/navigation"));
-const CreateGroup = lazy(() => import("../components/createGroup"));
-const Details = lazy(() => import("../components/info"));
-const Profile = lazy(() => import("./profile"));
+const Settings = lazy(() => import("./Setting"))
+const Navigation = lazy(() => import("../components/Navigator"));
+const CreateGroup = lazy(() => import("../components/CreateGroup"));
+const Details = lazy(() => import("../components/Info"));
+const Profile = lazy(() => import("./Profile"));
 const GroupContent = lazy(() => import("../components/GroupContent"));
 const ChatContent = lazy(() => import("../components/ChatContent"));
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
-
     useEffect(() => {
         const newSocket = io(url, { withCredentials: true });
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [url]);
-
     return socket;
 };
 
@@ -30,7 +27,7 @@ const Dashboard = ({ isMobile }) => {
     const [friends, setFriends] = useState([]);
     const [groups, setGroups] = useState([]);
     const [onlineUsers, setOnlineUsers] = useState([]);
-    const [userInfo,setUserInfo]=useState([])
+    const [userInfo, setUserInfo] = useState([])
     const [loading, setLoading] = useState(true);
     const [reloadProfile, setReloadProfile] = useState(false);
     const accessToken = Cookies.get("accessToken");
@@ -50,7 +47,10 @@ const Dashboard = ({ isMobile }) => {
                 if (response.status === 401) {
                     Cookies.set("accessToken", data);
                     window.location.reload();
-                } else if (response.status === 403) navigate("/login");
+                } else if (response.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate("/login")
+                }
                 else if (response.ok) setUserInfo(data.user)
             } catch (error) { navigate("/error"); console.log(error) }
         }
@@ -73,7 +73,10 @@ const Dashboard = ({ isMobile }) => {
                     const newToken = await friendsResponse.json();
                     Cookies.set("accessToken", newToken.accessToken);
                     window.location.reload();
-                } else if (friendsResponse.status === 400 || groupsResponse.status === 400) navigate("/login");
+                } else if (friendsResponse.status === 403 || groupsResponse.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate("/login")
+                }
                 else {
                     setFriends(sortByLatestMessage((await friendsResponse.json()).users));
                     setGroups(sortByLatestMessage((await groupsResponse.json()).groups));
@@ -88,9 +91,11 @@ const Dashboard = ({ isMobile }) => {
 
     useEffect(() => {
         if (!socket) return;
-
+        const handleOnlineUsers = (data) => { 
+            setOnlineUsers(data)
+        }
         socket.emit("fetch_online_users");
-        socket.on("online_users", setOnlineUsers);
+        socket.on("online_users", handleOnlineUsers);
         socket.on("marked_as_read", updateAllData);
         socket.on("receive_message", handleIncomingMessage);
         socket.on("receive_group_message", handleIncomingGroupMessage);
@@ -265,6 +270,7 @@ const Dashboard = ({ isMobile }) => {
                     isMobile={isMobile}
                     theme={theme}
                     userInfo={userInfo}
+                    onlineUsers={onlineUsers}
                 />
             );
         if (user)
