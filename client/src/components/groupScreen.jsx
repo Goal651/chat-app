@@ -16,7 +16,7 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
-const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
+export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
     const { name } = useParams()
     const navigate = useNavigate()
     const [message, setMessage] = useState("")
@@ -102,24 +102,32 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
 
         const handleNotTyping = () => setTyping(false);
 
-        const handleMessageSeen = (data, id) => {
-            setHistory(prevHistory => {
-                return prevHistory.map(message => {
-                    if (message._id === id) return { ...message, seen: [...message.seen, data] }
+        const handleMessageSeen = ({ messages: seenMessages, user }) => {
+            setHistory((prevMessages) =>
+                prevMessages.map((message) => {
+                    if (seenMessages.includes(message._id)) {
+                        // Update the seen array to include the user who saw the message
+                        return {
+                            ...message,
+                            seen: [...message.seen, { member: user, timestamp: new Date() }],
+                        };
+                    }
+                    return message;
+                })
+            );
+        }
+
+
+        const handleMemberSawMessage = ({ id, member }) => {
+            setHistory((prevHistory) => {
+                return prevHistory.map((message) => {
+                    if (message._id === id) {
+                        return { ...message, seen: [...message.seen, member] };
+                    }
                     return message;
                 });
             });
-
-        }
-
-        const handleMemberSawMessage = ({ id, member }) => {
-            setHistory(prevHistory => {
-                return prevHistory.map(message => {
-                    if (message._id === id) return { ...message, seen: [...message.seen, member] };
-                    return message;
-                })
-            })
-        }
+        };
 
         const handleGroupMessageSent = ({ message }) => {
             setHistory((prevHistory) => [...prevHistory, message])
@@ -178,7 +186,7 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
         socket.on('not_typing', handleNotTyping);
         socket.on('group-message', handleReceiveMessage);
         socket.on('group_message_sent', handleGroupMessageSent);
-        socket.on('group_message_seen', handleMessageSeen)
+        socket.on("group_message_seen", handleMessageSeen);
         socket.on('member_saw_message', handleMemberSawMessage)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
@@ -204,13 +212,14 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                     headers: { 'accessToken': `${accessToken}` }
                 })
                 const data = await response.json();
-                if (response.status === 403) {
-                    navigate('/login');
-                } else if (data.gmessages && Array.isArray(data.gmessages)) {
+                if (response.ok) {
                     setHistory(data.gmessages);
                     setScrollToBottom(true);
-                } else {
-                    console.error('Unexpected data structure:', data);
+                } else if (response.status === 401 || response.status === 401) {
+                    Cookies.set("accessToken", data.accessToken);
+                } else if (response.status === 403 || response.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate("/login")
                 }
             }
             catch (err) { console.log(err) }
@@ -259,6 +268,24 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
         setScrollToBottom(true);
     }, [socket, name]);
 
+    const handlePaste = (e) => {
+        const file = e.clipboardData.files[0];
+        setFilePreview(URL.createObjectURL(file));
+        setFileMessage(file);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault()
+        const file = e.dataTransfer.files[0];
+
+        if (file) {
+            setFilePreview(URL.createObjectURL(file));
+            setFileMessage(file);
+        }
+        else {
+            setMessage('')
+        }
+    }
 
     const addEmoji = (emoji) => {
         setMessage((prevMessage) => prevMessage + emoji.native);
@@ -391,6 +418,14 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             name = member.username
         } return name
     }
+
+    const getOnlineMembers = () => {
+        let i = 0
+        group.members.map(member => {
+            if (onlineUsers.includes(member)) i += 1
+        })
+        return i
+    }
     const isOnline = (data) => {
         if (!onlineUsers) return false
         return onlineUsers.includes(data)
@@ -425,8 +460,12 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                                 }
                             </div>
                         </div>
-                        <div className="ml-4">
+                        <div className="ml-4 flex-col">
                             <div className="text-lg font-semibold">{group.name}</div>
+                            <div className="text-sm font-semibold text-gray-600">
+                                {group.members.length}members
+                                {getOnlineMembers}online
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -565,6 +604,8 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
                         placeholder="Type a message"
                         value={message}
                         onChange={handleChange}
+                        onDrop={handleDrop}
+                        onPaste={handlePaste}
                         className="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
                         autoFocus={true}
                     />
@@ -679,6 +720,4 @@ const GroupArea = ({ socket, isMobile, theme, onlineUsers }) => {
             {showingGroupInfo && <GroupInfo theme={theme} dataFromGroupInfo={dataFromGroupInfo} groupInfo={group} />}
         </div>
     );
-};
-
-export default GroupArea;
+}

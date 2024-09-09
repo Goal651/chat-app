@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import ChatArea from "./Dms"
 import Cookies from 'js-cookie'
 
-const ChatContent = ({ friends, socket, isMobile, theme }) => {
+export default function ChatContent ({ friends, socket, isMobile, theme }){
     const navigate = useNavigate()
     const { user, type } = useParams()
     const selectedFriend = localStorage.getItem('selectedFriend')
@@ -140,5 +140,3 @@ const ChatContent = ({ friends, socket, isMobile, theme }) => {
         </div>
     )
 }
-
-export default ChatContent;

@@ -1,11 +1,10 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-/* eslint-disable react-hooks/rules-of-hooks */
 
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from "react";
 
-const SignUp = ({ isMobile }) => {
+export default function SignUp  ({ isMobile }) {
     const [formData, setFormData] = useState({ names: "", username: "", email: "", password: "", image: null, re_password: "" });
     const [imagePreview, setImagePreview] = useState(null);
     const [match, setMatch] = useState(false);
@@ -143,6 +142,4 @@ const SignUp = ({ isMobile }) => {
             </div>)}
         </div>
     );
-};
-
-export default SignUp;
+}

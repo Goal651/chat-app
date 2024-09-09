@@ -14,7 +14,7 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
-const DMArea = ({ socket, isMobile, theme }) => {
+export default function DMArea({ socket, isMobile, theme }) {
     const navigate = useNavigate();
     const { user } = useParams();
     const friend = localStorage.getItem('selectedFriend');
@@ -34,7 +34,10 @@ const DMArea = ({ socket, isMobile, theme }) => {
     const [remoteStream, setRemoteStream] = useState(null);
     const [peerConnection, setPeerConnection] = useState(null);
     const [callType, setCallType] = useState(null);
+    const [publicKey, setPublicKey] = useState(null);
+    const [privateKey, setPrivateKey] = useState(null);
     const [isCalling, setIsCalling] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false)
     const accessToken = Cookies.get('accessToken');
     const [onlineUsers, setOnlineUsers] = useState([]);
 
@@ -61,6 +64,18 @@ const DMArea = ({ socket, isMobile, theme }) => {
 
 
     useEffect(() => {
+        const getTimeDifference = () => {
+            if (!info) return
+            const lastActiveTime = info.lastActiveTime
+            const data = new Date(lastActiveTime);
+            const timestampNow = Date.now();
+            const difference = timestampNow - data.getTime();
+            console.log(difference / 6000)
+        }
+        getTimeDifference()
+    }, [info, navigate, onlineUsers])
+
+    useEffect(() => {
         const isLastMessage = () => {
             if (!user) return
             if (!history) return
@@ -81,7 +96,13 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 });
                 const data = await response.json();
                 if (response.ok) setInfo(data.user);
-                if (response.status === 403) navigate('/login');
+                else if (response.status === 401) {
+                    Cookies.set("accessToken", data.accessToken);
+                } else if (response.status === 403 || response.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate("/login")
+                } else navigate('/error')
+
             } catch (error) {
                 console.error("Error fetching user details:", error);
             }
@@ -101,15 +122,13 @@ const DMArea = ({ socket, isMobile, theme }) => {
 
     useEffect(() => {
         if (!socket) return;
-
-        const handleReceiveMessage = ({ newMessage }) => {
+        const handleReceiveMessage = async ({ newMessage }) => {
             setHistory((prevHistory) => [...prevHistory, newMessage]);
             setScrollToBottom(true);
             if (newMessage.sender === friend) {
                 socket.emit('message_seen', { receiver: friend, messageId: newMessage._id });
             }
         };
-
         const handleTyping = ({ sender }) => {
             if (sender === friend) setBeingTyped(true);
             else setBeingTyped(false);
@@ -121,10 +140,10 @@ const DMArea = ({ socket, isMobile, theme }) => {
         };
 
         const handleMessageSent = ({ newMessage }) => {
-            console.log(newMessage)
             setHistory((prevHistory) => [...prevHistory, newMessage]);
             setScrollToBottom(true);
         };
+
         const handleMessageSeen = ({ messageId }) => {
             const result = history.map(msg => {
                 if (msg._id === messageId) {
@@ -227,35 +246,18 @@ const DMArea = ({ socket, isMobile, theme }) => {
         fetchMessages();
     }, [friend, user, navigate, accessToken]);
 
-
-
-    const sendMessage = useCallback((e) => {
+    const sendMessage = useCallback(async (e) => {
         e.preventDefault();
         if (!socket) return;
-        const newMessage = {
-            _id: Date.now(),
-            sender: user,
-            receiver: friend,
-            type: 'text',
-            message: message,
-            time: new Date().toISOString().slice(11, 16),
-        };
+
         if (message.trim() !== "") {
             socket.emit("send_message", { receiver: friend, message });
             setMessage("");
-            setShowEmojiPicker(false)
+            setShowEmojiPicker(false);
         }
-        setScrollToBottom(true);
         socket.emit("not_typing", { receiver: friend });
-    }, [message, socket, friend, user]);
-
-    const addEmoji = (emoji) => {
-        setMessage((prevMessage) => prevMessage + emoji.native);
-    };
-
-    const toggleEmojiPicker = () => {
-        setShowEmojiPicker(!showEmojiPicker);
-    };
+        setScrollToBottom(true);
+    }, [message, socket, friend,]);
 
     const sendFileMessage = useCallback((e) => {
         e.preventDefault();
@@ -263,7 +265,6 @@ const DMArea = ({ socket, isMobile, theme }) => {
         const reader = new FileReader();
         reader.onload = function (event) {
             const arrayBuffer = event.target.result;
-            const base64String = arrayBufferToBase64(arrayBuffer);
             const newFileMessage = {
                 _id: Date.now(),
                 sender: user,
@@ -305,15 +306,32 @@ const DMArea = ({ socket, isMobile, theme }) => {
         setFileMessage(file);
     };
     const handleDragover = (e) => {
+        setIsDragOver(true)
+
     }
 
     const handleDrop = (e) => {
         e.preventDefault()
+        setIsDragOver(false)
         const file = e.dataTransfer.files[0];
-        setFilePreview(URL.createObjectURL(file));
-        setFileMessage(file);
 
+        if (file) {
+            setFilePreview(URL.createObjectURL(file));
+            setFileMessage(file);
+        }
+        else {
+            setMessage('')
+        }
     }
+
+
+    const addEmoji = (emoji) => {
+        setMessage((prevMessage) => prevMessage + emoji.native);
+    };
+
+    const toggleEmojiPicker = () => {
+        setShowEmojiPicker(!showEmojiPicker);
+    };
 
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend');
@@ -410,6 +428,8 @@ const DMArea = ({ socket, isMobile, theme }) => {
         setIsCalling(false);
         setCallType(null);
     };
+
+
 
     if (loading) return <div className="loading loading-spinner"></div>
     return (
@@ -519,10 +539,11 @@ const DMArea = ({ socket, isMobile, theme }) => {
                                     <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
                                 </div>) : (
                                 <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                    <img
+                                    <video
                                         src={`data:video/mp4;base64,${msg.image}`}
                                         alt="attachment"
                                         className="rounded max-w-80 max-h-96 justify-center"
+                                        autoPlay={false}
                                     />
                                     <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
                                 </div>
@@ -542,7 +563,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                                     src={`data:image/jpeg;base64,${info.imageData}`}
                                     alt="Profile"
                                     className=""
-                                /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
+                                /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 ">
                                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                                 </svg>}
                             </div>
@@ -575,6 +596,7 @@ const DMArea = ({ socket, isMobile, theme }) => {
                         onPaste={handlePaste}
                         onDragOver={handleDragover}
                         onDrop={handleDrop}
+
                         className="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
                         autoFocus={true}
                     />
@@ -657,7 +679,11 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg overflow-hidden w-full max-w-md">
                         <div className="p-4">
-                            <img src={filePreview} alt="Preview" className="w-full h-auto rounded" />
+                            {fileMessage.type.startsWith('image/') ? (
+                                <img src={filePreview} alt="Preview" className="w-full h-auto rounded" />
+                            ) : (
+                                <video src={filePreview} autoPlay={false} controls={true} ></video>
+                            )}
                         </div>
                         <div className="flex justify-end p-4 bg-gray-100">
                             <button
@@ -677,7 +703,5 @@ const DMArea = ({ socket, isMobile, theme }) => {
                 </div>
             )}
         </div>
-    );
-};
-
-export default DMArea;
+    )
+}

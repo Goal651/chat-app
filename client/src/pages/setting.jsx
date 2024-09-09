@@ -5,11 +5,11 @@ import Cookies from 'js-cookie';
 import { Disclosure } from '@headlessui/react';
 import { useNavigate } from 'react-router-dom'
 
-const Settings = ({ isMobile }) => {
+export default function Settings  ({ isMobile }) {
     const [user, setUser] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const theme = localStorage.getItem('theme')
+    const [theme, setTheme] = useState(localStorage.getItem('theme'))
     const navigate = useNavigate()
     const accessToken = Cookies.get('accessToken')
 
@@ -18,10 +18,8 @@ const Settings = ({ isMobile }) => {
             try {
                 const response = await fetch(`http://localhost:3001/getUserProfile`, { headers: { accessToken: `${accessToken}` }, });
                 const data = await response.json();
-                if (response.status === 401) {
-                    Cookies.set("accessToken", data);
-                    window.location.reload();
-                } else if (response.status === 403) navigate("/login");
+                if (response.status === 401) Cookies.set("accessToken", data)
+                else if (response.status === 403) navigate("/login");
                 else if (response.ok) setUser(data.user)
             } catch (err) {
                 navigate('/error')
@@ -49,12 +47,11 @@ const Settings = ({ isMobile }) => {
     const handleThemeChange = (e) => {
         const data = e.target.checked;
         if (data) {
+            setTheme('dark')
             localStorage.setItem('theme', 'dark')
-            console.log(e.target.checked)
-        }
-        else {
+        } else {
+            setTheme('light')
             localStorage.setItem('theme', 'light')
-            console.log(e.target.checked)
         }
     };
 
@@ -114,7 +111,12 @@ const Settings = ({ isMobile }) => {
                                         <path
                                             d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
                                     </svg>
-                                    <input type="checkbox" value='dark-theme' onChange={handleThemeChange} checked={theme === 'dark' ? true : false} className="toggle theme-controller" />
+                                    <input
+                                        type="checkbox"
+                                        value='dark-theme'
+                                        onChange={handleThemeChange}
+                                        checked={theme === 'dark' ? true : false}
+                                        className="toggle theme-controller" />
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"
@@ -148,6 +150,4 @@ const Settings = ({ isMobile }) => {
             </div>
         </div>
     );
-};
-
-export default Settings;
+}

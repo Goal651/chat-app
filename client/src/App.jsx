@@ -9,7 +9,7 @@ const Signup = lazy(() => import('./pages/Signup'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NotFound = lazy(() => import('./pages/Build'));
 
-function App() {
+export default function App() {
   const isMobile = useMediaQuery({ query: '(max-width: 760px)' });
   return (
     <div className="h-screen">
@@ -36,4 +36,4 @@ function App() {
   );
 }
 
-export default App;
+

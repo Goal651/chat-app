@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs').promises;
 const mongoose = require('mongoose');
-const newObjectId = new mongoose.Types.ObjectId();
+const crypto = require('crypto');
 
 const userSockets = new Map();
 const rooms = {};
@@ -13,6 +13,45 @@ const formatTime = () => {
     const now = new Date();
     return now.toISOString().slice(11, 16);
 };
+
+const getPrivateKeyFromConfig = async (email) => {
+    try {
+        const configPath = path.join(__dirname, '../config.json');
+        const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+        return config[`${email}`];
+    } catch (error) {
+        console.error('Error reading private key from config:', error);
+        throw error;
+    }
+};
+
+
+const encryptMessage = (publicKey, message) => {
+    const encryptedData = crypto.publicEncrypt(
+        {
+            key: publicKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        Buffer.from(message, 'utf-8')
+    );
+    return encryptedData.toString('base64');
+};
+
+const decryptMessage = async (privateKey, encryptedMessage) => {
+    try {
+        return crypto.privateDecrypt(
+            {
+                key: privateKey,
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+            },
+            Buffer.from(encryptedMessage, 'base64')
+        ).toString('utf-8');
+    } catch (err) {
+        console.error('Error decrypting message:', err);
+        throw err;
+    }
+};
+
 
 const handlerChat = async (io) => {
     io.use((socket, next) => {
@@ -42,25 +81,27 @@ const handlerChat = async (io) => {
         socket.on('fetch_online_users', () => {
             try {
                 socket.emit('online_users', Array.from(userSockets.keys()));
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         });
+
 
         socket.on('send_group_message', async ({ message }) => {
             try {
+                const senderUser = await User.findOne({ email: socket.user })
+                const senderPublicKey = senderUser.publicKey;
+                const encryptedMessage = encryptMessage(senderPublicKey, message.message)
                 const newMessage = new GMessage({
                     sender: socket.user,
-                    message: message.message,
+                    message: encryptedMessage,
                     group: message.group,
                     type: message.type,
                     time: message.time
                 });
                 const savedMessage = await newMessage.save();
-                if (!savedMessage) return;
-                socket.to(message.group).emit("receive_group_message", { message: newMessage });
+                if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
-                io.to(senderSocketId).emit("group_message_sent", { message: newMessage });
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message } });
+                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message } });
             } catch (error) {
                 console.error('Error sending group message:', error);
             }
@@ -69,17 +110,24 @@ const handlerChat = async (io) => {
 
         socket.on("send_message", async ({ receiver, message }) => {
             try {
-                const newMessage = new Message({ sender: socket.user, message, type: "text", receiver, time: formatTime() });
+                const receiverUser = await User.findOne({ email: receiver });
+                if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
+                const receiverPublicKey = receiverUser.publicKey;
+                const encryptedMessage = encryptMessage(receiverPublicKey, message);
+                const newMessage = new Message({
+                    sender: socket.user,
+                    message: encryptedMessage,
+                    type: "text",
+                    receiver,
+                    time: formatTime(),
+                });
                 const savedMessage = await newMessage.save();
-                if (!savedMessage) return;
+                if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) {
-                    io.to(receiverSocketId).emit("receive_message", { newMessage });
-                } else {
-                    await User.updateOne({ email: receiver }, { $push: { unreads: { message, sender: socket.user } } });
-                }
-                io.to(senderSocketId).emit("message_sent", { newMessage });
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message } });
+                else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
+                io.to(senderSocketId).emit("message_sent", { newMessage: { ...newMessage._doc, message } });
             } catch (error) {
                 console.error('Error sending message:', error);
             }
@@ -118,7 +166,6 @@ const handlerChat = async (io) => {
                 io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, image: preview } });
             } catch (err) {
                 console.error('Error sending file message:', err);
-                socket.emit('file_upload_error', err.message);
             }
         });
 
@@ -130,7 +177,6 @@ const handlerChat = async (io) => {
                 const videoDir = path.join(uploadDir, 'video')
                 await fs.mkdir(videoDir, { recursive: true });
                 await fs.mkdir(photoDir, { recursive: true });
-                const fileExtension = path.extname(message.fileName);
                 const fileName = `${Date.now()}_${message.fileName}`;
                 const isVideo = message.fileType.startsWith('video/');
                 const isPhoto = message.fileType.startsWith('image/');
@@ -138,7 +184,9 @@ const handlerChat = async (io) => {
                 if (isVideo) filePath = path.join(videoDir, fileName);
                 else if (isPhoto) filePath = path.join(photoDir, fileName);
                 else return socket.emit('file_upload_error', 'Unsupported file type');
-                await fs.writeFile(filePath, Buffer.from(message.file));
+                try {
+                    await fs.writeFile(filePath, Buffer.from(message.file));
+                } catch (error) { console.error(error) }
                 const newMessage = new GMessage({
                     sender: socket.user,
                     message: filePath,
@@ -146,10 +194,7 @@ const handlerChat = async (io) => {
                     type: message.fileType,
                     time: formatTime(),
                 });
-                const sentMessage = {
-                    ...newMessage._doc,
-                    image: message.imageData
-                };
+                const sentMessage = { ...newMessage._doc, image: message.imageData };
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
@@ -208,23 +253,34 @@ const handlerChat = async (io) => {
                 if (updateResult) {
                     const receiverSocketId = userSockets.get(receiver);
                     if (receiverSocketId) {
-                        io.to(receiverSocketId).emit('user_saw_message', { messageId, sender: socket.user });
+                        io.to(receiverSocketId).emit('user_saw_message', { id: messageId, member: socket.user });
                     }
                 }
             } catch (error) {
                 console.error('Error marking message as seen:', error);
             }
         });
+        // Event to join room and mark all messages as read
+        socket.on('join_room_and_mark_read', async ({ group }) => {
+            try {
+                // Mark all messages in the group as read for this user
+                const messages = await GMessage.find({ group: group, 'seen.member': { $ne: socket.user } });
 
-        socket.on('mark_group_messages_seen', ({ group, messages, user }) => {
-            messages.forEach(async (messageId) => {
-                await GMessage.updateOne(
-                    { _id: messageId, group: group, 'seen.member': { $ne: socket.user } }, // Check if the user is not already in the seen array
-                    { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } } // Add user to seen if not already present
-                );
-            });
-            socket.to(group).emit('group_message_seen', { messages, user });
+                for (const message of messages) {
+                    await GMessage.updateOne(
+                        { _id: message._id },
+                        { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } } // Add user to seen if not already present
+                    );
+                }
+
+                // Notify others in the group
+                socket.to(group).emit('group_message_seen', { messages: messages.map(msg => msg._id), user: socket.user });
+
+            } catch (error) {
+                console.error('Error marking messages as read when joining room:', error);
+            }
         });
+
 
         socket.on('group_message_seen', async ({ id, group }) => {
             try {
@@ -291,7 +347,8 @@ const handlerChat = async (io) => {
         });
 
 
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
+            const result = await User.updateOne({ email: socket.user }, { $set: { lastActiveTime: new Date() } });
             userSockets.delete(socket.user);
             io.emit('online_users', Array.from(userSockets.keys()));
             for (const groupName of Object.keys(rooms)) {

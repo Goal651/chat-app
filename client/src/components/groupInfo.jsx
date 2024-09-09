@@ -3,13 +3,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
 
-const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
+export default function  GroupInfo  ({ theme, groupInfo, dataFromGroupInfo, })  {
     const { name } = useParams();
     const navigate = useNavigate();
     const accessToken = Cookies.get('accessToken');
     const [groupDetails, setGroupDetails] = useState(null);
     const [newMember, setNewMember] = useState('');
-    const [adminInfo, setAdminInfo] = useState('')
     const [file, setFile] = useState([])
     const [filePreview, setFilePreview] = useState('')
 
@@ -18,26 +17,16 @@ const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
         else fetchGroupDetails(name);
     }, [name, groupInfo]);
 
-    useEffect(() => {
-        const getAdminInfo = async () => {
-            if (groupDetails) {
-                const admin = await groupDetails.members.filter(member => member.role === 'admin')
-                setAdminInfo(admin[0])
-            }
-        }
-        getAdminInfo()
-    }, [groupDetails])
 
     const fetchGroupDetails = async (name) => {
         try {
             const response = await fetch(`http://localhost:3001/getGroup/${name}`, {
                 headers: { 'accessToken': accessToken }
             });
-            const data = await response.json();
-            setGroupDetails(data.group); // Assuming the group data is returned in the "group" field
+            const data = await response.json()
+            setGroupDetails(data.group)
         } catch (error) { navigate('/error') }
     };
-
 
 
     const handleAddMember = async () => {
@@ -45,7 +34,7 @@ const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
             try {
                 await addMember(name, newMember.trim());
                 setNewMember('');
-                fetchGroupDetails(name); // Refresh group details after adding a member
+                fetchGroupDetails(name)
             } catch (error) { navigate('/error') }
         }
     };
@@ -59,8 +48,15 @@ const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
             },
             body: JSON.stringify({ groupName, memberEmail })
         });
-        if (!response.ok) { navigate('/error') }
-        return response.json();
+        const data = await response.json()
+        if (response.status === 401) {
+            Cookies.set("accessToken", data.accessToken);
+        } else if (response.status === 403 || response.status === 403) {
+            Cookies.remove('accessToken')
+            navigate("/login")
+        }
+        else if (response.ok) return data
+        else navigate('/error')
     };
     const handleEditing = async () => {
         const fileInput = document.getElementById('file')
@@ -136,21 +132,6 @@ const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
                 <h1 className="text-2xl font-bold">{groupDetails.name}</h1>
             </div>
             <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">Admin</h2>
-                <div className="flex items-center space-x-2">
-                    <div className='avatar'>
-                        <div className='rounded-full w-16 h-16'>
-                            <img
-                                src={`data:image/jpeg;base64,${adminInfo.imageData}`}
-                                alt={`${groupDetails.admin.email}'s profile`}
-                                className="h-full w-full"
-                            />
-                        </div>
-                    </div>
-                    <span>{adminInfo.username}</span>
-                </div>
-            </div>
-            <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-2">Members</h2>
                 <ul className="space-y-2">
                     {groupDetails.members.map((member) => (
@@ -165,6 +146,7 @@ const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
                                 </div>
                             </div>
                             <span className='font-semibold'>{member.username}</span>
+                            {member.role === 'admin' && (<div className='text-indigo-400'>admin</div>)}
                         </li>
                     ))}
                 </ul>
@@ -194,6 +176,4 @@ const GroupInfo = ({ theme, groupInfo, dataFromGroupInfo, }) => {
                 </div>)}
         </div>
     );
-};
-
-export default GroupInfo;
+}

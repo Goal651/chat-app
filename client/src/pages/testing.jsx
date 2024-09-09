@@ -1,24 +1,13 @@
+/* eslint-disable no-unused-vars */
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import crypto from 'crypto-js'
+import { useNavigate, Link } from "react-router-dom";
 
-const Test = () => {
+export default function Test  ()  {
     const navigate = useNavigate()
-    useEffect(() => {
-        const generateKeyPair = async () => {
-            const keyPair = await window.crypto.subtle.generateKey({
-                name: 'ECDH',
-                namedCurve: 'P-256'
-            }, true, ['derivekey', 'deriveBits']);
-            const publicKey = await window.crypto.subtle.exportKey('jwk', keyPair.publicKey)
-            const privateKey = keyPair.privateKey;
-            console.log('hello')
-        }
-        generateKeyPair()
-    }, [navigate])
     return (
-        <div>we are Testing </div>
+        <div>
+            <div>We are Testing so go home </div>
+            <Link to={'/'}>Home</Link>
+        </div>
     )
 }
-
-export default Test

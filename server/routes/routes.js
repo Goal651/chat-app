@@ -39,7 +39,7 @@ const checkUser = async (req, res, next) => {
     jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
         if (err && err.name === 'TokenExpiredError') {
             const newAccessToken = refreshToken(decodedToken.email)
-            return res.status(401).json({ accessToken: newAccessToken })
+            return res.status(401).json({ newToken: newAccessToken })
         }
         if (err) return res.sendStatus(403);
         req.user = user.email;

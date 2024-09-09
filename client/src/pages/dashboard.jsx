@@ -10,6 +10,7 @@ const Details = lazy(() => import("../components/Info"));
 const Profile = lazy(() => import("./Profile"));
 const GroupContent = lazy(() => import("../components/GroupContent"));
 const ChatContent = lazy(() => import("../components/ChatContent"));
+const NotificationBanner = lazy(() => import("../components/Notification"))
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
@@ -21,11 +22,12 @@ const useSocket = (url) => {
     return socket;
 };
 
-const Dashboard = ({ isMobile }) => {
+export default function Dashboard ({ isMobile })  {
     const navigate = useNavigate();
     const { name, user, type } = useParams();
     const [friends, setFriends] = useState([]);
     const [groups, setGroups] = useState([]);
+    const [notifications, setNotifications] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [userInfo, setUserInfo] = useState([])
     const [loading, setLoading] = useState(true);
@@ -91,15 +93,13 @@ const Dashboard = ({ isMobile }) => {
 
     useEffect(() => {
         if (!socket) return;
-        const handleOnlineUsers = (data) => { 
-            setOnlineUsers(data)
-        }
+        const handleOnlineUsers = data => setOnlineUsers(data)
         socket.emit("fetch_online_users");
         socket.on("online_users", handleOnlineUsers);
         socket.on("marked_as_read", updateAllData);
         socket.on("receive_message", handleIncomingMessage);
         socket.on("receive_group_message", handleIncomingGroupMessage);
-        socket.on("message_sent", handleIncomingMessage);
+        socket.on("message_sent", handleMessageSent);
         socket.on("group_message_sent", handleIncomingGroupMessage);
 
         return () => {
@@ -152,11 +152,33 @@ const Dashboard = ({ isMobile }) => {
     };
 
     const handleIncomingMessage = (message) => {
+        const { newMessage } = message
+        console.log(newMessage)
+        const newNotifications = {
+            from: newMessage.sender,
+            to: newMessage.receiver,
+            message: newMessage.message,
+            timestamp: newMessage.timestamp,
+            type: 'dm'
+        };
+        setNotifications(newNotifications);
         setFriends((prevFriends) =>
             sortByLatestMessage(
                 prevFriends.map((friend) =>
-                    [message.sender, message.receiver].includes(friend.email)
-                        ? { ...friend, latestMessage: message }
+                    [newMessage.sender, newMessage.receiver].includes(friend.email)
+                        ? { ...friend, latestMessage: newMessage }
+                        : friend
+                )
+            )
+        );
+    };
+    const handleMessageSent = (message) => {
+        const { newMessage } = message
+        setFriends((prevFriends) =>
+            sortByLatestMessage(
+                prevFriends.map((friend) =>
+                    [newMessage.sender, newMessage.receiver].includes(friend.email)
+                        ? { ...friend, latestMessage: newMessage }
                         : friend
                 )
             )
@@ -290,12 +312,14 @@ const Dashboard = ({ isMobile }) => {
             className={`flex flex-row w-full h-screen text-sm ${theme === "dark" ? "bg-black" : "bg-white"
                 }`}
         >
+            <NotificationBanner details={notifications} />
             <Suspense fallback={<div>Loading...</div>}>
-                <div
-                    className={`${isMobile ? `${type || name || user ? "hidden" : ""}` : "w-1/12 h-full"
-                        }`}
-                >
-                    <Navigation socket={socket} isMobile={isMobile} theme={theme} />
+                <div className={`${isMobile ? `${type || name || user ? "hidden" : ""}` : "w-1/12 h-full"}`}>
+                    <Navigation
+                        socket={socket}
+                        isMobile={isMobile}
+                        theme={theme}
+                        userInfo={userInfo} />
                 </div>
                 <div
                     className={`${theme === "dark" ? "bg-black " : "bg-white "
@@ -318,6 +342,4 @@ const Dashboard = ({ isMobile }) => {
             </Suspense>
         </div>
     );
-};
-
-export default Dashboard;
+}

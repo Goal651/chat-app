@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
 
-function CreateGroup() {
+export default function CreateGroup() {
 
     const navigate = useNavigate()
     const accessToken=Cookies.get('accessToken')
@@ -44,5 +44,3 @@ function CreateGroup() {
         </div>
     );
 }
-
-export default CreateGroup;

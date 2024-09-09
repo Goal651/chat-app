@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import GroupArea from "./GroupScreen";
 
-const GroupContent = ({ groups, socket, friends, isMobile, theme, userInfo, onlineUsers }) => {
+export default function GroupContent  ({ groups, socket, friends, isMobile, theme, userInfo, onlineUsers })  {
     const navigate = useNavigate();
     const selectedGroup = localStorage.getItem('selectedGroup');
     const [group, setGroup] = useState(null);
@@ -143,6 +143,4 @@ const GroupContent = ({ groups, socket, friends, isMobile, theme, userInfo, onli
             </div>
         </div>
     );
-};
-
-export default GroupContent;
+}

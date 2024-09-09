@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 
 
-const Details = ({ onlineUsers, reloadProfile }) => {
+export default function Details ({ onlineUsers, reloadProfile })  {
     const { user, name } = useParams();
     const navigate = useNavigate();
     const [details, setDetails] = useState({});
@@ -97,6 +97,4 @@ const Details = ({ onlineUsers, reloadProfile }) => {
             )}
         </div>
     );
-};
-
-export default Details;
+}

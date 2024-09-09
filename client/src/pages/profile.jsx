@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 
 
-const Profile = ({ dataFromProfile, theme ,isMobile,userInfo}) => {
+export default function Profile  ({ dataFromProfile, theme, isMobile, userInfo })  {
     const navigate = useNavigate();
     const accessToken = Cookies.get("accessToken");
     const [profile, setProfile] = useState(null);
@@ -12,7 +12,7 @@ const Profile = ({ dataFromProfile, theme ,isMobile,userInfo}) => {
     const [editing, setEditing] = useState(false);
 
     useEffect(() => { if (!accessToken) navigate("/login") }, [navigate, accessToken]);
-    
+
 
     const sendDataToDashboard = () => dataFromProfile(true);
 
@@ -39,7 +39,7 @@ const Profile = ({ dataFromProfile, theme ,isMobile,userInfo}) => {
         setProfile(file);
         setImagePreview(URL.createObjectURL(file));
     };
-    
+
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend')
         navigate('/')
@@ -47,11 +47,11 @@ const Profile = ({ dataFromProfile, theme ,isMobile,userInfo}) => {
 
     return (
         <div>
-             {isMobile && (
-                        <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
-                            ←
-                        </button>
-                    )}
+            {isMobile && (
+                <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
+                    ←
+                </button>
+            )}
             {userInfo ? (
                 <div className={`flex p-10 text-xl  w-1/3 ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800'}`}>
                     <div>
@@ -86,6 +86,4 @@ const Profile = ({ dataFromProfile, theme ,isMobile,userInfo}) => {
             )}
         </div>
     );
-};
-
-export default Profile;
+}

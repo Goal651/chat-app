@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 
 
 
-const Login = ({ isMobile }) => {
+export default function Login  ({ isMobile })  {
   const navigate = useNavigate();
   const [wrongEmail, setWrongEmail] = useState(false);
   const [wrongPass, setWrongPass] = useState(false);
@@ -44,8 +44,8 @@ const Login = ({ isMobile }) => {
       const response = await fetch("http://localhost:3001/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) })
       if (response.status === 200) {
         const data = await response.json();
-        Cookies.set('accessToken', data.accessToken, { expires: 7 });
-        Cookies.set('user', data.email, { expires: 7 });
+        Cookies.set('accessToken', data.accessToken, { expires: 999 });
+        Cookies.set('user', data.email, { expires: 999 });
         navigate("/chat");
       } else if (response.status === 401) {
         document.getElementById('password').focus();
@@ -91,5 +91,3 @@ const Login = ({ isMobile }) => {
     </div >
   );
 }
-
-export default Login;
