@@ -4,12 +4,12 @@ const crypto = require('crypto');
 const { Message, GMessage, User } = require('../models/models');
 
 
-const decryptPrivateKey = (encryptedPrivateKey, passphrase) => {
+const decryptPrivateKey = (encryptedPrivateKey) => {
   try {
     const keyObject = crypto.createPrivateKey({
       key: encryptedPrivateKey,
       format: 'pem',
-      passphrase: passphrase
+      passphrase: process.env.KEY_PASSPHRASE
     });
     return keyObject.export({ type: 'pkcs1', format: 'pem' });
   } catch (err) {
@@ -56,24 +56,33 @@ const getMessage = async (req, res) => {
       const user = await User.findOne({ email: recipient });
       if (!user) { return { ...message._doc, message: '', image: null } }
       const encryptedPrivateKey = await getPrivateKeyFromConfig(recipient);
-      const privateKey = decryptPrivateKey(encryptedPrivateKey, 'your-passphrase');
+      const privateKey = decryptPrivateKey(encryptedPrivateKey);
       if (!privateKey) return { ...message._doc, message: 'Error decrypting message', image: null };
       let decryptedMessage = '';
-      try {
-        decryptedMessage = await decryptMessage(privateKey, message.message);
-      } catch (error) {
-        console.error(`Error decrypting message for recipient ${recipient}:`, error);
-        decryptedMessage = 'Error decrypting message';
-      }
-      let imageData = null;
-      if (message.type.startsWith('image')) {
+      let fileData = null;
+      if (message.type === 'text') {
         try {
-          const imagePath = path.join(message.message);
-          const data = await fs.readFile(imagePath);
-          imageData = data.toString('base64');
+          decryptedMessage = await decryptMessage(privateKey, message.message);
+        } catch (error) {
+          console.error(`Error decrypting message for recipient ${recipient}:`, error);
+          decryptedMessage = 'Error decrypting message';
+        }
+      }
+      else if (message.type.startsWith('image')) {
+        try {
+          const filePath = path.join(message.message);
+          const data = await fs.readFile(filePath);
+          fileData = `data:image/jpeg;base64, ${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
-      return { ...message._doc, message: decryptedMessage, image: imageData };
+      else if (message.type.startsWith('video')) {
+        try {
+          const filePath = path.join(message.message);
+          const data = await fs.readFile(filePath);
+          fileData = `data:video/mp4;base64,${data.toString('base64')}`;
+        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+      }
+      return { ...message._doc, message: decryptedMessage, file: fileData };
     }));
     res.status(200).json({ messages: messageWithDetails });
   } catch (error) {

@@ -64,7 +64,7 @@ export default function Settings  ({ isMobile }) {
     }
 
     return (
-        <div className={`${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
+        <div className={`${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
             {isMobile && (
                 <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
                     ←

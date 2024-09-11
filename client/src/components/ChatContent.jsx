@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import ChatArea from "./Dms"
 import Cookies from 'js-cookie'
 
-export default function ChatContent ({ friends, socket, isMobile, theme }){
+export default function ChatContent({ friends, socket, isMobile, theme }) {
     const navigate = useNavigate()
     const { user, type } = useParams()
     const selectedFriend = localStorage.getItem('selectedFriend')
@@ -14,8 +14,10 @@ export default function ChatContent ({ friends, socket, isMobile, theme }){
     const [unreadMessages, setUnreadMessages] = useState([])
     const [onlineUsers, setOnlineUsers] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
+    const [typingUser, setTypingUser] = useState('')
     const accessToken = Cookies.get('accessToken')
     const currentUser = Cookies.get('user');
+
 
     useEffect(() => { if (!accessToken) navigate('/login') }, [navigate, accessToken])
     useEffect(() => {
@@ -46,13 +48,16 @@ export default function ChatContent ({ friends, socket, isMobile, theme }){
             setOnlineUsers(data)
             socket.emit('fetch_unread_messages');
         })
-
+        socket.on('typing', ({ sender }) => setTypingUser(sender))
+        socket.on('not_typing', () => setTypingUser(''))
         return () => {
             socket.off('connect');
             socket.off('unread_messages');
             socket.off('marked_as_read');
             socket.off('receive_message')
             socket.off('online_users');
+            socket.off('typing')
+            socket.off('not_typing')
         }
     }, [socket, accessToken]);
 
@@ -77,6 +82,9 @@ export default function ChatContent ({ friends, socket, isMobile, theme }){
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend')
         navigate('/')
+    }
+    const isTyping = (data) => {
+        return typingUser == data
     }
     return (
         <div className="flex flex-row">
@@ -108,9 +116,11 @@ export default function ChatContent ({ friends, socket, isMobile, theme }){
                                                 </div>
                                                 <div className="ml-4 font-semibold w-full">
                                                     <div className="w-1/2"> {friend.username}</div>
-                                                    <div className="text-sm text-gray-600 break-words line-clamp-1 w-48 ">
+                                                    {isTyping(friend.email) ? (<div className="text-green-500 text-sm ">
+                                                        typing...
+                                                    </div>) : (<div className="text-sm text-gray-600 break-words line-clamp-1 w-48 ">
                                                         {friend.latestMessage ? (friend.latestMessage.sender == currentUser ? (friend.latestMessage.type.startsWith(`${'image' || 'video'}`) ? 'you: sent file' : `you: ${friend.latestMessage.message}`) : (friend.latestMessage.type.startsWith(`${'image' || 'video'}`) ? 'sent file' : friend.latestMessage.message)) : 'Say hi to your new friend'}
-                                                    </div>
+                                                    </div>)}
                                                 </div>
                                                 {unreadCount > 0 && (
                                                     <span className="badge ml-auto bg-red-500 text-white rounded-full px-2 py-1">
@@ -127,7 +137,7 @@ export default function ChatContent ({ friends, socket, isMobile, theme }){
                             <p className="text-center">No results found</p>
                         </div>
                     )}</div>
-            </div>
+            </div >
             <div
                 className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`}
                 style={{ height: '95vh' }}>
@@ -137,6 +147,6 @@ export default function ChatContent ({ friends, socket, isMobile, theme }){
                     isMobile={isMobile}
                     theme={theme} />
             </div>
-        </div>
+        </div >
     )
 }

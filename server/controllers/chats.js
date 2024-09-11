@@ -3,7 +3,6 @@ const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs').promises;
-const mongoose = require('mongoose');
 const crypto = require('crypto');
 
 const userSockets = new Map();
@@ -136,23 +135,11 @@ const handlerChat = async (io) => {
         socket.on('send_file_message', async (data) => {
             try {
                 const { message } = data;
-                const preview = message.file.toString('base64')
-                const uploadDir = path.join(__dirname, '../uploads');
-                const photoDir = path.join(uploadDir, 'photo');
-                const videoDir = path.join(uploadDir, 'video');
-                await fs.mkdir(videoDir, { recursive: true });
-                await fs.mkdir(photoDir, { recursive: true });
-                const fileName = `${Date.now()}_${message.fileName}`;
-                const isVideo = message.fileType.startsWith('video/');
-                const isPhoto = message.fileType.startsWith('image/');
-                let filePath;
-                if (isVideo) filePath = path.join(videoDir, fileName);
-                else if (isPhoto) filePath = path.join(photoDir, fileName);
-                else return socket.emit('file_upload_error', 'Unsupported file type');
-                await fs.writeFile(filePath, Buffer.from(message.file));
+                console.log(message)
+                const preview = message.preview
                 const newMessage = new Message({
                     sender: socket.user,
-                    message: filePath,
+                    message: message.message,
                     type: message.fileType,
                     receiver: message.receiver,
                     time: formatTime(),
@@ -161,9 +148,9 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(message.receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, image: preview } });
-                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: filePath, sender: socket.user } } });
-                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, image: preview } });
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, file: preview } });
+                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message:message.message, sender: socket.user } } });
+                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, file: preview } });
             } catch (err) {
                 console.error('Error sending file message:', err);
             }

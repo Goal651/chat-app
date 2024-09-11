@@ -14,6 +14,8 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
+
+
 export default function DMArea({ socket, isMobile, theme }) {
     const navigate = useNavigate();
     const { user } = useParams();
@@ -22,6 +24,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     const [message, setMessage] = useState("");
     const [lastMessage, setLastMessage] = useState("");
     const [fileMessage, setFileMessage] = useState(null);
+    const [fileName, setFileName] = useState('')
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
@@ -44,6 +47,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const CHUNK_SIZE = 64 * 1024;
 
     const ICE_SERVERS = {
         iceServers: [
@@ -140,6 +144,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         };
 
         const handleMessageSent = ({ newMessage }) => {
+            console.log(newMessage)
             setHistory((prevHistory) => [...prevHistory, newMessage]);
             setScrollToBottom(true);
         };
@@ -259,30 +264,61 @@ export default function DMArea({ socket, isMobile, theme }) {
         setScrollToBottom(true);
     }, [message, socket, friend,]);
 
-    const sendFileMessage = useCallback((e) => {
+
+    const sendFileInChunks = async (file) => {
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        let currentChunk = 0;
+        const uploadChunk = async () => {
+            const start = currentChunk * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunk = file.slice(start, end);
+            const formData = new FormData();
+            formData.append('file', chunk);
+
+            const headers = {
+                'accessToken': `${accessToken}`,
+                'ContentRange': `bytes ${start}-${end - 1}/${file.size}`,
+                'ChunkNumber': currentChunk,
+                'TotalChunks': totalChunks,
+                'FileName': file.name,
+            }
+            await fetch('http://localhost:3001/uploadFile', { method: 'POST', headers: headers, body: chunk, })
+                .then(response => response.json())
+                .then(data => {
+                    currentChunk++;
+                    setFileName(data.filename)
+                    if (currentChunk < totalChunks) uploadChunk()
+                    else setFileName(data.filename)
+                })
+                .catch(err => {
+                    console.error('Error uploading chunk:', err);
+                });
+        }
+        await uploadChunk();
+
+    };
+
+    const sendFileMessage = useCallback(async (e) => {
         e.preventDefault();
         if (!socket || !fileMessage) return;
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            const arrayBuffer = event.target.result;
+        await sendFileInChunks(fileMessage)
+        console.log(fileName)
+        if (fileName) {
             const newFileMessage = {
-                _id: Date.now(),
-                sender: user,
                 receiver: friend,
-                fileName: fileMessage.name,
                 fileType: fileMessage.type,
                 fileSize: fileMessage.size,
+                message: fileName,
                 preview: filePreview,
-                file: arrayBuffer,
                 time: new Date().toISOString().slice(11, 16),
             };
-            socket.emit('send_file_message', { message: newFileMessage });
+            socket.emit('send_file_message', { message: newFileMessage })
             setFileMessage(null);
             setFilePreview(null);
-            setScrollToBottom(true);
-            socket.emit('not_typing', { receiver: friend })
-        };
-        reader.readAsArrayBuffer(fileMessage)
+        }
+
+        setScrollToBottom(true);
+        socket.emit('not_typing', { receiver: friend })
     }, [fileMessage, socket, friend, user]);
 
     const handleChange = useCallback((e) => {
@@ -430,7 +466,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     };
 
 
-
+    if (!user) return null
     if (loading) return <div className="loading loading-spinner"></div>
     return (
         <div className="flex flex-col h-full" >
@@ -484,7 +520,6 @@ export default function DMArea({ socket, isMobile, theme }) {
                 </div>
             </div>
 
-            {/* Messages */}
             <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
                 {loading ? (
                     <div>Loading messages...</div>
@@ -512,11 +547,26 @@ export default function DMArea({ socket, isMobile, theme }) {
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-                                    <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded" />
+                            ) : (msg.type.startsWith('image') ? (
+                                <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
+                                    <img
+                                        src={msg.file}
+                                        alt="attachment"
+                                        className="rounded max-w-80 max-h-96 justify-center "
+                                    />
+                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                                </div>) : (
+                                <div className="bg-gray-500 text-white w-96 p-4 chat-bubble">
+                                    <video
+                                        src={msg.file}
+                                        alt="attachment"
+                                        className="rounded max-w-80 max-h-96 justify-center"
+                                        autoPlay={false}
+                                        controls={true}
+                                    />
                                     <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
                                 </div>
+                            )
                             )}
                         </div>
                     ) : (
@@ -529,10 +579,10 @@ export default function DMArea({ socket, isMobile, theme }) {
                                         {msg.seen && (<div className="text-green-400 text-end">✓✓</div>)}
                                     </div>
                                 </div>
-                            ) : (msg.type === 'image' ? (
+                            ) : (msg.type.startsWith('image') ? (
                                 <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
                                     <img
-                                        src={`data:image/jpeg;base64,${msg.image}`}
+                                        src={msg.file}
                                         alt="attachment"
                                         className="rounded max-w-80 max-h-96 justify-center "
                                     />
@@ -540,10 +590,11 @@ export default function DMArea({ socket, isMobile, theme }) {
                                 </div>) : (
                                 <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
                                     <video
-                                        src={`data:video/mp4;base64,${msg.image}`}
+                                        src={msg.file}
                                         alt="attachment"
                                         className="rounded max-w-80 max-h-96 justify-center"
                                         autoPlay={false}
+                                        controls={true}
                                     />
                                     <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
                                 </div>
@@ -569,7 +620,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                             </div>
                         </div>
                         <div className="chat-bubble bg-white h-14 min-w-18">
-                            <span className="loading loading-dots bg-slate-800 h-full w-full"></span>
+                            <span className="loading loading-dots bg-slate-500 h-full w-full"></span>
                         </div>
                     </div>
                 )}
@@ -596,8 +647,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                         onPaste={handlePaste}
                         onDragOver={handleDragover}
                         onDrop={handleDrop}
-
-                        className="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                        className="flex-1 mx-4 p-2 border rounded-lg w-12 break-words focus:outline-none focus:border-blue-500"
                         autoFocus={true}
                     />
                     <label className="text-gray-500 hover:text-gray-700 cursor-pointer">
@@ -682,7 +732,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                             {fileMessage.type.startsWith('image/') ? (
                                 <img src={filePreview} alt="Preview" className="w-full h-auto rounded" />
                             ) : (
-                                <video src={filePreview} autoPlay={false} controls={true} ></video>
+                                <video src={filePreview} autoPlay={false} controls={true} className="h-96 w-full" ></video>
                             )}
                         </div>
                         <div className="flex justify-end p-4 bg-gray-100">

@@ -14,7 +14,8 @@ const {
     updateUser,
     updateGroup,
     getUserProfile,
-    addMember
+    addMember,
+    fileUpload
 } = require('../controllers/app')
 
 
@@ -71,5 +72,8 @@ router.delete('/deleteMessage/:id', checkUser, deleteMessage)
 router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)
 router.put('/updateGroupProfile/:group', checkUser, upload.single('image'), updateGroup)
 router.post('/addMember', checkUser, addMember)
+
+//file uploads
+router.post('/uploadFile', checkUser, fileUpload)
 
 module.exports = router;

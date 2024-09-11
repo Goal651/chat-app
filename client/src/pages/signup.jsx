@@ -4,7 +4,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from "react";
 
-export default function SignUp  ({ isMobile }) {
+export default function SignUp({ isMobile }) {
     const [formData, setFormData] = useState({ names: "", username: "", email: "", password: "", image: null, re_password: "" });
     const [imagePreview, setImagePreview] = useState(null);
     const [match, setMatch] = useState(false);
@@ -75,7 +75,7 @@ export default function SignUp  ({ isMobile }) {
             const response = await fetch("http://localhost:3001/signup", { method: "POST", body: formDataToSend });
             if (response.ok) navigate('/login')
             else if (response.status === 400) setEmailFound(true);
-            else navigate('/error')
+            else if (response.status === 500) navigate('/error')
         } catch (error) { navigate('/error') }
     }
 
@@ -125,7 +125,7 @@ export default function SignUp  ({ isMobile }) {
                     </svg>
                     )}
                 </label>
-                <button type="submit" className={`btn btn-info text-white`}>Submit</button>
+                <button type="submit" className={`btn btn-info text-white ${!match && 'btn-disabled'}`} disabled={!match}>Submit</button>
             </form>
 
             {isMobile ? (null) : (<div className='w-1/3 flex flex-col items-center' onDrop={handleDrop} onDragOver={handleDragOver}>

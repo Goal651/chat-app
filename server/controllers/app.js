@@ -1,5 +1,5 @@
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Group, GMessage, Message } = require('../models/models');
@@ -18,7 +18,7 @@ const generateKeyPair = async () => {
                 type: 'pkcs8',
                 format: 'pem',
                 cipher: 'aes-256-cbc',
-                passphrase: process.env.KEY.PASSPHRASE // Ensure to use a secure passphrase
+                passphrase: process.env.KEY_PASSPHRASE // Ensure to use a secure passphrase
             }
         }, (err, publicKey, privateKey) => {
             if (err) return reject(err);
@@ -32,7 +32,7 @@ const decryptPrivateKey = async (encryptedPrivateKey) => {
         const keyObject = crypto.createPrivateKey({
             key: encryptedPrivateKey,
             format: 'pem',
-            passphrase: process.env.KEY.PASSPHRASE
+            passphrase: process.env.KEY_PASSPHRASE
         });
         return keyObject.export({ type: 'pkcs1', format: 'pem' });
     } catch (err) {
@@ -60,7 +60,7 @@ const decryptMessage = async (privateKey, encryptedMessage) => {
 const getPrivateKeyFromConfig = async (email) => {
     try {
         const configPath = path.join(__dirname, '../config.json');
-        const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+        const config = JSON.parse(await fs.promises.readFile(configPath, 'utf8'));
         return config[`${email}`];
     } catch (error) {
         console.error('Error reading private key from config:', error);
@@ -92,13 +92,13 @@ const signup = async (req, res) => {
         const privateKeyPath = path.join(__dirname, '../config.json');
         let existingKeys = {};
         try {
-            const fileContent = await fs.readFile(privateKeyPath, 'utf8');
+            const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
             existingKeys = JSON.parse(fileContent);
         } catch (err) {
             console.error('Could not read existing keys file, creating new one.', err);
         }
         existingKeys[email] = privateKey;
-        await fs.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
+        await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
         res.status(201).json(savedUser);
     } catch (err) {
         res.sendStatus(500);
@@ -129,27 +129,29 @@ const getUsers = async (req, res) => {
             let latestMessage = await Message.findOne({
                 $or: [{ sender: user.email, receiver: email }, { sender: email, receiver: user.email }]
             }).sort({ timestamp: -1 }).exec();
-            const encryptedPrivateKey = await getPrivateKeyFromConfig(latestMessage.receiver)
-            const privateKey = await decryptPrivateKey(encryptedPrivateKey, 'your-passphrase')
-            if (!privateKey) return
-            let imageData = "";
             let decryptedMessage = ''
-            try {
-                decryptedMessage = await decryptMessage(privateKey, latestMessage.message);
-            } catch (error) {
-                console.error(`Error decrypting message for recipient ${email}:`, error);
-                decryptedMessage = 'Error decrypting message';
+            if (latestMessage && latestMessage.type === 'text') {
+                const encryptedPrivateKey = await getPrivateKeyFromConfig(latestMessage.receiver)
+                const privateKey = await decryptPrivateKey(encryptedPrivateKey, 'your-passphrase')
+                if (!privateKey) return
+                try {
+                    decryptedMessage = await decryptMessage(privateKey, latestMessage.message);
+                } catch (error) {
+                    console.error(`Error decrypting message for recipient ${email}:`, error);
+                    decryptedMessage = 'Error decrypting message';
+                }
             }
+            let imageData = "";
             if (user.image) {
                 try {
                     const imagePath = path.join(uploadsDir, user.image);
-                    const data = await fs.readFile(imagePath);
+                    const data = await fs.promises.readFile(imagePath);
                     imageData = data.toString('base64');
                 } catch (err) {
                     console.error(`Error reading image for user ${user.email}:`, err);
                 }
             }
-            return { ...user.toObject(), imageData, latestMessage: { ...latestMessage._doc, message: decryptedMessage } };
+            return { ...user.toObject(), imageData, latestMessage: latestMessage ? { ...latestMessage._doc, message: decryptedMessage } : null };
         }))
         res.status(200).json({ users: usersWithDetails });
     } catch (err) {
@@ -246,7 +248,7 @@ const getGroup = async (req, res) => {
             group: {
                 ...group.toObject(),
                 imageData: groupImageData,
-                members: memberImages 
+                members: memberImages
             }
         });
 
@@ -272,7 +274,7 @@ const updateGroup = async (req, res) => {
 const readImage = async (imagePath) => {
     try {
         const fullPath = path.join(uploadsDir, imagePath);
-        const imageBuffer = await fs.readFile(fullPath);
+        const imageBuffer = await fs.promises.readFile(fullPath);
         return imageBuffer.toString('base64');
     } catch (err) {
         console.error('Error reading image:', err);
@@ -300,6 +302,28 @@ const addMember = async (req, res) => {
     }
 };
 
+const fileUpload = async (req, res) => {
+
+    const { chunknumber, totalchunks, filename } = req.headers
+    const filePath = path.join(__dirname, '../uploads', filename)
+    if (!chunknumber || !totalchunks || !filename) return res.status(400).json({ message: 'Missing required headers.' })
+    const writeStream = fs.createWriteStream(filePath, { flags: 'a' })
+    req.pipe(writeStream);
+    req.on('end', () => {
+        writeStream.close();
+        if (parseInt(chunknumber) + 1 === parseInt(totalchunks)) {
+            console.log('File upload completed successfully!')
+            return res.status(200).json({ filename: filePath })
+        } else {
+            return res.status(200).json({ message: 'Chunk received.' });
+        }
+    })
+    req.on('error', (err) => {
+        console.error('Error receiving file chunk:', err);
+        return res.sendStatus(500)
+    });
+}
+
 
 
 module.exports = {
@@ -313,5 +337,6 @@ module.exports = {
     createGroup,
     updateUser,
     updateGroup,
-    addMember
+    addMember,
+    fileUpload
 };
