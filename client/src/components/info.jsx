@@ -61,16 +61,14 @@ export default function Details({ onlineUsers, reloadProfile }) {
 
 
     return (
-        <div>{name && showGroupInfo && (
+        <div>{name && showGroupInfo && groupInfo && (
             <div className=" flex flex-col  text-black justify-between  h-full px-2">
                 <div className="h-1/2 shadow-md rounded-lg mb-2 bg-gray-100 px-4">
                     <div className="font-semibold text-xl my-4"> Group Info</div>
                     <div className="font-semibold">Files</div>
-                    <div className="my-4">265 photos</div>
-                    <div className="my-4">265 photos</div>
-                    <div className="my-4">265 photos</div>
-                    <div className="my-4">265 photos</div>
-                    <div className="my-4">265 photos</div>
+                    <div className="my-4">{groupInfo.details.images} photos</div>
+                    <div className="my-4">{groupInfo.details.videos} videos</div>
+                    <div className="my-4">{groupInfo.details.audios} audios</div>
                 </div>
                 <div
                     className="h-1/2 overflow-auto shadow-lg rounded-lg mt-2 px-4 py-2 bg-gray-100"

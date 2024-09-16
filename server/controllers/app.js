@@ -217,9 +217,10 @@ const getGroups = async (req, res) => {
         const groups = await Group.find({ "members.email": userEmail });
         const groupsWithImages = await Promise.all(groups.map(async (group) => {
             let latestMessage = await GMessage.findOne({ group: group.name }).sort({ timestamp: -1 }).exec();
+            const details = await groupDetails(group.name)
             let imageData = null
             if (group.image) imageData = await readImage(group.image);
-            return { ...group.toObject(), imageData, latestMessage };
+            return { ...group.toObject(), imageData, latestMessage,details };
         }));
         res.status(200).json({ groups: groupsWithImages });
     } catch (err) { res.sendStatus(500) }
@@ -228,6 +229,7 @@ const getGroups = async (req, res) => {
 const getGroup = async (req, res) => {
     try {
         const { name } = req.params;
+        const details = await groupDetails(name)
         const group = await Group.findOne({ name });
         if (!group) return res.status(404).json({ group: null });
         const members = await Promise.all(group.members.map(async (member) => {
@@ -248,7 +250,8 @@ const getGroup = async (req, res) => {
             group: {
                 ...group.toObject(),
                 imageData: groupImageData,
-                members: memberImages
+                members: memberImages,
+                details
             }
         });
 
@@ -325,7 +328,19 @@ const fileUpload = async (req, res) => {
     }
 };
 
+const groupDetails = async (group) => {
+    const gms = await GMessage.find({ group: group })
+    let images = 0
+    let videos = 0
+    let audios = 0
+    const result = await Promise.all(gms.map(async (gm) => {
+        if (gm.type.startsWith('image')) images += 1
+        else if (gm.type.startsWith('video')) videos += 1
+        else if (gm.type.startsWith('audio')) audios += 1
 
+    }))
+    return { images, videos, audios }
+}
 
 
 
