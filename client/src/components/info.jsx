@@ -4,9 +4,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import GroupInfo from "./GroupInfo";
 
-
-export default function Details ({ onlineUsers, reloadProfile })  {
+export default function Details({ onlineUsers, reloadProfile }) {
     const { user, name } = useParams();
     const navigate = useNavigate();
     const [details, setDetails] = useState({});
@@ -14,13 +14,15 @@ export default function Details ({ onlineUsers, reloadProfile })  {
     const [userInfo, setUserInfo] = useState({});
     const friend = localStorage.getItem('selectedFriend')
     const accessToken = Cookies.get('accessToken')
+    const showGroupInfo = localStorage.getItem('g_i')
 
     const fetchUserDetails = async (userParam, setStateCallback) => {
         if (!accessToken) return
         try {
             const response = await fetch(`http://localhost:3001/getUser/${userParam}`, { headers: { 'accessToken': `${accessToken}` } });
-            if (response.status === 403) navigate('/login')
             const data = await response.json();
+            if (response.status === 403) navigate('/login')
+            else if (response.status === 401) Cookies.set('accessToken', data.newToken)
             setStateCallback(data.user);
         } catch (error) { navigate('/error') }
     };
@@ -57,44 +59,25 @@ export default function Details ({ onlineUsers, reloadProfile })  {
     }, [accessToken, reloadProfile, navigate])
 
 
-    const isOnline = () => {
-        if (!onlineUsers) return false;
-        return onlineUsers.includes(user);
-    }
 
     return (
-        <div className="info flex flex-col p-10 text-xl text-black">
-            {user || name ? (
-                user ? (
-                    <div className="flex flex-col p-10 text-xl text-black">
-                        <div className="h-28 w-28 rounded-full bg-black flex justify-center">
-                            {userInfo.imageData ? <img src={`data:image/jpeg;base64,${userInfo.imageData}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full" />
-                                : <img src="/nopro.png" alt="No Profile" className="max-h-18 max-w-18" />}
-                            {isOnline() && (<span className="text-green-500">Online</span>)}
-                        </div>
-                        <div>
-                            <span className="text-left font-semibold">{userInfo.names}</span>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col p-10 text-xl text-black">
-                        <div>{groupInfo.imageData ?
-                            <img src={`data:image/jpeg;base64,${groupInfo.imageData}`} className="max-h-28 max-w-28 rounded-full" />
-                            : <img src="/nopro.png" alt="No Profile" className="h-14" />
-                        }</div>
-                        <h3 className="text-center font-semibold">{groupInfo.name}</h3>
-                        <h5 className="">Admin: {groupInfo.admin}</h5>
-                    </div>
-                )
-            ) : (
-                <div className="flex flex-col p-10 text-xl text-black">
-                    <div>{details.imageData ?
-                        <img src={`data:image/jpeg;base64,${details.imageData}`} alt="Fetched Image" className="max-h-28 max-w-28 rounded-full" />
-                        : <img src="/nopro.png" alt="No Profile" className="h-14" />
-                    }</div>
-                    <h3 className="text-center">{details.username}</h3>
+        <div>{name && showGroupInfo && (
+            <div className=" flex flex-col  text-black justify-between  h-full px-2">
+                <div className="h-1/2 shadow-md rounded-lg mb-2 bg-gray-100 px-4">
+                    <div className="font-semibold text-xl my-4"> Group Info</div>
+                    <div className="font-semibold">Files</div>
+                    <div className="my-4">265 photos</div>
+                    <div className="my-4">265 photos</div>
+                    <div className="my-4">265 photos</div>
+                    <div className="my-4">265 photos</div>
+                    <div className="my-4">265 photos</div>
                 </div>
-            )}
-        </div>
+                <div
+                    className="h-1/2 overflow-auto shadow-lg rounded-lg mt-2 px-4 py-2 bg-gray-100"
+                >
+                    <GroupInfo />
+                </div>
+            </div>
+        )}</div>
     );
 }

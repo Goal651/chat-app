@@ -128,7 +128,7 @@ export default function GroupContent  ({ groups, socket, friends, isMobile, them
                 <div>{memoizedGroups}</div>
             </div>
             <div
-                className={`overflow-hidden ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'pr-10 w-2/3'}`}
+                className={`overflow-hidden ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'w-2/3'}`}
                 style={{ height: '95vh' }}
             >
                 <GroupArea

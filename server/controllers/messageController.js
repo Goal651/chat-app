@@ -106,11 +106,13 @@ const getGMessage = async (req, res) => {
       const privateKey = decryptPrivateKey(encryptedPrivateKey, 'your-passphrase')
       let decryptedMessage = ''
       let image = null;
-      try {
-        decryptedMessage = await decryptMessage(privateKey, gm.message);
-      } catch (error) {
-        console.error(`Error decrypting message for recipient ${recipient}:`, error);
-        decryptedMessage = 'Error decrypting message';
+      if (gm.type == 'text') {
+        try {
+          decryptedMessage = await decryptMessage(privateKey, gm.message);
+        } catch (error) {
+          console.error(`Error decrypting message for recipient ${recipient}:`, error);
+          decryptedMessage = 'Error decrypting message';
+        }
       }
       if (gm.type.startsWith('image')) {
         try {

@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import { ClipLoader } from 'react-spinners';
 
 function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -37,12 +38,12 @@ export default function DMArea({ socket, isMobile, theme }) {
     const [remoteStream, setRemoteStream] = useState(null);
     const [peerConnection, setPeerConnection] = useState(null);
     const [callType, setCallType] = useState(null);
-    const [publicKey, setPublicKey] = useState(null);
-    const [privateKey, setPrivateKey] = useState(null);
     const [isCalling, setIsCalling] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false)
     const accessToken = Cookies.get('accessToken');
     const [onlineUsers, setOnlineUsers] = useState([]);
+    const [isSendingFile, setIsSendingFile] = useState(false);
+    const [lastActiveTime, setLastActiveTime] = useState('');
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -69,15 +70,23 @@ export default function DMArea({ socket, isMobile, theme }) {
 
     useEffect(() => {
         const getTimeDifference = () => {
-            if (!info) return
-            const lastActiveTime = info.lastActiveTime
+            if (!info) return;
+            const lastActiveTime = info.lastActiveTime;
             const data = new Date(lastActiveTime);
             const timestampNow = Date.now();
-            const difference = timestampNow - data.getTime();
-            console.log(difference / 6000)
-        }
+            const difference = (timestampNow - data.getTime()) / 60000;
+            if (difference * 60 > 86400) {
+                setLastActiveTime(`${Math.floor(difference / 1440)} days`);
+            } else if (difference * 60 > 3600) {
+                setLastActiveTime(`${Math.floor(difference / 60)} hours`);
+            } else if (difference * 60 > 60) {
+                setLastActiveTime(`${Math.floor(difference)} minutes`);
+            } else {
+                setLastActiveTime(`${Math.floor(difference * 60)} seconds`);
+            }
+        };
         getTimeDifference()
-    }, [info, navigate, onlineUsers])
+    }, [info, navigate, onlineUsers, socket])
 
     useEffect(() => {
         const isLastMessage = () => {
@@ -264,45 +273,59 @@ export default function DMArea({ socket, isMobile, theme }) {
         setScrollToBottom(true);
     }, [message, socket, friend,]);
 
-
     const sendFileInChunks = async (file) => {
+        const CHUNK_SIZE = 24 * 1024;
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-        let currentChunk = 0;
+        let currentChunk = 0
+
         const uploadChunk = async () => {
-            const start = currentChunk * CHUNK_SIZE;
-            const end = Math.min(start + CHUNK_SIZE, file.size);
-            const chunk = file.slice(start, end);
-            const formData = new FormData();
-            formData.append('file', chunk);
+            try {
+                const start = currentChunk * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+                const formData = new FormData();
+                formData.append('file', chunk);
+                const headers = {
+                    'accessToken': accessToken,
+                    'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+                    'chunknumber': currentChunk, 
+                    'totalchunks': totalChunks,  
+                    'filename': encodeURIComponent(file.name),  
+                    'filetype': file.type,        
+                };
 
-            const headers = {
-                'accessToken': `${accessToken}`,
-                'ContentRange': `bytes ${start}-${end - 1}/${file.size}`,
-                'ChunkNumber': currentChunk,
-                'TotalChunks': totalChunks,
-                'FileName': file.name,
-            }
-            await fetch('http://localhost:3001/uploadFile', { method: 'POST', headers: headers, body: chunk, })
-                .then(response => response.json())
-                .then(data => {
-                    currentChunk++;
-                    setFileName(data.filename)
-                    if (currentChunk < totalChunks) uploadChunk()
-                    else setFileName(data.filename)
-                })
-                .catch(err => {
-                    console.error('Error uploading chunk:', err);
+                const response = await fetch('http://localhost:3001/uploadFile', {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData,
                 });
-        }
-        await uploadChunk();
 
+                if (!response.ok) {
+                    throw new Error(`Failed to upload chunk ${currentChunk}`);
+                }
+                const data = await response.json();
+                currentChunk++;
+                if (data.filename) setFileName(data.filename);
+                if (currentChunk < totalChunks) {
+                    await uploadChunk(); 
+                } else {
+                    setIsSendingFile(false); // Reset sending status
+                    console.log('File upload complete');
+                }
+            } catch (err) {
+                console.error('Error uploading chunk:', err);
+                setIsSendingFile(false); // Reset sending status on error
+            }
+        };
+        await uploadChunk();
     };
+
 
     const sendFileMessage = useCallback(async (e) => {
         e.preventDefault();
         if (!socket || !fileMessage) return;
-        await sendFileInChunks(fileMessage)
-        console.log(fileName)
+        setIsSendingFile(true);
+        await sendFileInChunks(fileMessage);
         if (fileName) {
             const newFileMessage = {
                 receiver: friend,
@@ -312,14 +335,14 @@ export default function DMArea({ socket, isMobile, theme }) {
                 preview: filePreview,
                 time: new Date().toISOString().slice(11, 16),
             };
-            socket.emit('send_file_message', { message: newFileMessage })
+            socket.emit('send_file_message', { message: newFileMessage });
             setFileMessage(null);
             setFilePreview(null);
         }
-
         setScrollToBottom(true);
-        socket.emit('not_typing', { receiver: friend })
-    }, [fileMessage, socket, friend, user]);
+        socket.emit('not_typing', { receiver: friend });
+    }, [fileMessage, socket, friend, user, fileName]);
+
 
     const handleChange = useCallback((e) => {
         const { name, value, files } = e.target;
@@ -494,7 +517,11 @@ export default function DMArea({ socket, isMobile, theme }) {
                             {onlineUsers.includes(info.email) ? (beingTyped ? (
                                 <div className="text-md text-green-600 ">typing ...</div>) :
                                 <div className="text-sm ">Online</div>) :
-                                null}
+                                (
+                                    <div className="text-sm font-semibold">
+                                        last seen: {lastActiveTime}
+                                    </div>
+                                )}
                         </div>
                     </div>
                 </div>
@@ -520,7 +547,9 @@ export default function DMArea({ socket, isMobile, theme }) {
                 </div>
             </div>
 
-            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
+            <div
+                onClick={() => { setShowEmojiPicker(false) }}
+                className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
                 {loading ? (
                     <div>Loading messages...</div>
                 ) : history && history.length > 0 ? (history.map((msg) => (
@@ -742,11 +771,21 @@ export default function DMArea({ socket, isMobile, theme }) {
                             >
                                 Cancel
                             </button>
+
                             <button
+
                                 onClick={sendFileMessage}
-                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+                                disabled={isSendingFile} // Disable button while sending
                             >
-                                Send
+                                {isSendingFile ? (
+                                    <>
+                                        <ClipLoader size={20} color="#ffffff" /> {/* Spinner while sending */}
+                                        <span className="ml-2">Sending...</span>
+                                    </>
+                                ) : (
+                                    'Send'
+                                )}
                             </button>
                         </div>
                     </div>

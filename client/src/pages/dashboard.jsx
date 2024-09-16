@@ -22,7 +22,7 @@ const useSocket = (url) => {
     return socket;
 };
 
-export default function Dashboard ({ isMobile })  {
+export default function Dashboard({ isMobile }) {
     const navigate = useNavigate();
     const { name, user, type } = useParams();
     const [friends, setFriends] = useState([]);
@@ -35,6 +35,7 @@ export default function Dashboard ({ isMobile })  {
     const accessToken = Cookies.get("accessToken");
     const socket = useSocket("http://localhost:3001");
     const theme = localStorage.getItem("theme");
+    const showGroupInfo = localStorage.getItem('g_i')
 
     useEffect(() => {
         if (!accessToken) navigate("/login");
@@ -54,7 +55,7 @@ export default function Dashboard ({ isMobile })  {
                     navigate("/login")
                 }
                 else if (response.ok) setUserInfo(data.user)
-            } catch (error) { navigate("/error"); console.log(error) }
+            } catch (error) { navigate("/error"); }
         }
         fetchUserDetails()
     }, [accessToken, reloadProfile, navigate]);
@@ -86,7 +87,6 @@ export default function Dashboard ({ isMobile })  {
             } catch (error) { console.error("Error fetching data:", error) }
             finally { setLoading(false) }
         };
-
         fetchInitialData();
     }, [accessToken, navigate]);
 
@@ -133,6 +133,7 @@ export default function Dashboard ({ isMobile })  {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
+
             setFriends(sortByLatestMessage(data.users));
         } catch (error) {
             console.error("Error updating friends:", error);
@@ -329,8 +330,7 @@ export default function Dashboard ({ isMobile })  {
                 </div>
                 <div
                     id="mobile"
-                    className={`w-1/6 bg-white my-4 mr-4 rounded-3xl ${isMobile ? "hidden" : "hidden"
-                        }`}
+                    className={`${isMobile ? "hidden" : `${showGroupInfo === 'true' ? 'w-1/6 h-screen py-4 mr-4 rounded-3xl' : 'hidden'} `}`}
                 >
                     <Details
                         onlineUsers={onlineUsers}

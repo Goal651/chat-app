@@ -67,10 +67,10 @@ const handlerChat = async (io) => {
     const groups = await Group.find()
     groups.map(group => rooms[group.name] = new Set())
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         userSockets.set(socket.user, socket.id)
         io.emit('online_users', Array.from(userSockets.keys()));
-
+        await User.updateOne({ email: socket.user }, { lastActiveTime: Date.now() })
         for (const groupName of Object.keys(rooms)) {
             rooms[groupName].add(socket.user)
             socket.join(groupName)
@@ -149,7 +149,7 @@ const handlerChat = async (io) => {
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(message.receiver);
                 if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, file: preview } });
-                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message:message.message, sender: socket.user } } });
+                else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: message.message, sender: socket.user } } });
                 io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, file: preview } });
             } catch (err) {
                 console.error('Error sending file message:', err);
@@ -335,7 +335,7 @@ const handlerChat = async (io) => {
 
 
         socket.on('disconnect', async () => {
-            const result = await User.updateOne({ email: socket.user }, { $set: { lastActiveTime: new Date() } });
+            const result = await User.updateOne({ email: socket.user }, { lastActiveTime:  Date.now() });
             userSockets.delete(socket.user);
             io.emit('online_users', Array.from(userSockets.keys()));
             for (const groupName of Object.keys(rooms)) {

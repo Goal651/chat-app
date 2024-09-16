@@ -44,6 +44,7 @@ const checkUser = async (req, res, next) => {
         }
         if (err) return res.sendStatus(403);
         req.user = user.email;
+        req.id = user.id;
         next();
     })
 }

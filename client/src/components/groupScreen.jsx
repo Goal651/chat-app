@@ -430,6 +430,11 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
         if (!onlineUsers) return false
         return onlineUsers.includes(data)
     }
+
+    const showGroupInfo = () => {
+        setShowingGroupInfo(!showingGroupInfo)
+        localStorage.setItem('g_i', showingGroupInfo)
+    }
     if (!name) return null
     if (loading) return <div className="loading loading-spinner"></div>
 
@@ -445,10 +450,10 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                         </button>
                     )}
                     <div
-                        onClick={() => setShowingGroupInfo(true)}
+                        onClick={showGroupInfo}
                         className={`flex items-center w-full ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
                         <div className="avatar ">
-                            <div className="h-20 w-20 rounded-full ">
+                            <div className="h-14 w-14 rounded-full ">
                                 {group.imageData ? <img
                                     src={`data:image/jpeg;base64,${group.imageData}`}
                                     alt="Profile"
@@ -522,18 +527,18 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                                 <div className="mt-1 flex justify-between">
                                     <div className="text-sm font-semibold grow pr-4 flex">
                                         <svg
-                                            width="24"
-                                            height="24"
+                                            width="20"
+                                            height="20"
                                             viewBox="0 0 24 24"
-                                            fill="blue"
+                                            fill="light-gray"
                                             xmlns="http://www.w3.org/2000/svg"
                                         >
                                             <path
                                                 d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="gray"
+                                                fill="lightgray"
                                             />
                                         </svg>
-                                        <div className="text-gray-500 text-center mt-px"> {msg.seen.length}</div></div>
+                                        <div className="text-gray-300 text-center mt-px"> {msg.seen.length}</div></div>
                                     <div className="text-xs opacity-70 text-right">
                                         {msg.time}
                                     </div>
@@ -543,20 +548,21 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                             <div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
                                 <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded" />
                                 <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4">
+                                    <div className="text-sm font-semibold flex grow pr-4">
                                         <svg
-                                            width="24"
-                                            height="24"
+                                            width="20"
+                                            height="20"
                                             viewBox="0 0 24 24"
                                             fill="none"
                                             xmlns="http://www.w3.org/2000/svg"
                                         >
                                             <path
                                                 d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="#000"
+                                                fill="white"
                                             />
                                         </svg>
-                                        :{msg.seen.length}</div>
+                                        <div>{msg.seen.length}</div>
+                                    </div>
                                     <div className="text-xs opacity-70 text-right">
                                         {msg.time}
                                     </div>
@@ -569,20 +575,21 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                         {msg.type === 'text' ? (
                             <div className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"                                >
                                 <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> <svg
-                                        width="24"
-                                        height="24"
+                                <div className="mt-1 flex  justify-between">
+                                    <div className="text-sm flex opacity-75 font-semibold grow pr-4"> <svg
+                                        width="20"
+                                        height="20"
                                         viewBox="0 0 24 24"
                                         fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
                                     >
                                         <path
                                             d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                            fill="#000"
+                                            fill="white"
                                         />
                                     </svg>
-                                        {msg.seen.length}</div>
+                                        <div> {msg.seen.length}</div>
+                                    </div>
                                     <div className="text-xs opacity-70 text-right">
                                         {msg.time}
                                     </div>
@@ -595,40 +602,48 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                                     className="rounded max-w-80 max-h-96 justify-center "
                                 />
                                 <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4"> <svg
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                            fill="#000"
-                                        />
-                                    </svg>
-                                        {msg.seen.length}</div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>                            </div>) : (
-                            <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4">
+                                    <div className="text-sm font-semibold grow pr-4 flex">
                                         <svg
-                                            width="24"
-                                            height="24"
+                                            width="20"
+                                            height="20"
                                             viewBox="0 0 24 24"
                                             fill="none"
                                             xmlns="http://www.w3.org/2000/svg"
                                         >
                                             <path
                                                 d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="#000"
+                                                fill="white"
                                             />
                                         </svg>
-                                        {msg.seen.length}</div>
+                                        <div>
+                                            {msg.seen.length}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs opacity-70 text-right">
+                                        {msg.time}
+                                    </div>
+                                </div>
+                            </div>) : (
+                            <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
+                                <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
+                                <div className="mt-1 flex justify-between">
+                                    <div className="text-sm font-semibold grow pr-4 flex">
+                                        <svg
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                                                fill="white"
+                                            />
+                                        </svg>
+                                        <div>
+                                            {msg.seen.length}
+                                        </div>
+                                    </div>
                                     <div className="text-xs opacity-70 text-right">
                                         {msg.time}
                                     </div>
@@ -787,7 +802,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                     </div>
                 </div>
             )}
-            {showingGroupInfo && <GroupInfo theme={theme} dataFromGroupInfo={dataFromGroupInfo} groupInfo={group} />}
         </div>
     );
 }

@@ -113,7 +113,7 @@ const login = async (req, res) => {
         if (!user) return res.sendStatus(404);
         const validated = bcrypt.compareSync(req.body.password, user.password);
         if (!validated) return res.sendStatus(401);
-        const accessToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const accessToken = jwt.sign({ email: user.email, id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
         if (!accessToken) return res.sendStatus(500);
         res.status(200).json({ accessToken, email: user.email });
     } catch (err) {
@@ -302,27 +302,32 @@ const addMember = async (req, res) => {
     }
 };
 
-const fileUpload = async (req, res) => {
 
-    const { chunknumber, totalchunks, filename } = req.headers
-    const filePath = path.join(__dirname, '../uploads', filename)
-    if (!chunknumber || !totalchunks || !filename) return res.status(400).json({ message: 'Missing required headers.' })
-    const writeStream = fs.createWriteStream(filePath, { flags: 'a' })
-    req.pipe(writeStream);
-    req.on('end', () => {
-        writeStream.close();
-        if (parseInt(chunknumber) + 1 === parseInt(totalchunks)) {
-            console.log('File upload completed successfully!')
-            return res.status(200).json({ filename: filePath })
-        } else {
-            return res.status(200).json({ message: 'Chunk received.' });
+
+const fileUpload = async (req, res) => {
+    try {
+        const { chunknumber, totalchunks, filename, filetype } = await req.headers;
+        const body = await req.body
+        console.log(req)
+        const id = await req.id
+        if (!chunknumber || !totalchunks || !filename || !filetype) {
+            return res.status(400).json({ message: 'Missing required headers.' });
         }
-    })
-    req.on('error', (err) => {
-        console.error('Error receiving file chunk:', err);
-        return res.sendStatus(500)
-    });
-}
+        const decodedFileName = decodeURIComponent(filename);
+        const fileNameWithTimestamp = `${id}${decodedFileName}`;
+        const filePath = path.join(__dirname, '../uploads/messages', fileNameWithTimestamp);
+        if (fs.existsSync(filePath)) return
+        const result = await fs.promises.appendFile(filePath, req.body.file);
+        if (result) res.status(200).json({ filename: filePath })
+    } catch (err) {
+        console.error('Unexpected error:', err);
+        return res.status(500).json({ message: 'Unexpected server error.' });
+    }
+};
+
+
+
+
 
 
 
