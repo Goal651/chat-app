@@ -35,7 +35,8 @@ export default function Dashboard({ isMobile }) {
     const accessToken = Cookies.get("accessToken");
     const socket = useSocket("http://localhost:3001");
     const theme = localStorage.getItem("theme");
-    const showGroupInfo = localStorage.getItem('g_i')
+    const [showGroupInfo, setShowingGroupInfo] = useState(false)
+    const selectedFriend = localStorage.getItem('selectedFriend')
 
     useEffect(() => {
         if (!accessToken) navigate("/login");
@@ -94,6 +95,30 @@ export default function Dashboard({ isMobile }) {
     useEffect(() => {
         if (!socket) return;
         const handleOnlineUsers = data => setOnlineUsers(data)
+        const handleIncomingMessage = (message) => {
+            const { newMessage } = message
+            console.log(newMessage.sender !==selectedFriend)
+            if (!user && newMessage.sender !== selectedFriend) {
+                socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender })
+            }
+            const newNotifications = {
+                from: newMessage.sender,
+                to: newMessage.receiver,
+                message: newMessage.message,
+                timestamp: newMessage.timestamp,
+                type: 'dm'
+            };
+            setNotifications(newNotifications);
+            setFriends((prevFriends) =>
+                sortByLatestMessage(
+                    prevFriends.map((friend) =>
+                        [newMessage.sender, newMessage.receiver].includes(friend.email)
+                            ? { ...friend, latestMessage: newMessage }
+                            : friend
+                    )
+                )
+            );
+        };    
         socket.emit("fetch_online_users");
         socket.on("online_users", handleOnlineUsers);
         socket.on("marked_as_read", updateAllData);
@@ -152,27 +177,7 @@ export default function Dashboard({ isMobile }) {
         }
     };
 
-    const handleIncomingMessage = (message) => {
-        const { newMessage } = message
-        console.log(newMessage)
-        const newNotifications = {
-            from: newMessage.sender,
-            to: newMessage.receiver,
-            message: newMessage.message,
-            timestamp: newMessage.timestamp,
-            type: 'dm'
-        };
-        setNotifications(newNotifications);
-        setFriends((prevFriends) =>
-            sortByLatestMessage(
-                prevFriends.map((friend) =>
-                    [newMessage.sender, newMessage.receiver].includes(friend.email)
-                        ? { ...friend, latestMessage: newMessage }
-                        : friend
-                )
-            )
-        );
-    };
+    
     const handleMessageSent = (message) => {
         const { newMessage } = message
         setFriends((prevFriends) =>
@@ -206,6 +211,9 @@ export default function Dashboard({ isMobile }) {
         );
 
     const handleDataFromChild = () => setReloadProfile(!reloadProfile);
+    const handleDataFromGroupContent = (data) => {
+        setShowingGroupInfo(data)
+    }
 
     const renderContent = () => {
         if (loading) {
@@ -258,6 +266,7 @@ export default function Dashboard({ isMobile }) {
                     isMobile={isMobile}
                     theme={theme}
                     userInfo={userInfo}
+                    dataFromGroupContent={handleDataFromGroupContent}
                 />
             ),
             "create-group": <CreateGroup isMobile={isMobile} theme={theme} />,
@@ -294,6 +303,8 @@ export default function Dashboard({ isMobile }) {
                     theme={theme}
                     userInfo={userInfo}
                     onlineUsers={onlineUsers}
+                    friends={friends}
+                    dataFromGroupContent={handleDataFromGroupContent}
                 />
             );
         if (user)
@@ -330,7 +341,7 @@ export default function Dashboard({ isMobile }) {
                 </div>
                 <div
                     id="mobile"
-                    className={`${isMobile ? "hidden" : `${showGroupInfo === 'true' ? 'w-1/6 h-screen py-4 mr-4 rounded-3xl' : 'hidden'} `}`}
+                    className={`${isMobile ? "hidden" : `${showGroupInfo ? 'w-1/6 h-screen py-4 mr-4 rounded-3xl' : 'hidden'} `}`}
                 >
                     <Details
                         onlineUsers={onlineUsers}

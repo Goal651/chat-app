@@ -132,6 +132,15 @@ const handlerChat = async (io) => {
             }
         });
 
+        socket.on('message_not_seen', async ({ message, sender }) => {
+            console.log(message, sender)
+            const receiverUser = await User.findOne({ email: socket.user });
+            if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
+            const receiverPublicKey = receiverUser.publicKey;
+            const encryptedMessage = encryptMessage(receiverPublicKey, message);
+            await User.updateOne({ email: socket.user }, { $push: { unreads: { message: encryptedMessage, sender: sender } } });
+        })
+
         socket.on('send_file_message', async (data) => {
             try {
                 const { message } = data;
@@ -335,7 +344,7 @@ const handlerChat = async (io) => {
 
 
         socket.on('disconnect', async () => {
-            const result = await User.updateOne({ email: socket.user }, { lastActiveTime:  Date.now() });
+            const result = await User.updateOne({ email: socket.user }, { lastActiveTime: Date.now() });
             userSockets.delete(socket.user);
             io.emit('online_users', Array.from(userSockets.keys()));
             for (const groupName of Object.keys(rooms)) {

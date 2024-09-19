@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { User, Group, GMessage, Message } = require('../models/models');
 const uploadsDir = path.join(__dirname, '../');
 const crypto = require('crypto');
-
+const md5 = require('md5')
 const generateKeyPair = async () => {
     return new Promise((resolve, reject) => {
         crypto.generateKeyPair('rsa', {
@@ -220,7 +220,7 @@ const getGroups = async (req, res) => {
             const details = await groupDetails(group.name)
             let imageData = null
             if (group.image) imageData = await readImage(group.image);
-            return { ...group.toObject(), imageData, latestMessage,details };
+            return { ...group.toObject(), imageData, latestMessage, details };
         }));
         res.status(200).json({ groups: groupsWithImages });
     } catch (err) { res.sendStatus(500) }
@@ -305,39 +305,45 @@ const addMember = async (req, res) => {
     }
 };
 
-
-
 const fileUpload = async (req, res) => {
-    try {
-        const { chunknumber, totalchunks, filename, filetype } = await req.headers;
-        const body = await req.body
-        console.log(req)
-        const id = await req.id
-        if (!chunknumber || !totalchunks || !filename || !filetype) {
-            return res.status(400).json({ message: 'Missing required headers.' });
-        }
-        const decodedFileName = decodeURIComponent(filename);
-        const fileNameWithTimestamp = `${id}${decodedFileName}`;
-        const filePath = path.join(__dirname, '../uploads/messages', fileNameWithTimestamp);
-        if (fs.existsSync(filePath)) return
-        const result = await fs.promises.appendFile(filePath, req.body.file);
-        if (result) res.status(200).json({ filename: filePath })
-    } catch (err) {
-        console.error('Unexpected error:', err);
-        return res.status(500).json({ message: 'Unexpected server error.' });
+    const { name, totalchunks, currentchunk } = req.headers;
+    const { file } = req.body;
+
+    const firstChunk = parseInt(currentchunk) === 0;
+    const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
+    const ext = name.split('.').pop();
+    const data = file.split(',')[1]; // Extract base64 data from the file
+    const buffer = Buffer.from(data, 'base64'); // Convert base64 to buffer
+
+    const tmpFilename = 'tmp_' + md5(name) + '.' + ext;
+    const tmpFilepath = path.join(__dirname, '../uploads/messages/', tmpFilename);
+
+    if (firstChunk && fs.existsSync(tmpFilepath)) {
+        fs.unlinkSync(tmpFilepath);
     }
+    fs.appendFileSync(tmpFilepath, buffer);
+
+    if (lastChunk) {
+        const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id) + name + '.' + ext; // Generate a unique file name
+        const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
+
+        fs.renameSync(tmpFilepath, finalFilepath);
+
+        return res.status(200).json({ finalFileName:finalFilepath }); // Respond with the final file name
+    }
+    res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
 };
+
 
 const groupDetails = async (group) => {
     const gms = await GMessage.find({ group: group })
     let images = 0
     let videos = 0
     let audios = 0
-    const result = await Promise.all(gms.map(async (gm) => {
+    await Promise.all(gms.map(async (gm) => {
         if (gm.type.startsWith('image')) images += 1
         else if (gm.type.startsWith('video')) videos += 1
         else if (gm.type.startsWith('audio')) audios += 1
-
     }))
     return { images, videos, audios }
 }

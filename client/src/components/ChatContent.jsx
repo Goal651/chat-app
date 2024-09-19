@@ -123,8 +123,8 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                                     </div>)}
                                                 </div>
                                                 {unreadCount > 0 && (
-                                                    <span className="badge ml-auto bg-red-500 text-white rounded-full px-2 py-1">
-                                                        {unreadCount}
+                                                    <span className="badge h-7 w-7 ml-auto bg-orange-500 text-white text-sm font-semibold rounded-full border-0">
+                                                        {unreadCount > 9 ? `9+` : unreadCount}
                                                     </span>
                                                 )}
                                             </span>
@@ -139,7 +139,7 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                     )}</div>
             </div >
             <div
-                className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : 'pr-10  w-2/3'}`}
+                className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : '  w-2/3'}`}
                 style={{ height: '95vh' }}>
                 <ChatArea
                     socket={socket}

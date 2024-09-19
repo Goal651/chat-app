@@ -6,6 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import { ClipLoader } from 'react-spinners';
+import axios from 'axios'
 
 function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -25,7 +26,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     const [message, setMessage] = useState("");
     const [lastMessage, setLastMessage] = useState("");
     const [fileMessage, setFileMessage] = useState(null);
-    const [fileName, setFileName] = useState('')
+    const [fileName, setFileName] = useState(null)
     const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
@@ -48,7 +49,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const messagesEndRef = useRef(null);
-    const CHUNK_SIZE = 64 * 1024;
+    const chunkSize = 64 * 1024;
 
     const ICE_SERVERS = {
         iceServers: [
@@ -136,11 +137,11 @@ export default function DMArea({ socket, isMobile, theme }) {
     useEffect(() => {
         if (!socket) return;
         const handleReceiveMessage = async ({ newMessage }) => {
-            setHistory((prevHistory) => [...prevHistory, newMessage]);
-            setScrollToBottom(true);
             if (newMessage.sender === friend) {
+                setHistory((prevHistory) => [...prevHistory, newMessage]);
                 socket.emit('message_seen', { receiver: friend, messageId: newMessage._id });
             }
+            setScrollToBottom(true);
         };
         const handleTyping = ({ sender }) => {
             if (sender === friend) setBeingTyped(true);
@@ -273,75 +274,72 @@ export default function DMArea({ socket, isMobile, theme }) {
         setScrollToBottom(true);
     }, [message, socket, friend,]);
 
-    const sendFileInChunks = async (file) => {
-        const CHUNK_SIZE = 24 * 1024;
-        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-        let currentChunk = 0
-
-        const uploadChunk = async () => {
-            try {
-                const start = currentChunk * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE, file.size);
-                const chunk = file.slice(start, end);
-                const formData = new FormData();
-                formData.append('file', chunk);
-                const headers = {
-                    'accessToken': accessToken,
-                    'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
-                    'chunknumber': currentChunk, 
-                    'totalchunks': totalChunks,  
-                    'filename': encodeURIComponent(file.name),  
-                    'filetype': file.type,        
-                };
-
-                const response = await fetch('http://localhost:3001/uploadFile', {
-                    method: 'POST',
-                    headers: headers,
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to upload chunk ${currentChunk}`);
-                }
-                const data = await response.json();
-                currentChunk++;
-                if (data.filename) setFileName(data.filename);
-                if (currentChunk < totalChunks) {
-                    await uploadChunk(); 
+    const readAndUploadCurrentChunk = async (currentChunk = 0) => {
+        const chunkSize = 50 * 1024; // 50 KB per chunk
+        const totalChunks = Math.ceil(fileMessage.size / chunkSize);
+        const reader = new FileReader();
+        if (!fileMessage) return
+        const from = currentChunk * chunkSize;
+        const to = Math.min(from + chunkSize, fileMessage.size);
+        const blob = fileMessage.slice(from, to);
+        reader.onload = async (e) => {
+            const data = e.target.result;
+            await axios.post('http://localhost:3001/uploadFile', { file: data }, {
+                headers: {
+                    'accesstoken': accessToken,
+                    'name': fileMessage.name,
+                    'size': fileMessage.size,
+                    'currentChunk': currentChunk,
+                    'totalchunks': totalChunks
+                },
+            }).then(response => {
+                const isLastChunk = currentChunk === totalChunks - 1;
+                const done = currentChunk === totalChunks
+                if (isLastChunk) {
+                    const finalFileName = response.data.finalFileName
+                    setFileName(finalFileName)
                 } else {
-                    setIsSendingFile(false); // Reset sending status
-                    console.log('File upload complete');
+                    readAndUploadCurrentChunk(currentChunk + 1);
                 }
-            } catch (err) {
-                console.error('Error uploading chunk:', err);
-                setIsSendingFile(false); // Reset sending status on error
-            }
+            }).catch(error => {
+                console.error('Error uploading chunk:', error);
+            });
         };
-        await uploadChunk();
+        reader.readAsDataURL(blob);
+        console.log(fileName, 'in returning')
     };
+
+    useEffect(() => {
+        const sendDetailsToSocket = () => {
+            if (fileName) {
+                const newFileMessage = {
+                    receiver: friend,
+                    fileType: fileMessage.type,
+                    fileSize: fileMessage.size,
+                    message: fileName,
+                    preview: filePreview,
+                    time: new Date().toISOString().slice(11, 16),
+                };
+                socket.emit('send_file_message', { message: newFileMessage });
+                setFileMessage(null);
+                setFilePreview(null);
+                setIsSendingFile(false)
+            }
+        }
+        sendDetailsToSocket()
+    }, [fileName])
 
 
     const sendFileMessage = useCallback(async (e) => {
         e.preventDefault();
         if (!socket || !fileMessage) return;
+        await readAndUploadCurrentChunk(0)
         setIsSendingFile(true);
-        await sendFileInChunks(fileMessage);
-        if (fileName) {
-            const newFileMessage = {
-                receiver: friend,
-                fileType: fileMessage.type,
-                fileSize: fileMessage.size,
-                message: fileName,
-                preview: filePreview,
-                time: new Date().toISOString().slice(11, 16),
-            };
-            socket.emit('send_file_message', { message: newFileMessage });
-            setFileMessage(null);
-            setFilePreview(null);
-        }
         setScrollToBottom(true);
         socket.emit('not_typing', { receiver: friend });
     }, [fileMessage, socket, friend, user, fileName]);
+
+
 
 
     const handleChange = useCallback((e) => {
@@ -381,6 +379,12 @@ export default function DMArea({ socket, isMobile, theme }) {
         else {
             setMessage('')
         }
+    }
+
+    const handleAuxClick = (e) => {
+        e.preventDefault()
+        console.log(e)
+        alert('hello')
     }
 
 
@@ -552,87 +556,99 @@ export default function DMArea({ socket, isMobile, theme }) {
                 className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
                 {loading ? (
                     <div>Loading messages...</div>
-                ) : history && history.length > 0 ? (history.map((msg) => (
-                    msg.sender === friend ? (
-                        <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
-                            <div className="chat-image avatar">
-                                <div
-                                    className="w-10 rounded-full bg-gray-500 ">
-                                    {info.imageData ? <img
-                                        src={`data:image/jpeg;base64,${info.imageData}`}
-                                        alt="Profile"
-                                        className=""
-                                    /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
-                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                    </svg>}
+                ) : history && history.length > 0 ? (history.map((msg, id) => (
+                msg.sender === friend ? (
+                <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
+                    <div className="chat-image avatar">
+                        <div
+                            className="w-10 rounded-full bg-gray-500 ">
+                            {info.imageData ? <img
+                                src={`data:image/jpeg;base64,${info.imageData}`}
+                                alt="Profile"
+                                className=""
+                            /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>}
+                        </div>
+                    </div>
+                    {msg.type === 'text' ? (
+                        <div
+                            onAuxClick={handleAuxClick}
+                            className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
+                            <div className="max-w-96 h-auto  break-words">{msg.message}</div>
+                            <div className="flex float-right">
+                                <div className="text-xs opacity-70 mt-1 text-right">
+                                    {msg.time}
                                 </div>
                             </div>
-                            {msg.type === 'text' ? (
-                                <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-                                    <div className="max-w-96 h-auto  break-words">{msg.message}</div>
-                                    <div className="flex float-right">
-                                        <div className="text-xs opacity-70 mt-1 text-right">
-                                            {msg.time}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (msg.type.startsWith('image') ? (
-                                <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                    <img
-                                        src={msg.file}
-                                        alt="attachment"
-                                        className="rounded max-w-80 max-h-96 justify-center "
-                                    />
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                                </div>) : (
-                                <div className="bg-gray-500 text-white w-96 p-4 chat-bubble">
-                                    <video
-                                        src={msg.file}
-                                        alt="attachment"
-                                        className="rounded max-w-80 max-h-96 justify-center"
-                                        autoPlay={false}
-                                        controls={true}
-                                    />
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                                </div>
-                            )
-                            )}
                         </div>
-                    ) : (
-                        <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
-                            {msg.type === 'text' ? (
-                                <div className="max-w-96 min-w-24  h-auto bg-blue-500 text-white chat-bubble">
-                                    <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                                    <div className="text-xs opacity-70 mt-1 text-right">
-                                        {msg.time}
-                                        {msg.seen && (<div className="text-green-400 text-end">✓✓</div>)}
-                                    </div>
-                                </div>
-                            ) : (msg.type.startsWith('image') ? (
-                                <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                    <img
-                                        src={msg.file}
-                                        alt="attachment"
-                                        className="rounded max-w-80 max-h-96 justify-center "
-                                    />
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                                </div>) : (
-                                <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                    <video
-                                        src={msg.file}
-                                        alt="attachment"
-                                        className="rounded max-w-80 max-h-96 justify-center"
-                                        autoPlay={false}
-                                        controls={true}
-                                    />
-                                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                                </div>
-                            ))}
+                    ) : (msg.type.startsWith('image') ? (
+                        <div
+                            onAuxClick={handleAuxClick}
+                            className="bg-blue-500 text-white w-96 p-4 chat-bubble">
+                            <img
+                                src={msg.file}
+                                alt="attachment"
+                                className="rounded max-w-80 max-h-96 justify-center "
+                            />
+                            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                        </div>) : (
+                        <div
+                            onAuxClick={handleAuxClick}
+                            className="bg-gray-500 text-white w-96 p-4 chat-bubble">
+                            <video
+                                src={msg.file}
+                                alt="attachment"
+                                className="rounded max-w-80 max-h-96 justify-center"
+                                autoPlay={false}
+                                controls={true}
+                            />
+                            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
                         </div>
                     )
+                    )}
+                </div>
+                ) : (
+                <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
+                    {msg.type === 'text' ? (
+                        <div
+                            onAuxClick={handleAuxClick}
+                            className="max-w-96 min-w-24  h-auto bg-blue-500 text-white chat-bubble">
+                            <div className="max-w-80  h-auto break-words">{msg.message}</div>
+                            <div className="text-xs opacity-70 mt-1 text-right">
+                                {msg.time}
+                                {msg.seen && (<div className="text-green-400 text-end">✓✓</div>)}
+                            </div>
+                        </div>
+                    ) : (msg.type.startsWith('image') ? (
+                        <div
+                            onAuxClick={handleAuxClick}
+                            className="text-white w-96 p-4 ">
+                            <img
+                                src={msg.file}
+                                alt="attachment"
+                                className="rounded-lg max-w-full h-auto justify-center "
+                            />
+                            <div className="relative bottom-5 right-4 text-right text-xs ">{msg.time}</div>
+                        </div>) : (
+                        <div
+                            onAuxClick={handleAuxClick}
+                            className=" text-white w-96 p-4 rounded-lg bg-black">
+                            <video
+                                src={msg.file}
+                                alt="attachment"
+                                className="rounded-lg w-full h-72 justify-center"
+                                autoPlay={false}
+                                controls={true}
+                            />
+                            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                        </div>
+                    ))}
+                </div>
+                )
                 ))
                 ) : (
-                    <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
+                <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
                 )}
                 {beingTyped && (
                     <div className="chat chat-start mb-2">

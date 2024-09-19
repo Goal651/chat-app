@@ -13,6 +13,7 @@ const { handlerChat } = require('./controllers/chats');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(bodyParser.raw())
 app.use(cookieParser());
 app.use(cors());
 app.use('/', routes);

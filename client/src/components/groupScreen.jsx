@@ -6,6 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import GroupInfo from "./GroupInfo";
+import UserInfo from "./UserInfo";
 
 
 function arrayBufferToBase64(buffer) {
@@ -16,7 +17,7 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
-export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
+export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFromScreen, friends }) {
     const { name } = useParams()
     const navigate = useNavigate()
     const [message, setMessage] = useState("")
@@ -106,7 +107,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
             setHistory((prevMessages) =>
                 prevMessages.map((message) => {
                     if (seenMessages.includes(message._id)) {
-                        // Update the seen array to include the user who saw the message
                         return {
                             ...message,
                             seen: [...message.seen, { member: user, timestamp: new Date() }],
@@ -234,6 +234,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
         localStorage.setItem('selectedFriend', `${friend}`)
     }, [navigate, socket])
 
+    const sendDataToParent = () => {
+        dataFromScreen(showingGroupInfo)
+    }
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
@@ -410,6 +413,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
         }
         return image
     }
+
     const getMemberName = (data) => {
         let name;
         if (!data) return ""
@@ -434,6 +438,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
     const showGroupInfo = () => {
         setShowingGroupInfo(!showingGroupInfo)
         localStorage.setItem('g_i', showingGroupInfo)
+        sendDataToParent()
     }
     if (!name) return null
     if (loading) return <div className="loading loading-spinner"></div>
@@ -522,7 +527,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                         </div>
                         {msg.type === 'text' ? (
                             <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-                                <div className="font-semibold text-blue-800 mb-1">{getMemberName(msg.sender)}</div>
+                                <div className="font-semibold text-blue-800 mb-1 link-hover hover:cursor-pointer">{getMemberName(msg.sender)}</div>
                                 <div className="max-w-96 h-auto  break-words">{msg.message}</div>
                                 <div className="mt-1 flex justify-between">
                                     <div className="text-sm font-semibold grow pr-4 flex">
@@ -802,6 +807,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers }) {
                     </div>
                 </div>
             )}
+            {name && (<div>
+                <UserInfo friends={friends}/>
+            </div>)}
         </div>
     );
 }

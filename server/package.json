@@ -21,6 +21,7 @@
     "http": "^0.0.1-security",
     "joi": "^17.13.1",
     "jsonwebtoken": "^9.0.2",
+    "md5": "^2.3.0",
     "mongod": "^2.0.0",
     "mongoose": "^8.4.0",
     "multer": "^1.4.4",

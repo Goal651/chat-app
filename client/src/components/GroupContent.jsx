@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import GroupArea from "./GroupScreen";
 
-export default function GroupContent  ({ groups, socket, friends, isMobile, theme, userInfo, onlineUsers })  {
+export default function GroupContent({ groups, socket, friends, isMobile, theme, userInfo, onlineUsers, dataFromGroupContent }) {
     const navigate = useNavigate();
     const selectedGroup = localStorage.getItem('selectedGroup');
     const [group, setGroup] = useState(null);
@@ -100,6 +100,10 @@ export default function GroupContent  ({ groups, socket, friends, isMobile, them
         ));
     }, [chatNow, selectedGroup, filteredGroups, currentUser, theme]);
 
+    const handleDataFromScreen = (data) => {
+        dataFromGroupContent(data)
+    }
+
     const navigateBackward = useCallback(() => {
         localStorage.removeItem('selectedGroup');
         navigate('/');
@@ -139,6 +143,7 @@ export default function GroupContent  ({ groups, socket, friends, isMobile, them
                     theme={theme}
                     userInfo={userInfo}
                     onlineUsers={onlineUsers}
+                    dataFromScreen={handleDataFromScreen}
                 />
             </div>
         </div>
