@@ -145,7 +145,6 @@ const handlerChat = async (io) => {
             try {
                 const { message } = data;
                 console.log(message)
-                const preview = message.preview
                 const newMessage = new Message({
                     sender: socket.user,
                     message: message.message,
@@ -157,9 +156,9 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(message.receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, file: preview } });
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, file: message.preview } });
                 else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: message.message, sender: socket.user } } });
-                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, file: preview } });
+                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, file: message.preview } });
             } catch (err) {
                 console.error('Error sending file message:', err);
             }

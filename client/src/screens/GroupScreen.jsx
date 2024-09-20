@@ -5,8 +5,8 @@ import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
-import GroupInfo from "./GroupInfo";
-import UserInfo from "./UserInfo";
+import UserInfo from "../components/UserInfo";
+import Messages from "../components/Message";
 
 
 function arrayBufferToBase64(buffer) {
@@ -78,7 +78,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         }
     }, []);
 
-    const dataFromGroupInfo = (data) => { setShowingGroupInfo(data) }
 
     useEffect(() => {
         handleScrollToBottom();
@@ -229,10 +228,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         fetchMessages();
     }, [name, accessToken, navigate]);
 
-    const chatNow = useCallback((friend) => {
-        navigate(`/chat/${friend}`)
-        localStorage.setItem('selectedFriend', `${friend}`)
-    }, [navigate, socket])
 
     const sendDataToParent = () => {
         dataFromScreen(showingGroupInfo)
@@ -404,24 +399,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         setCallType(null);
     };
 
-    const getMemberPhoto = (data) => {
-        let image;
-        if (!data) return null
-        if (group && group.members) {
-            const member = group.members.filter(member => member.email === data)[0]
-            image = member.imageData
-        }
-        return image
-    }
-
-    const getMemberName = (data) => {
-        let name;
-        if (!data) return ""
-        if (group && group.members) {
-            const member = group.members.filter(member => member.email === data)[0]
-            name = member.username
-        } return name
-    }
 
     const getOnlineMembers = () => {
         let i = 0
@@ -429,10 +406,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             if (onlineUsers.includes(member)) i += 1
         })
         return i
-    }
-    const isOnline = (data) => {
-        if (!onlineUsers) return false
-        return onlineUsers.includes(data)
     }
 
     const showGroupInfo = () => {
@@ -507,162 +480,18 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             </div>
 
             {/* Messages */}
-            <div onClick={() => { setShowEmojiPicker(false) }} className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-200'}`}>
+            <div
+                onClick={() => { setShowEmojiPicker(false) }}
+                className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-200'}`}
+            >
                 {loading ? (
                     <div>Loading messages...</div>
-                ) : history && history.length > 0 ? (history.map((msg) => (msg.sender !== user ? (
-                    <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
-                        <div className={`chat-image avatar  ${isOnline(msg.sender) ? 'online' : 'offline'}`}>
-                            <div
-                                onClick={() => chatNow(msg.sender)}
-                                className="w-10 rounded-full bg-gray-500 ">
-                                {msg.sender ? <img
-                                    src={`data:image/jpeg;base64,${getMemberPhoto(msg.sender)}`}
-                                    alt="Profile"
-                                    className=""
-                                /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
-                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                </svg>}
-                            </div>
-                        </div>
-                        {msg.type === 'text' ? (
-                            <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-                                <div className="font-semibold text-blue-800 mb-1 link-hover hover:cursor-pointer">{getMemberName(msg.sender)}</div>
-                                <div className="max-w-96 h-auto  break-words">{msg.message}</div>
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4 flex">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="light-gray"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="lightgray"
-                                            />
-                                        </svg>
-                                        <div className="text-gray-300 text-center mt-px"> {msg.seen.length}</div></div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-                                <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded" />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold flex grow pr-4">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="white"
-                                            />
-                                        </svg>
-                                        <div>{msg.seen.length}</div>
-                                    </div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div key={msg._id} className={`chat  chat-end rounded-lg p-2  `} >
-                        {msg.type === 'text' ? (
-                            <div className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"                                >
-                                <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                                <div className="mt-1 flex  justify-between">
-                                    <div className="text-sm flex opacity-75 font-semibold grow pr-4"> <svg
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                            fill="white"
-                                        />
-                                    </svg>
-                                        <div> {msg.seen.length}</div>
-                                    </div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>                            </div>
-                        ) : (msg.type === 'image' ? (
-                            <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                <img
-                                    src={`data:image/jpeg;base64,${msg.image}`}
-                                    alt="attachment"
-                                    className="rounded max-w-80 max-h-96 justify-center "
-                                />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4 flex">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="white"
-                                            />
-                                        </svg>
-                                        <div>
-                                            {msg.seen.length}
-                                        </div>
-                                    </div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>
-                            </div>) : (
-                            <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                                <img src={`data:image/jpeg;base64,${msg.image}`} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
-                                <div className="mt-1 flex justify-between">
-                                    <div className="text-sm font-semibold grow pr-4 flex">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                                                fill="white"
-                                            />
-                                        </svg>
-                                        <div>
-                                            {msg.seen.length}
-                                        </div>
-                                    </div>
-                                    <div className="text-xs opacity-70 text-right">
-                                        {msg.time}
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                        )}
-                        <div></div>
-                    </div>
-                )
-                ))
-                ) : (
-                    <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-                )}
+                ) : <Messages
+                    history={history}
+                    group={group}
+                    onlineUsers={onlineUsers}
+                />}
+
                 {typing && typingMember.length > 0 && (
                     <div className="flex justify-start mb-2">
                         <div className="bg-white text-gray-800 rounded-lg p-2 max-w-xs">
@@ -808,7 +637,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 </div>
             )}
             {name && (<div>
-                <UserInfo friends={friends}/>
+                <UserInfo friends={friends} />
             </div>)}
         </div>
     );

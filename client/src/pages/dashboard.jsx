@@ -4,12 +4,12 @@ import Cookies from "js-cookie";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 const Settings = lazy(() => import("./Setting"))
-const Navigation = lazy(() => import("../components/Navigator"));
-const CreateGroup = lazy(() => import("../components/CreateGroup"));
+const Navigation = lazy(() => import("../screens/Navigator"));
+const CreateGroup = lazy(() => import("../screens/CreateGroup"));
 const Details = lazy(() => import("../components/Info"));
 const Profile = lazy(() => import("./Profile"));
-const GroupContent = lazy(() => import("../components/GroupContent"));
-const ChatContent = lazy(() => import("../components/ChatContent"));
+const GroupContent = lazy(() => import("../screens/GroupContent"));
+const ChatContent = lazy(() => import("../screens/ChatContent"));
 const NotificationBanner = lazy(() => import("../components/Notification"))
 
 const useSocket = (url) => {
@@ -73,11 +73,11 @@ export default function Dashboard({ isMobile }) {
                     }),
                 ]);
 
-                if (friendsResponse.status === 401 || groupsResponse.status === 401) {
+                if (friendsResponse.status === 401 && groupsResponse.status === 401) {
                     const newToken = await friendsResponse.json();
                     Cookies.set("accessToken", newToken.accessToken);
                     window.location.reload();
-                } else if (friendsResponse.status === 403 || groupsResponse.status === 403) {
+                } else if (friendsResponse.status === 403 && groupsResponse.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
                 }

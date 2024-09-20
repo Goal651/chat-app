@@ -1,12 +1,10 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
-import { ClipLoader } from 'react-spinners';
-import axios from 'axios'
+import Messages from '../components/Message'
+import Sender from "../components/Sender";
 
 function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -23,33 +21,23 @@ export default function DMArea({ socket, isMobile, theme }) {
     const { user } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [refresh, setRefresh] = useState(false);
-    const [message, setMessage] = useState("");
     const [lastMessage, setLastMessage] = useState("");
-    const [fileMessage, setFileMessage] = useState(null);
-    const [fileName, setFileName] = useState(null)
-    const [scrollToBottom, setScrollToBottom] = useState(false);
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
     const [info, setInfo] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [filePreview, setFilePreview] = useState(null);
-    const [focusedMessage, setFocusedMessage] = useState('');
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
     const [peerConnection, setPeerConnection] = useState(null);
     const [callType, setCallType] = useState(null);
     const [isCalling, setIsCalling] = useState(false);
-    const [isDragOver, setIsDragOver] = useState(false)
     const accessToken = Cookies.get('accessToken');
     const [onlineUsers, setOnlineUsers] = useState([]);
-    const [isSendingFile, setIsSendingFile] = useState(false);
     const [lastActiveTime, setLastActiveTime] = useState('');
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const messagesEndRef = useRef(null);
-    const chunkSize = 64 * 1024;
 
     const ICE_SERVERS = {
         iceServers: [
@@ -121,32 +109,24 @@ export default function DMArea({ socket, isMobile, theme }) {
                 console.error("Error fetching user details:", error);
             }
         };
-        setMessage("");
         fetchUserDetails();
     }, [friend, user, navigate, accessToken]);
 
-    const handleScrollToBottom = useCallback(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-            setScrollToBottom(false);
-        }
-    }, []);
 
-    useEffect(() => handleScrollToBottom(), [scrollToBottom, handleScrollToBottom]);
+
 
     useEffect(() => {
         if (!socket) return;
         const handleReceiveMessage = async ({ newMessage }) => {
+            console.log(newMessage)
             if (newMessage.sender === friend) {
                 setHistory((prevHistory) => [...prevHistory, newMessage]);
                 socket.emit('message_seen', { receiver: friend, messageId: newMessage._id });
             }
-            setScrollToBottom(true);
         };
         const handleTyping = ({ sender }) => {
             if (sender === friend) setBeingTyped(true);
             else setBeingTyped(false);
-            setScrollToBottom(true);
         };
 
         const handleNotTyping = ({ sender }) => {
@@ -156,7 +136,6 @@ export default function DMArea({ socket, isMobile, theme }) {
         const handleMessageSent = ({ newMessage }) => {
             console.log(newMessage)
             setHistory((prevHistory) => [...prevHistory, newMessage]);
-            setScrollToBottom(true);
         };
 
         const handleMessageSeen = ({ messageId }) => {
@@ -251,7 +230,6 @@ export default function DMArea({ socket, isMobile, theme }) {
                 });
                 const data = await response.json();
                 setHistory(data.messages);
-                setScrollToBottom(true);
                 setLoading(false);
                 if (response.status === 403) navigate('/login');
             } catch (error) {
@@ -261,165 +239,12 @@ export default function DMArea({ socket, isMobile, theme }) {
         fetchMessages();
     }, [friend, user, navigate, accessToken]);
 
-    const sendMessage = useCallback(async (e) => {
-        e.preventDefault();
-        if (!socket) return;
-
-        if (message.trim() !== "") {
-            socket.emit("send_message", { receiver: friend, message });
-            setMessage("");
-            setShowEmojiPicker(false);
-        }
-        socket.emit("not_typing", { receiver: friend });
-        setScrollToBottom(true);
-    }, [message, socket, friend,]);
-
-    const readAndUploadCurrentChunk = async (currentChunk = 0) => {
-        const chunkSize = 50 * 1024; // 50 KB per chunk
-        const totalChunks = Math.ceil(fileMessage.size / chunkSize);
-        const reader = new FileReader();
-        if (!fileMessage) return
-        const from = currentChunk * chunkSize;
-        const to = Math.min(from + chunkSize, fileMessage.size);
-        const blob = fileMessage.slice(from, to);
-        reader.onload = async (e) => {
-            const data = e.target.result;
-            await axios.post('http://localhost:3001/uploadFile', { file: data }, {
-                headers: {
-                    'accesstoken': accessToken,
-                    'name': fileMessage.name,
-                    'size': fileMessage.size,
-                    'currentChunk': currentChunk,
-                    'totalchunks': totalChunks
-                },
-            }).then(response => {
-                const isLastChunk = currentChunk === totalChunks - 1;
-                const done = currentChunk === totalChunks
-                if (isLastChunk) {
-                    const finalFileName = response.data.finalFileName
-                    setFileName(finalFileName)
-                } else {
-                    readAndUploadCurrentChunk(currentChunk + 1);
-                }
-            }).catch(error => {
-                console.error('Error uploading chunk:', error);
-            });
-        };
-        reader.readAsDataURL(blob);
-        console.log(fileName, 'in returning')
-    };
-
-    useEffect(() => {
-        const sendDetailsToSocket = () => {
-            if (fileName) {
-                const newFileMessage = {
-                    receiver: friend,
-                    fileType: fileMessage.type,
-                    fileSize: fileMessage.size,
-                    message: fileName,
-                    preview: filePreview,
-                    time: new Date().toISOString().slice(11, 16),
-                };
-                socket.emit('send_file_message', { message: newFileMessage });
-                setFileMessage(null);
-                setFilePreview(null);
-                setIsSendingFile(false)
-            }
-        }
-        sendDetailsToSocket()
-    }, [fileName])
-
-
-    const sendFileMessage = useCallback(async (e) => {
-        e.preventDefault();
-        if (!socket || !fileMessage) return;
-        await readAndUploadCurrentChunk(0)
-        setIsSendingFile(true);
-        setScrollToBottom(true);
-        socket.emit('not_typing', { receiver: friend });
-    }, [fileMessage, socket, friend, user, fileName]);
-
-
-
-
-    const handleChange = useCallback((e) => {
-        const { name, value, files } = e.target;
-        if (name === 'media') {
-            const file = files[0];
-            setFilePreview(URL.createObjectURL(file));
-            setFileMessage(files[0]);
-            socket.emit('typing', { receiver: friend })
-        } else {
-            setMessage(value);
-            if (value.trim() !== "") socket.emit("typing", { receiver: friend });
-            if (value.trim() === "") socket.emit('not_typing', { receiver: friend })
-        }
-        setScrollToBottom(true);
-    }, [socket, friend]);
-
-    const handlePaste = (e) => {
-        const file = e.clipboardData.files[0];
-        setFilePreview(URL.createObjectURL(file));
-        setFileMessage(file);
-    };
-    const handleDragover = (e) => {
-        setIsDragOver(true)
-
-    }
-
-    const handleDrop = (e) => {
-        e.preventDefault()
-        setIsDragOver(false)
-        const file = e.dataTransfer.files[0];
-
-        if (file) {
-            setFilePreview(URL.createObjectURL(file));
-            setFileMessage(file);
-        }
-        else {
-            setMessage('')
-        }
-    }
-
-    const handleAuxClick = (e) => {
-        e.preventDefault()
-        console.log(e)
-        alert('hello')
-    }
-
-
-    const addEmoji = (emoji) => {
-        setMessage((prevMessage) => prevMessage + emoji.native);
-    };
-
-    const toggleEmojiPicker = () => {
-        setShowEmojiPicker(!showEmojiPicker);
-    };
-
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend');
         navigate('/chat');
     };
 
-    const handleMouseEnter = (data) => setFocusedMessage(data);
-    const handleMouseLeave = () => setFocusedMessage('');
-    const handleDeleteMessage = async (data) => {
-        if (!data) return;
-        try {
-            const response = await fetch(`http://localhost:3001/deleteMessage/${data}`, {
-                headers: { 'accessToken': `${accessToken}` },
-                method: 'DELETE',
-            });
-            if (response.ok) setRefresh(true);
-        } catch (err) {
-            console.error(err);
-        }
-    };
 
-    const handleCancel = () => {
-        setFileMessage(null);
-        setFilePreview(null);
-    };
 
     // WebRTC Functions
     const createPeerConnection = (peerId) => {
@@ -492,12 +317,11 @@ export default function DMArea({ socket, isMobile, theme }) {
         setCallType(null);
     };
 
-
     if (!user) return null
     if (loading) return <div className="loading loading-spinner"></div>
     return (
         <div className="flex flex-col h-full" >
-            <div onClick={() => { setShowEmojiPicker(false) }}
+            <div
                 className={`${theme === 'dark' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
                     {isMobile && (
@@ -506,7 +330,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                         </button>)}
                     <div className={`flex items-center ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
                         <div className="avatar">
-                            <div className="h-16 w-16 rounded-full ">
+                            <div className="h-14 w-14 rounded-lg ">
                                 {info.imageData ? <img
                                     src={`data:image/jpeg;base64,${info.imageData}`}
                                     alt="Profile"
@@ -532,7 +356,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                 <div className="flex space-x-4">
                     <button
                         onClick={() => startCall('audio')}
-                        className={`p-2 bg-green-500 rounded-full hover:bg-green-600 focus:outline-none`}
+                        className={`p-2 bg-green-500 rounded-lg hover:bg-green-600 focus:outline-none`}
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="text-white"                        >
@@ -541,7 +365,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                     </button>
                     <button
                         onClick={() => startCall('video')}
-                        className="p-2 bg-blue-500 rounded-full hover:bg-blue-600 focus:outline-none"
+                        className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="text-white"                        >
@@ -552,161 +376,18 @@ export default function DMArea({ socket, isMobile, theme }) {
             </div>
 
             <div
-                onClick={() => { setShowEmojiPicker(false) }}
-                className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-100 shadow-md'}`}>
+                className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-whited'}`}>
                 {loading ? (
-                    <div>Loading messages...</div>
-                ) : history && history.length > 0 ? (history.map((msg, id) => (
-                msg.sender === friend ? (
-                <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
-                    <div className="chat-image avatar">
-                        <div
-                            className="w-10 rounded-full bg-gray-500 ">
-                            {info.imageData ? <img
-                                src={`data:image/jpeg;base64,${info.imageData}`}
-                                alt="Profile"
-                                className=""
-                            /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
-                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                            </svg>}
-                        </div>
-                    </div>
-                    {msg.type === 'text' ? (
-                        <div
-                            onAuxClick={handleAuxClick}
-                            className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-                            <div className="max-w-96 h-auto  break-words">{msg.message}</div>
-                            <div className="flex float-right">
-                                <div className="text-xs opacity-70 mt-1 text-right">
-                                    {msg.time}
-                                </div>
-                            </div>
-                        </div>
-                    ) : (msg.type.startsWith('image') ? (
-                        <div
-                            onAuxClick={handleAuxClick}
-                            className="bg-blue-500 text-white w-96 p-4 chat-bubble">
-                            <img
-                                src={msg.file}
-                                alt="attachment"
-                                className="rounded max-w-80 max-h-96 justify-center "
-                            />
-                            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                        </div>) : (
-                        <div
-                            onAuxClick={handleAuxClick}
-                            className="bg-gray-500 text-white w-96 p-4 chat-bubble">
-                            <video
-                                src={msg.file}
-                                alt="attachment"
-                                className="rounded max-w-80 max-h-96 justify-center"
-                                autoPlay={false}
-                                controls={true}
-                            />
-                            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                        </div>
-                    )
-                    )}
-                </div>
-                ) : (
-                <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
-                    {msg.type === 'text' ? (
-                        <div
-                            onAuxClick={handleAuxClick}
-                            className="max-w-96 min-w-24  h-auto bg-blue-500 text-white chat-bubble">
-                            <div className="max-w-80  h-auto break-words">{msg.message}</div>
-                            <div className="text-xs opacity-70 mt-1 text-right">
-                                {msg.time}
-                                {msg.seen && (<div className="text-green-400 text-end">✓✓</div>)}
-                            </div>
-                        </div>
-                    ) : (msg.type.startsWith('image') ? (
-                        <div
-                            onAuxClick={handleAuxClick}
-                            className="text-white w-96 p-4 ">
-                            <img
-                                src={msg.file}
-                                alt="attachment"
-                                className="rounded-lg max-w-full h-auto justify-center "
-                            />
-                            <div className="relative bottom-5 right-4 text-right text-xs ">{msg.time}</div>
-                        </div>) : (
-                        <div
-                            onAuxClick={handleAuxClick}
-                            className=" text-white w-96 p-4 rounded-lg bg-black">
-                            <video
-                                src={msg.file}
-                                alt="attachment"
-                                className="rounded-lg w-full h-72 justify-center"
-                                autoPlay={false}
-                                controls={true}
-                            />
-                            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
-                        </div>
-                    ))}
-                </div>
-                )
-                ))
-                ) : (
-                <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-                )}
-                {beingTyped && (
-                    <div className="chat chat-start mb-2">
-                        <div className="chat-image avatar">
-                            <div
-                                className="w-10 rounded-full bg-gray-500 ">
-                                {info.imageData ? <img
-                                    src={`data:image/jpeg;base64,${info.imageData}`}
-                                    alt="Profile"
-                                    className=""
-                                /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 ">
-                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                </svg>}
-                            </div>
-                        </div>
-                        <div className="chat-bubble bg-white h-14 min-w-18">
-                            <span className="loading loading-dots bg-slate-500 h-full w-full"></span>
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef}></div>
+                    <div className=""><span className="loading loading-spinner"></span></div>
+                ) : <Messages
+                    messages={history}
+                    info={info}
+                />}
+
             </div>
-            <div className={`p-4  ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
-                <form onSubmit={sendMessage} className="flex items-center">
-                    <button
-                        type="button"
-                        onClick={toggleEmojiPicker}
-                        className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                    >😊
-                    </button>
-                    {showEmojiPicker && (
-                        <div className="absolute bottom-20">
-                            <Picker data={data} onEmojiSelect={addEmoji} theme={theme} />
-                        </div>
-                    )}
-                    <input
-                        type="text"
-                        placeholder="Type a message"
-                        value={message}
-                        onChange={handleChange}
-                        onPaste={handlePaste}
-                        onDragOver={handleDragover}
-                        onDrop={handleDrop}
-                        className="flex-1 mx-4 p-2 border rounded-lg w-12 break-words focus:outline-none focus:border-blue-500"
-                        autoFocus={true}
-                    />
-                    <label className="text-gray-500 hover:text-gray-700 cursor-pointer">
-                        📎
-                        <input type="file" onChange={handleChange} name="media" className="hidden" />
-                    </label>
-                    <button
-                        type="submit"
-                        className="ml-4 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none"
-                    >
-                        ➤
-                    </button>
-                </form>
-            </div>
+            <Sender
+                socket={socket}
+            />
 
             {/* Call Modal */}
             {isCalling && (
@@ -769,44 +450,6 @@ export default function DMArea({ socket, isMobile, theme }) {
                 </div>
             )}
 
-            {/* File Preview Modal */}
-            {filePreview && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg overflow-hidden w-full max-w-md">
-                        <div className="p-4">
-                            {fileMessage.type.startsWith('image/') ? (
-                                <img src={filePreview} alt="Preview" className="w-full h-auto rounded" />
-                            ) : (
-                                <video src={filePreview} autoPlay={false} controls={true} className="h-96 w-full" ></video>
-                            )}
-                        </div>
-                        <div className="flex justify-end p-4 bg-gray-100">
-                            <button
-                                onClick={handleCancel}
-                                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none mr-2"
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-
-                                onClick={sendFileMessage}
-                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
-                                disabled={isSendingFile} // Disable button while sending
-                            >
-                                {isSendingFile ? (
-                                    <>
-                                        <ClipLoader size={20} color="#ffffff" /> {/* Spinner while sending */}
-                                        <span className="ml-2">Sending...</span>
-                                    </>
-                                ) : (
-                                    'Send'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
