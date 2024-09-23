@@ -49,9 +49,13 @@ const checkUser = async (req, res, next) => {
     })
 }
 
+
+
 //Authentication
 router.post('/login', login)
-router.get('/', checkUser)
+router.get('/', (req,res)=>{
+    res.sendStatus(200)
+})
 
 //creation of groups and users
 router.post('/signup', upload.single('image'), signup)
