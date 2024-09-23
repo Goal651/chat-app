@@ -1,12 +1,12 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef, useCallback, } from "react";
 import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
 import UserInfo from "../components/UserInfo";
 import Messages from "../components/Message";
+import Sender from "../components/Sender";
 
 
 function arrayBufferToBase64(buffer) {
@@ -20,14 +20,10 @@ function arrayBufferToBase64(buffer) {
 export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFromScreen, friends }) {
     const { name } = useParams()
     const navigate = useNavigate()
-    const [message, setMessage] = useState("")
-    const [fileMessage, setFileMessage] = useState(null);
-    const [filePreview, setFilePreview] = useState(null);
     const [scrollToBottom, setScrollToBottom] = useState(false)
     const [history, setHistory] = useState([])
     const [typingMember, setTypingMember] = useState([])
     const [typing, setTyping] = useState(false)
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [group, setGroup] = useState([])
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
@@ -233,100 +229,12 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         dataFromScreen(showingGroupInfo)
     }
 
-    const sendMessage = useCallback((e) => {
-        e.preventDefault();
-        if (!socket) return;
-        const newMessage = {
-            sender: user,
-            type: 'text',
-            message: message,
-            group: name,
-            time: new Date().toISOString().slice(11, 16),
-            seen: [],
-        };
-        if (message.trim() !== "") {
-            socket.emit("send_group_message", { message: newMessage });
-            setMessage("")
-        }
-        setScrollToBottom(true)
-        socket.emit("not_typing", { group: name });
-    }, [message, socket, name, user]);
-
-    const handleChange = useCallback((e) => {
-        const { name, value, files } = e.target;
-        if (name === 'media') {
-            socket.emit("member_typing", { group: selectedGroup });
-            const file = files[0];
-            setFilePreview(URL.createObjectURL(file));
-            setFileMessage(files[0]);
-        } else {
-            setMessage(value);
-            if (value.trim() !== "") socket.emit("member_typing", { group: selectedGroup });
-        }
-        setScrollToBottom(true);
-    }, [socket, name]);
-
-    const handlePaste = (e) => {
-        const file = e.clipboardData.files[0];
-        setFilePreview(URL.createObjectURL(file));
-        setFileMessage(file);
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault()
-        const file = e.dataTransfer.files[0];
-
-        if (file) {
-            setFilePreview(URL.createObjectURL(file));
-            setFileMessage(file);
-        }
-        else {
-            setMessage('')
-        }
-    }
-
-    const addEmoji = (emoji) => {
-        setMessage((prevMessage) => prevMessage + emoji.native);
-    };
-
-    const toggleEmojiPicker = () => {
-        setShowEmojiPicker(!showEmojiPicker);
-    };
-
-    const sendFileMessage = useCallback((e) => {
-        e.preventDefault();
-        if (!socket || !fileMessage) return;
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            const arrayBuffer = event.target.result;
-            const base64String = arrayBufferToBase64(arrayBuffer);
-            const newFileMessage = {
-                _id: Date.now(),
-                sender: user,
-                group: name,
-                fileName: fileMessage.name,
-                fileType: fileMessage.type,
-                imageData: base64String,
-                file: arrayBuffer,
-                time: new Date().toISOString().slice(11, 16),
-            };
-            socket.emit('send_group_file_message', { message: newFileMessage });
-            setFileMessage(null);
-            setFilePreview(null);
-            setScrollToBottom(true);
-        };
-        reader.readAsArrayBuffer(fileMessage);
-    }, [fileMessage, socket, name, user]);
 
     const navigateBackward = () => {
         localStorage.removeItem('selectedGroup');
         navigate('/group');
     };
 
-    const handleCancel = () => {
-        setFileMessage(null);
-        setFilePreview(null);
-    };
 
     // WebRTC Functions
     const createPeerConnection = (peerId) => {
@@ -418,7 +326,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
 
     return (
         <div className="flex flex-col h-full" >
-            <div onClick={() => { setShowEmojiPicker(false) }}
+            <div 
                 className={`${theme === 'dark' ? 'bg-black ' : 'bg-white'} flex items-center justify-between p-4 w-full`}>
                 <div
                     className="flex items-center w-full">
@@ -481,7 +389,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
 
             {/* Messages */}
             <div
-                onClick={() => { setShowEmojiPicker(false) }}
                 className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-200'}`}
             >
                 {loading ? (
@@ -504,53 +411,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 <div ref={messagesEndRef}></div>
             </div>
 
-            <div className={`p-4  ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 shadow-md'}`}>
-                <form onSubmit={sendMessage} className="flex items-center">
-                    <button
-                        type="button"
-                        onClick={toggleEmojiPicker}
-                        className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                    >
-                        😊
-                    </button>
-                    {showEmojiPicker && (
-                        <div className="absolute bottom-20">
-                            <Picker data={data} onEmojiSelect={addEmoji} theme={theme} />
-                        </div>
-                    )}
-                    <input
-                        type="text"
-                        placeholder="Type a message"
-                        value={message}
-                        onChange={handleChange}
-                        onDrop={handleDrop}
-                        onPaste={handlePaste}
-                        className="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
-                        autoFocus={true}
-                    />
-                    <label className="text-gray-500 hover:text-gray-700 cursor-pointer">
-                        📎
-                        <input type="file" onChange={handleChange} name="media" className="hidden" />
-                    </label>
-                    <label htmlFor="">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-mic" viewBox="0 0 16 16">
-                            <path d="M8 12a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 8 12z" />
-                            <path d="M10.5 8.5v-5a2.5 2.5 0 0 0-5 0v5a2.5 2.5 0 0 0 5 0z" />
-                            <path d="M6.5 11a4.5 4.5 0 0 0 9 0v-1h1v1a5.5 5.5 0 0 1-11 0v-1h1v1z" />
-                            <path d="M8 13a5 5 0 0 0 5-5h1a6 6 0 0 1-12 0h1a5 5 0 0 0 5 5z" />
-                        </svg>
-
-                    </label>
-                    <button
-                        type="submit"
-                        className="ml-4 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none"
-                        disabled={!message.trim() || fileMessage}
-                    >
-                        ➤
-                    </button>
-                </form>
-            </div>
-
+            <Sender socket={socket}/>
             {/* Call Modal */}
             {isCalling && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
@@ -612,30 +473,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 </div>
             )}
 
-            {/* File Preview Modal */}
-            {filePreview && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg overflow-hidden w-full max-w-md">
-                        <div className="p-4">
-                            <img src={filePreview} alt="Preview" className="w-full h-auto rounded" />
-                        </div>
-                        <div className="flex justify-end p-4 bg-gray-100">
-                            <button
-                                onClick={handleCancel}
-                                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none mr-2"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={sendFileMessage}
-                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
-                            >
-                                Send
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
             {name && (<div>
                 <UserInfo friends={friends} />
             </div>)}

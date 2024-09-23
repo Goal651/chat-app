@@ -17,6 +17,12 @@ app.use(bodyParser.raw())
 app.use(cookieParser());
 app.use(cors());
 app.use('/', routes);
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something went wrong!');
+});
+
+
 
 
 const server = http.createServer(app);

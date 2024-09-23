@@ -36,21 +36,6 @@ const encryptMessage = (publicKey, message) => {
     return encryptedData.toString('base64');
 };
 
-const decryptMessage = async (privateKey, encryptedMessage) => {
-    try {
-        return crypto.privateDecrypt(
-            {
-                key: privateKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
-            },
-            Buffer.from(encryptedMessage, 'base64')
-        ).toString('utf-8');
-    } catch (err) {
-        console.error('Error decrypting message:', err);
-        throw err;
-    }
-};
-
 
 const handlerChat = async (io) => {
     io.use((socket, next) => {
@@ -144,7 +129,6 @@ const handlerChat = async (io) => {
         socket.on('send_file_message', async (data) => {
             try {
                 const { message } = data;
-                console.log(message)
                 const newMessage = new Message({
                     sender: socket.user,
                     message: message.message,
@@ -167,24 +151,9 @@ const handlerChat = async (io) => {
         socket.on('send_group_file_message', async (data) => {
             try {
                 const { message } = data;
-                const uploadDir = path.join(__dirname, '../uploads');
-                const photoDir = path.join(uploadDir, 'photo')
-                const videoDir = path.join(uploadDir, 'video')
-                await fs.mkdir(videoDir, { recursive: true });
-                await fs.mkdir(photoDir, { recursive: true });
-                const fileName = `${Date.now()}_${message.fileName}`;
-                const isVideo = message.fileType.startsWith('video/');
-                const isPhoto = message.fileType.startsWith('image/');
-                let filePath;
-                if (isVideo) filePath = path.join(videoDir, fileName);
-                else if (isPhoto) filePath = path.join(photoDir, fileName);
-                else return socket.emit('file_upload_error', 'Unsupported file type');
-                try {
-                    await fs.writeFile(filePath, Buffer.from(message.file));
-                } catch (error) { console.error(error) }
                 const newMessage = new GMessage({
                     sender: socket.user,
-                    message: filePath,
+                    message: message.fileName,
                     group: message.group,
                     type: message.fileType,
                     time: formatTime(),

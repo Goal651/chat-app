@@ -307,20 +307,23 @@ const addMember = async (req, res) => {
 
 const fileUpload = async (req, res) => {
     const { name, totalchunks, currentchunk } = req.headers;
+    const filename=decodeURIComponent(name);
     const { file } = req.body;
     const firstChunk = parseInt(currentchunk) === 0;
     const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
-    const ext = name.split('.').pop();
+    const ext = filename.split('.').pop();
     const data = file.split(',')[1]; 
     const buffer = Buffer.from(data, 'base64');
-    const tmpFilename = 'tmp_' + md5(name) + '.' + ext;
+    const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
     const tmpFilepath = path.join(__dirname, '../uploads/messages/', tmpFilename);
     if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
     fs.appendFileSync(tmpFilepath, buffer);
     if (lastChunk) {
-        const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id) + name;
+        const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id) + filename;
         const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
         fs.renameSync(tmpFilepath, finalFilepath);
+        const fileUrl = `http://localhost:3001/uploads/messages/${finalFileName}`;
+        console.log(fileUrl)
         return res.status(200).json({ finalFileName: finalFilepath });
     }
     res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });

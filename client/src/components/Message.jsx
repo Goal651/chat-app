@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
+import Cookies from 'js-cookie'
 
 export default function Messages({ messages, info, group, onlineUsers, history }) {
 
@@ -42,7 +42,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
   const getMemberPhoto = (data) => {
     let image;
     if (!data) return null
-    if (group &&group.members&& group.members.length>0) {
+    if (group && group.members && group.members.length > 0) {
       const member = group.members.filter(member => member.email === data)[0]
       image = member.imageData
     }
@@ -72,7 +72,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
 
 
   return (<div className="">
-    {user && messages && messages.length > 0 ? (messages.map((msg) => (
+    {user && (messages && messages.length > 0 ? (messages.map((msg) => (
       msg.sender === friend ? (
         <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
           <div className="chat-image avatar">
@@ -87,7 +87,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
               </svg>}
             </div>
           </div>
-          {msg.type === 'text' ? (
+          {msg.type === 'text' && (
             <div
               onAuxClick={handleAuxClick}
               className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
@@ -98,7 +98,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
                 </div>
               </div>
             </div>
-          ) : (msg.type.startsWith('image') ? (
+          )}{msg.type.startsWith('image') && (
             <div
               onAuxClick={handleAuxClick}
               className=" text-white w-96 p-4 rounded-xl">
@@ -108,7 +108,8 @@ export default function Messages({ messages, info, group, onlineUsers, history }
                 className="rounded-lg max-w-80 max-h-96 justify-center "
               />
               <div className="relative right-12 bottom-6 text-xs  text-right">{msg.time}</div>
-            </div>) : (
+            </div>)}
+          {msg.type.startsWith('video') && (
             <div
               onAuxClick={handleAuxClick}
               className="bg-gray-500 text-white w-96 p-4 chat-bubble">
@@ -121,12 +122,25 @@ export default function Messages({ messages, info, group, onlineUsers, history }
               />
               <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
             </div>
-          )
+          )}
+          {msg.type.startsWith('audio') && (
+            <div
+              onAuxClick={handleAuxClick}
+              className=" text-white w-96 p-4  bg-gray-200">
+              <audio
+                src={msg.file}
+                alt="attachment"
+                className="rounded max-w-80 max-h-96 justify-center"
+                autoPlay={false}
+                controls={true}
+              />
+              <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+            </div>
           )}
         </div>
       ) : (
         <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
-          {msg.type === 'text' ? (
+          {msg.type === 'text' && (
             <div
               onAuxClick={handleAuxClick}
               className="max-w-96 min-w-24  h-auto bg-indigo-500 text-white chat-bubble text-xs">
@@ -136,7 +150,8 @@ export default function Messages({ messages, info, group, onlineUsers, history }
                 {msg.seen && (<div className="text-green-400 text-end text-xs font-black">✓✓</div>)}
               </div>
             </div>
-          ) : (msg.type.startsWith('image') ? (
+          )}
+          {msg.type.startsWith('image') && (
             <div
               onAuxClick={handleAuxClick}
               className="text-white w-96 p-4 ">
@@ -146,29 +161,44 @@ export default function Messages({ messages, info, group, onlineUsers, history }
                 className="rounded-lg max-w-full h-auto justify-center "
               />
               <div className="relative bottom-5 right-4 text-right text-xs ">{msg.time}</div>
-            </div>) : (
+            </div>)}
+          {msg.type.startsWith('video') && (<div
+            onAuxClick={handleAuxClick}
+            className=" text-white w-96 p-4 rounded-lg bg-black">
+            <video
+              src={msg.file}
+              alt="attachment"
+              className="rounded-lg w-full h-72 justify-center"
+              autoPlay={false}
+              controls={true}
+            />
+            <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+          </div>
+          )}
+          {msg.type.startsWith('audio') && (
             <div
               onAuxClick={handleAuxClick}
-              className=" text-white w-96 p-4 rounded-lg bg-black">
-              <video
+              className="text-white w-96 p-4 rounded-lg bg-slate-700 ">
+              <audio
                 src={msg.file}
                 alt="attachment"
-                className="rounded-lg w-full h-72 justify-center"
+                className="rounded-lg w-full h-auto justify-center "
                 autoPlay={false}
                 controls={true}
               />
               <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
             </div>
-          ))}
+          )}
+
         </div>
       )
     ))
     ) : (
       <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-    )}
+    ))}
 
 
-    {name && history && history.length > 0 ? (history.map((msg) => (msg.sender !== user ? (
+    {name && (history && history.length > 0 ? (history.map((msg) => (msg.sender !== Cookies.get('user') ? (
       <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
         <div className={`chat-image avatar  ${isOnline(msg.sender) ? 'online' : 'offline'}`}>
           <div
@@ -186,7 +216,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
         {msg.type === 'text' ? (
           <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
             <div className="font-semibold text-blue-800 mb-1 link-hover hover:cursor-pointer">{getMemberName(msg.sender)}</div>
-            <div className="max-w-96 h-auto  break-words">{msg.message}</div>
+            <div className="max-w-96 h-auto  break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
             <div className="mt-1 flex justify-between">
               <div className="text-sm font-semibold grow pr-4 flex">
                 <svg
@@ -237,7 +267,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
       <div key={msg._id} className={`chat  chat-end rounded-lg p-2  `} >
         {msg.type === 'text' ? (
           <div className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"                                >
-            <div className="max-w-80  h-auto break-words">{msg.message}</div>
+            <div className="max-w-80  h-auto break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
             <div className="mt-1 flex  justify-between">
               <div className="text-sm flex opacity-75 font-semibold grow pr-4"> <svg
                 width="20"
@@ -320,7 +350,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
     ))
     ) : (
       <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-    )}
+    ))}
     <div ref={messagesEndRef}></div>
   </div>
   )

@@ -118,12 +118,37 @@ export default function DMArea({ socket, isMobile, theme }) {
     useEffect(() => {
         if (!socket) return;
         const handleReceiveMessage = async ({ newMessage }) => {
-            console.log(newMessage)
             if (newMessage.sender === friend) {
-                setHistory((prevHistory) => [...prevHistory, newMessage]);
+                if (newMessage.type.startsWith('image') || newMessage.type.startsWith('video')) {
+                    setHistory((prevHistory) => [...prevHistory, { ...newMessage, message: 'loading' }]);
+                    try {
+                        const response = await fetch(`http://localhost:3001/dmFile/${newMessage._id}`, {
+                            headers: { 'accessToken': `${accessToken}` },
+                            body: { sender: newMessage.sender },
+                        });
+                        const data = await response.json()
+                        if (response.ok) {
+                            setHistory((prevHistory) =>
+                                prevHistory.map((msg) => {
+                                    if (msg._id === newMessage._id) {
+                                        return { ...msg, file: data };
+                                    }
+                                    return msg;
+                                })
+                            );
+                        } else {
+                            console.error('Error loading file');
+                        }
+                    } catch (error) {
+                        console.error("Error fetching file:", error);
+                    }
+                } else {
+                    setHistory((prevHistory) => [...prevHistory, newMessage]);
+                }
                 socket.emit('message_seen', { receiver: friend, messageId: newMessage._id });
             }
         };
+
         const handleTyping = ({ sender }) => {
             if (sender === friend) setBeingTyped(true);
             else setBeingTyped(false);
@@ -149,7 +174,6 @@ export default function DMArea({ socket, isMobile, theme }) {
 
         const handleCallOffer = async ({ offer, sender, type }) => {
             if (sender !== friend) return;
-
             setCallType(type);
             setIsCalling(true);
 
@@ -322,7 +346,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     return (
         <div className="flex flex-col h-full" >
             <div
-                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white shadow-md'} flex items-center justify-between p-4 `}>
+                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white'} flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
                     {isMobile && (
                         <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
