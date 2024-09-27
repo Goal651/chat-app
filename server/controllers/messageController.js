@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const { Message, GMessage, User } = require('../models/models');
+const e = require('express');
 
 
 const decryptPrivateKey = (encryptedPrivateKey) => {
@@ -47,7 +48,7 @@ const getPrivateKeyFromConfig = async (email) => {
 const getSingleMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const { sender} = req.body;
+    const { sender } = req.body;
     const receiver = req.user;
     if (!messageId || !sender || !receiver) return res.status(400).json({ message: 'Message ID, sender, and receiver are required' });
     const message = await Message.findOne({ _id: messageId, $or: [{ sender, receiver }, { sender: receiver, receiver: sender }] });
@@ -134,6 +135,13 @@ const getMessage = async (req, res) => {
           fileData = `data:video/mp4;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
+      else if (message.type.startsWith('audio')) {
+        try {
+          const filePath = path.join(message.message);
+          const data = await fs.readFile(filePath);
+          fileData = `data:audio/mpeg;base64,${data.toString('base64')}`;
+        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+      }
       return { ...message._doc, message: decryptedMessage, file: fileData };
     }));
     res.status(200).json({ messages: messageWithDetails });
@@ -197,6 +205,16 @@ const getSingleGMessage = async (req, res) => {
         fileData = `data:video/mp4;base64,${data.toString('base64')}`;
       } catch (err) {
         console.error('Error reading video file:', err);
+      }
+    }
+    else if (gmessage.type.startsWith('audio')) {
+      try {
+        const filePath = path.join(gmessage.message);
+        const data = await fs.readFile(filePath);
+        console.log(data)
+        fileData = `data:audio/mp3;base64,${data.toString('base64')}`;
+      } catch (err) {
+        console.error('Error reading audio file:', err);
       }
     }
 

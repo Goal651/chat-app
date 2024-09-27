@@ -22,17 +22,6 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
         if (selectedGroup) navigate(`/group/${selectedGroup}`);
     }, [selectedGroup, navigate]);
 
-    useEffect(() => {
-        if (!socket || !selectedGroup) return;
-
-        socket.on('room_exists', () => {
-            socket.emit('join_room', { room: selectedGroup });
-        });
-
-        return () => {
-            socket.off('room_exists');
-        };
-    }, [selectedGroup, socket]);
 
     const chatNow = useCallback((g) => {
         setGroup(g);
@@ -89,11 +78,6 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
                                 )}
                             </div>
                         </div>
-                        {/* {unreadCount > 0 && (
-                            <span className="badge ml-auto bg-red-500 text-white rounded-full px-2 py-1">
-                                {unreadCount}
-                            </span>
-                        )} */}
                     </span>
                 </div>
             </div>

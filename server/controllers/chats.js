@@ -13,6 +13,17 @@ const formatTime = () => {
     return now.toISOString().slice(11, 16);
 };
 
+const readFile = async (filePath) => {
+    try {
+        const data = await fs.readFile(filePath);
+        const fileData = data.toString('base64');
+        return fileData;
+    } catch (err) {
+        console.error(err);
+        return null;
+    }
+}
+
 const getPrivateKeyFromConfig = async (email) => {
     try {
         const configPath = path.join(__dirname, '../config.json');
@@ -136,13 +147,15 @@ const handlerChat = async (io) => {
                     receiver: message.receiver,
                     time: formatTime(),
                 });
+                const filePreview = await readFile(message.message)
+                const preview = `data:${message.fileType};base64,${filePreview}`
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(message.receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, file: message.preview } });
+                if (receiverSocketId) io.to(receiverSocketId).emit('receive_file', { newMessage: { ...newMessage._doc, file: preview } });
                 else await User.updateOne({ email: message.receiver }, { $push: { unreads: { message: message.message, sender: socket.user } } });
-                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, file: message.preview } });
+                io.to(senderSocketId).emit('message_sent', { newMessage: { ...newMessage._doc, file: preview } });
             } catch (err) {
                 console.error('Error sending file message:', err);
             }
@@ -322,5 +335,7 @@ const handlerChat = async (io) => {
         });
     });
 };
+
+
 
 module.exports = { handlerChat };

@@ -20,7 +20,6 @@ export default function DMArea({ socket, isMobile, theme }) {
     const navigate = useNavigate();
     const { user } = useParams();
     const friend = localStorage.getItem('selectedFriend');
-    const [refresh, setRefresh] = useState(false);
     const [lastMessage, setLastMessage] = useState("");
     const [history, setHistory] = useState([]);
     const [beingTyped, setBeingTyped] = useState(false);
@@ -96,6 +95,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                 const response = await fetch(`http://localhost:3001/getUser/${friend}`, {
                     headers: { 'accessToken': `${accessToken}` },
                 });
+                console.log(friend)
                 const data = await response.json();
                 if (response.ok) setInfo(data.user);
                 else if (response.status === 401) {
@@ -119,32 +119,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         if (!socket) return;
         const handleReceiveMessage = async ({ newMessage }) => {
             if (newMessage.sender === friend) {
-                if (newMessage.type.startsWith('image') || newMessage.type.startsWith('video')) {
-                    setHistory((prevHistory) => [...prevHistory, { ...newMessage, message: 'loading' }]);
-                    try {
-                        const response = await fetch(`http://localhost:3001/dmFile/${newMessage._id}`, {
-                            headers: { 'accessToken': `${accessToken}` },
-                            body: { sender: newMessage.sender },
-                        });
-                        const data = await response.json()
-                        if (response.ok) {
-                            setHistory((prevHistory) =>
-                                prevHistory.map((msg) => {
-                                    if (msg._id === newMessage._id) {
-                                        return { ...msg, file: data };
-                                    }
-                                    return msg;
-                                })
-                            );
-                        } else {
-                            console.error('Error loading file');
-                        }
-                    } catch (error) {
-                        console.error("Error fetching file:", error);
-                    }
-                } else {
-                    setHistory((prevHistory) => [...prevHistory, newMessage]);
-                }
+                setHistory((prevHistory) => [...prevHistory, newMessage]);
                 socket.emit('message_seen', { receiver: friend, messageId: newMessage._id });
             }
         };
@@ -161,6 +136,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         const handleMessageSent = ({ newMessage }) => {
             console.log(newMessage)
             setHistory((prevHistory) => [...prevHistory, newMessage]);
+            console.log(user)
         };
 
         const handleMessageSeen = ({ messageId }) => {
@@ -346,7 +322,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     return (
         <div className="flex flex-col h-full" >
             <div
-                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white'} flex items-center justify-between p-4 `}>
+                className={` flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
                     {isMobile && (
                         <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
@@ -400,7 +376,7 @@ export default function DMArea({ socket, isMobile, theme }) {
             </div>
 
             <div
-                className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-whited'}`}>
+                className={`h-full w-full overflow-y-auto p-4 bg-transparent`}>
                 {loading ? (
                     <div className=""><span className="loading loading-spinner"></span></div>
                 ) : <Messages

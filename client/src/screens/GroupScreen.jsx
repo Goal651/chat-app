@@ -35,6 +35,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     const user = Cookies.get('user')
     const accessToken = Cookies.get('accessToken')
     const selectedGroup = localStorage.getItem('selectedGroup')
+    const [lou, setLou] = useState(0)
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -125,6 +126,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         };
 
         const handleGroupMessageSent = ({ message }) => {
+
             setHistory((prevHistory) => [...prevHistory, message])
             setScrollToBottom(true)
         }
@@ -210,9 +212,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 if (response.ok) {
                     setHistory(data.gmessages);
                     setScrollToBottom(true);
-                } else if (response.status === 401 || response.status === 401) {
+                } else if (response.status === 401) {
                     Cookies.set("accessToken", data.accessToken);
-                } else if (response.status === 403 || response.status === 403) {
+                } else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
                 }
@@ -308,13 +310,14 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     };
 
 
-    const getOnlineMembers = () => {
-        let i = 0
-        group.members.map(member => {
-            if (onlineUsers.includes(member)) i += 1
-        })
-        return i
-    }
+    useEffect(() => {
+        const getOnlineMembers = () => {
+            if (!onlineUsers) return 0;
+            const result= onlineUsers.filter(u => u !== Cookies.get('user')).length;
+            setLou(result)
+        };
+        getOnlineMembers()
+    }, [onlineUsers])
 
     const showGroupInfo = () => {
         setShowingGroupInfo(!showingGroupInfo)
@@ -325,8 +328,8 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     if (loading) return <div className="loading loading-spinner"></div>
 
     return (
-        <div className="flex flex-col h-full" >
-            <div 
+        <div className="flex flex-col h-full bg-slate-200" >
+            <div
                 className={`${theme === 'dark' ? 'bg-black ' : 'bg-white'} flex items-center justify-between p-4 w-full`}>
                 <div
                     className="flex items-center w-full">
@@ -359,7 +362,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                             <div className="text-sm font-semibold text-gray-600 flex justify-center ">
                                 <div className="flex justify-between w-32">
                                     <div className="text-sm">{group.members ? group.members.length : '0'}members</div>
-                                    <div className="text-sm">{getOnlineMembers}online</div>
+                                    <div className="text-sm">{lou}online</div>
                                 </div>
                             </div>
                         </div>
@@ -411,8 +414,8 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 <div ref={messagesEndRef}></div>
             </div>
 
-            <Sender socket={socket}/>
-            {/* Call Modal */}
+            <Sender socket={socket} />
+
             {isCalling && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg overflow-hidden w-full max-w-2xl">

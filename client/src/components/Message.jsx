@@ -6,6 +6,7 @@ import Cookies from 'js-cookie'
 
 export default function Messages({ messages, info, group, onlineUsers, history }) {
 
+  const apiKey = '3b3f4d51fc1a85aeab5c0e15b90913fa'
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
   const [scrollToBottom, setScrollToBottom] = useState(false);
@@ -24,16 +25,45 @@ export default function Messages({ messages, info, group, onlineUsers, history }
 
   const handleAuxClick = (e) => {
     e.preventDefault()
-    console.log(e)
     alert('hello')
   }
 
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const isLink = (message) => {
+  const fetchMetadata = async (url) => {
+    try {
+      const response = await fetch(`https://api.linkpreview.net?key=${apiKey}&q=${url}`);
+      const data = await response.json();
+      console.log(data)
+      return {
+        title: data.title || 'No Title',
+        description: data.description || 'No Description',
+        image: data.image || '',
+      };
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+      return url;
+    }
+  };
+
+  // Function to process the message and convert links into previews
+  const isLink = async (message) => {
     const match = message.match(urlRegex);
     if (match) {
       const link = match[0];
-      return message.replace(link, `<a class="link link-hover font-semibold" href="${link}" target="_blank"  rel="noopener noreferrer">${link}</a>`);
+      const metadata = await fetchMetadata(link);
+      if (metadata) {
+        return `
+                <div class="link-preview">
+                    <a class="link link-hover font-semibold" href="${link}" target="_blank" rel="noopener noreferrer">
+                        ${metadata.title}
+                    </a>
+                    <p>${metadata.description}</p>
+                    ${metadata.image ? `<img src="${metadata.image}" alt="${metadata.title}" />` : ''}
+                </div>
+            `;
+      } else {
+        return message;
+      }
     } else {
       return message;
     }
@@ -72,7 +102,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
 
 
   return (<div className="">
-    {user && (messages && messages.length > 0 ? (messages.map((msg) => (
+    {user && (messages && messages.length > 0 ? (messages.map(async(msg) => (
       msg.sender === friend ? (
         <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
           <div className="chat-image avatar">
@@ -91,7 +121,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
             <div
               onAuxClick={handleAuxClick}
               className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
-              <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+              <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: `${await isLink(msg.message)}` }} />
               <div className="flex float-right">
                 <div className="text-xs opacity-70 mt-1 text-right">
                   {msg.time}
@@ -129,8 +159,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
               className=" text-white w-96 p-4  bg-gray-200">
               <audio
                 src={msg.file}
-                alt="attachment"
-                className="rounded max-w-80 max-h-96 justify-center"
+                className="rounded max-w-80 max-h-96 justify-center "
                 autoPlay={false}
                 controls={true}
               />
@@ -144,7 +173,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
             <div
               onAuxClick={handleAuxClick}
               className="max-w-96 min-w-24  h-auto bg-indigo-500 text-white chat-bubble text-xs">
-              <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+              <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html:`${await isLink(msg.message)}` }} />
               <div className="text-xs opacity-70 mt-1 text-right">
                 {msg.time}
                 {msg.seen && (<div className="text-green-400 text-end text-xs font-black">✓✓</div>)}
@@ -178,13 +207,10 @@ export default function Messages({ messages, info, group, onlineUsers, history }
           {msg.type.startsWith('audio') && (
             <div
               onAuxClick={handleAuxClick}
-              className="text-white w-96 p-4 rounded-lg bg-slate-700 ">
+              className="text-white w-96 p-4 rounded-lg  ">
               <audio
+                controls
                 src={msg.file}
-                alt="attachment"
-                className="rounded-lg w-full h-auto justify-center "
-                autoPlay={false}
-                controls={true}
               />
               <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
             </div>
@@ -215,13 +241,13 @@ export default function Messages({ messages, info, group, onlineUsers, history }
         </div>
         {msg.type === 'text' ? (
           <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-            <div className="font-semibold text-blue-800 mb-1 link-hover hover:cursor-pointer">{getMemberName(msg.sender)}</div>
-            <div className="max-w-96 h-auto  break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+            <div className="font-semibold text-sm text-indigo-900 mb-1 link-hover hover:cursor-pointer">{getMemberName(msg.sender)}</div>
+            <div className="max-w-96 h-auto  text-sm break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
             <div className="mt-1 flex justify-between">
-              <div className="text-sm font-semibold grow pr-4 flex">
+              <div className=" font-semibold grow pr-4 flex">
                 <svg
                   width="20"
-                  height="20"
+                  height="15"
                   viewBox="0 0 24 24"
                   fill="light-gray"
                   xmlns="http://www.w3.org/2000/svg"
@@ -231,7 +257,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
                     fill="lightgray"
                   />
                 </svg>
-                <div className="text-gray-300 text-center mt-px"> {msg.seen.length}</div></div>
+                <div className="text-gray-300 text-center text-xs font-semibold"> {msg.seen.length}</div></div>
               <div className="text-xs opacity-70 text-right">
                 {msg.time}
               </div>
@@ -266,12 +292,12 @@ export default function Messages({ messages, info, group, onlineUsers, history }
     ) : (
       <div key={msg._id} className={`chat  chat-end rounded-lg p-2  `} >
         {msg.type === 'text' ? (
-          <div className="max-w-96 h-auto bg-blue-500 text-white chat-bubble"                                >
-            <div className="max-w-80  h-auto break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+          <div className="max-w-96 h-auto bg-indigo-700 text-white chat-bubble"                                >
+            <div className="max-w-80  h-auto text-xs break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
             <div className="mt-1 flex  justify-between">
               <div className="text-sm flex opacity-75 font-semibold grow pr-4"> <svg
                 width="20"
-                height="20"
+                height="15"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -281,7 +307,7 @@ export default function Messages({ messages, info, group, onlineUsers, history }
                   fill="white"
                 />
               </svg>
-                <div> {msg.seen.length}</div>
+                <div className="text-gray-300 text-center text-xs font-semibold"> {msg.seen.length}</div>
               </div>
               <div className="text-xs opacity-70 text-right">
                 {msg.time}

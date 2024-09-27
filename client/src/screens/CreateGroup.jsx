@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -17,7 +18,7 @@ export default function CreateGroup({ isMobile }) {
             const file = files[0];
             setImage(file);
             setImagePreview(URL.createObjectURL(file))
-        } else setGroup({ value });
+        } else setGroup( value );
     };
 
     const sendData = async (e) => {

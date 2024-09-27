@@ -1,43 +1,43 @@
 require('dotenv').config();
 const express = require('express');
+const app = express();
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const cors = require('cors');
+const http = require('http');
 const { Server } = require('socket.io');
+const cors = require('cors');
 const routes = require('./routes/routes');
 const { handlerChat } = require('./controllers/chats');
 
-const app = express();
 
-// Middleware setup
-app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.raw())
+app.use(cookieParser());
 app.use(cors());
 app.use('/', routes);
 
-// Connect to MongoDB
+
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+})
+
+handlerChat(io);
+
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Connected to database'))
-    .catch(err => console.error(err));
-
-// Export a function for Vercel
-module.exports = (req, res) => {
-    // Handle incoming requests
-    app(req, res);
-
-    // Socket.io setup
-    const server = require('http').createServer(app);
-    const io = new Server(server, {
-        cors: {
-            origin: "http://localhost:5173", // Replace with your front-end URL in production
-            methods: ["GET", "POST"],
-            credentials: true
-        }
+    .then(() => {
+        console.log('Connected to database');
+        server.listen(3001, () => {
+            console.log('listening on *:3001');
+        });
+    })
+    .catch((error) => {
+        console.log(error);
     });
-
-    // Set up chat handler
-    handlerChat(io);
-
-    // Start listening for connections
-    server.listen(process.env.PORT || 3001, () => {
-        console.log(`Listening on port ${process.env.PORT || 3001}`);
-    });
-};

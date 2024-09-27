@@ -75,8 +75,7 @@ export default function Dashboard({ isMobile }) {
 
                 if (friendsResponse.status === 401 && groupsResponse.status === 401) {
                     const newToken = await friendsResponse.json();
-                    Cookies.set("accessToken", newToken.accessToken);
-                    window.location.reload();
+                    Cookies.set("accessToken", newToken.newToken);
                 } else if (friendsResponse.status === 403 && groupsResponse.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
@@ -180,6 +179,7 @@ export default function Dashboard({ isMobile }) {
     
     const handleMessageSent = (message) => {
         const { newMessage } = message
+        console.log(user,type,name)
         setFriends((prevFriends) =>
             sortByLatestMessage(
                 prevFriends.map((friend) =>
@@ -321,8 +321,7 @@ export default function Dashboard({ isMobile }) {
 
     return (
         <div
-            className={`flex flex-row w-full h-screen text-sm ${theme === "dark" ? "bg-black" : "bg-white"
-                }`}
+            className={`flex flex-row w-full h-screen text-sm bg-black`}
         >
             <NotificationBanner details={notifications} />
             <Suspense fallback={<div>Loading...</div>}>
@@ -334,8 +333,7 @@ export default function Dashboard({ isMobile }) {
                         userInfo={userInfo} />
                 </div>
                 <div
-                    className={`${theme === "dark" ? "bg-black " : "bg-white "
-                        } rounded-3xl  ${isMobile ? "w-full " : "text-black mr-4 my-4 pl-0 w-full"}`}
+                    className={` rounded-3xl  ${isMobile ? "w-full " : "text-black mr-4 my-2 pl-0 w-full"}`}
                 >
                     {renderContent()}
                 </div>
