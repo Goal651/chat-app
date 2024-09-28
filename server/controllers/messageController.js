@@ -256,7 +256,7 @@ const getGMessage = async (req, res) => {
           image = data.toString('base64');
         } catch (err) { console.log(`Error reading image for user:`, err) }
       }
-      return { ...gm._doc, senderUsername, image, message: decryptedMessage };
+      return { ...gm._doc, senderUsername, image:`data:image/jpeg;base64,${image}`, message: decryptedMessage };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

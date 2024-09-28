@@ -18,6 +18,9 @@ const groupSchema = mongoose.Schema({
     admin: { type: String, required: true },
     image: String,
     members: [{ email: String, role: { type: String, default: '' } }],
+    aesKey:String,
+    iv:String,
+    encryptedPrivateKey:String,
     createdAt: { type: Date, default: Date.now, index: true }
 });
 

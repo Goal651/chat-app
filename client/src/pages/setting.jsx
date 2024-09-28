@@ -69,7 +69,7 @@ export default function Settings({ isMobile }) {
     };
 
     return (
-        <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'} p-6`}>
+        <div className={`h-full bg-white rounded-xl p-6`}>
             {isMobile && (
                 <button
                     onClick={navigateBackward}
@@ -82,7 +82,6 @@ export default function Settings({ isMobile }) {
             <div className="max-w-2xl mx-auto space-y-8">
                 <h2 className="text-3xl font-semibold">Settings</h2>
 
-                {/* Profile Information */}
                 <Disclosure>
                     {({ open }) => (
                         <>

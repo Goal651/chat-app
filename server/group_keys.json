@@ -1,0 +1,12 @@
+{
+  "Names": {
+    "aesKey": "b7d7bb350708be2daed09d74683d2e9b0e9a7aca8a5db5f3386c5ae4ed537853",
+    "iv": "a880d96653aa5f00a323b1ab967e39e5",
+    "encryptedPrivateKey": "29ad8bcd47e5d8290c6729b809730bc2133fbfbf9e6e5adda8a26f1d7df090b3de22ed7da19de02520491508fe82d5ce4088b6ec0bd2aeca9958f7e81b9d17dd95bcab4e70f142bd1ea7c5dbb636cd80"
+  },
+  "Goals": {
+    "aesKey": "ab540e4dd2e0e42b4af58233fa84d08493a49aeb24d697180011353815dacb68",
+    "iv": "c3e46962a74ef7b26c423ab148a91c76",
+    "encryptedPrivateKey": "553f42b6637f813a17c7ce46635fd965bb6eeaa5d35e25983c0e17716d3f32454dd40d70b89a8d62c9bb0e3556084a6bbc53417b55d6e73ec9adf84596b554c079e7f81bb3b349393d72693bccbdf0bc"
+  }
+}

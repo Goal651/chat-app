@@ -94,12 +94,11 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
     }, [navigate]);
 
     return (
-        <div className="flex flex-row text-sm">
+        <div className="flex flex-row text-sm bg-white rounded-xl">
             <div
                 id="mobile"
-                style={{ height: '90vh' }}
-                className={`${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-gray-800'} 
-                    flex flex-col overflow-y-auto overflow-x-hidden 
+                style={{ height: '98vh' }}
+                className={` text-gray-800  flex flex-col overflow-y-auto overflow-x-hidden 
                     ${isMobile ?
                         `${type ? `${name ? 'hidden' : 'w-full'}` : 'hidden'}` :
                         'w-1/3'}`}
@@ -117,7 +116,7 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
             </div>
             <div
                 className={`overflow-hidden ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'w-2/3'}`}
-                style={{ height: '95vh' }}
+                style={{ height: '98vh' }}
             >
                 <GroupArea
                     group={group}

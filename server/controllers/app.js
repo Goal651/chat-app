@@ -6,6 +6,8 @@ const { User, Group, GMessage, Message } = require('../models/models');
 const uploadsDir = path.join(__dirname, '../');
 const crypto = require('crypto');
 const md5 = require('md5')
+const AES_KEY_LENGTH = 32;
+
 const generateKeyPair = async () => {
     return new Promise((resolve, reject) => {
         crypto.generateKeyPair('rsa', {
@@ -191,17 +193,54 @@ const updateUser = async (req, res) => {
 };
 
 
+
 const createGroup = async (req, res) => {
     try {
         const { name } = req.body;
         const admin = req.user;
         const existingGroup = await Group.findOne({ name });
         if (existingGroup) return res.sendStatus(400);
-        let image = ''
+
+        const aesKey = crypto.randomBytes(AES_KEY_LENGTH);
+
+        const privateKey = crypto.randomBytes(32).toString('hex'); // Example private key generation
+
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
+        let encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex');
+        encryptedPrivateKey += cipher.final('hex');
+
+        let image = '';
         if (req.file) image = req.file.path;
-        const newGroup = new Group({ name, admin, image, members: [{ email: admin, role: 'admin' }] });
+
+        const newGroup = new Group({
+            name,
+            admin,
+            image,
+            members: [{ email: admin, role: 'admin' }],
+            aesKey: aesKey.toString('hex'), 
+            iv: iv.toString('hex'),
+            encryptedPrivateKey
+        });
+
         const savedGroup = await newGroup.save();
         if (!savedGroup) return res.sendStatus(500);
+
+        const privateKeyPath = path.join(__dirname, '../group_keys.json');
+        let existingKeys = {};
+        try {
+            const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
+            existingKeys = JSON.parse(fileContent);
+        } catch (err) {
+            console.error('Could not read existing keys file, creating a new one.', err);
+        }
+
+        existingKeys[name] = {
+            aesKey: aesKey.toString('hex'),
+            iv: iv.toString('hex'),
+            encryptedPrivateKey
+        };
+        await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
         await User.updateOne({ email: admin }, { $push: { groups: name } });
         res.status(201).json(savedGroup);
     } catch (err) {
@@ -209,6 +248,7 @@ const createGroup = async (req, res) => {
         res.sendStatus(500);
     }
 };
+
 
 
 const getGroups = async (req, res) => {

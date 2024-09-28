@@ -55,6 +55,8 @@ export default function Sender({ socket, theme }) {
     const readAndUploadCurrentChunk = async (currentChunk = 0) => {
         if (!fileMessage) return;
         const chunkSize = 50 * 1024;
+        let fileName = fileMessage.name
+        if(!fileMessage.name) fileName=`${Date.now()}.mp3`
         const totalChunks = Math.ceil(fileMessage.size / chunkSize);
         const reader = new FileReader();
         const from = currentChunk * chunkSize;
@@ -66,8 +68,8 @@ export default function Sender({ socket, theme }) {
             await axios.post('http://localhost:3001/uploadFile', { file: data }, {
                 headers: {
                     'accesstoken': accessToken,
-                    'name': encodeURIComponent(fileMessage.name),
-                    'size': fileMessage.size,
+                    'name': encodeURIComponent(fileName),
+                    'type': fileMessage.type,
                     'currentChunk': currentChunk,
                     'totalchunks': totalChunks
                 },
@@ -92,7 +94,6 @@ export default function Sender({ socket, theme }) {
     useEffect(() => {
         const sendDetailsToSocket = () => {
             const fileType = fileMessage?.type
-            console.log(fileType)
             if ((fileName && fileMessage)) {
                 const newFileMessage = {
                     sender: user,
@@ -186,14 +187,13 @@ export default function Sender({ socket, theme }) {
                             <line x1="9" y1="9" x2="9.01" y2="9" />
                             <line x1="15" y1="9" x2="15.01" y2="9" />
                         </svg>
-
                     </button>
                     {showEmojiPicker && (
                         <div className="absolute bottom-20">
                             <Picker
                                 data={data}
                                 onEmojiSelect={addEmoji}
-                                theme="white" />
+                                theme="light" />
                         </div>
                     )}
                     <input
@@ -254,12 +254,8 @@ export default function Sender({ socket, theme }) {
                                 fill='blue'
                                 d="M2 21l21-9-21-9v7l15 2-15 2v7z" />
                         </svg>
-
-
                     </button>
-
                 </form>
-
                 <ReactMic
                     record={recording}
                     className="sound-wave hidden"
@@ -268,7 +264,6 @@ export default function Sender({ socket, theme }) {
                     backgroundColor="#FF4081"
                     visualSetting="sinewave"
                     style={{ display: 'none' }} />
-
             </div>
 
             {filePreview && (

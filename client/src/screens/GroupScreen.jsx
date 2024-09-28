@@ -328,9 +328,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     if (loading) return <div className="loading loading-spinner"></div>
 
     return (
-        <div className="flex flex-col h-full bg-slate-200" >
+        <div className="flex flex-col h-full " >
             <div
-                className={`${theme === 'dark' ? 'bg-black ' : 'bg-white'} flex items-center justify-between p-4 w-full`}>
+                className={` flex items-center justify-between p-4 w-full`}>
                 <div
                     className="flex items-center w-full">
                     {isMobile && (
@@ -340,7 +340,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                     )}
                     <div
                         onClick={showGroupInfo}
-                        className={`flex items-center w-full ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
+                        className={`flex items-center w-full  text-gray-800 `}>
                         <div className="avatar ">
                             <div className="h-14 w-14 rounded-full ">
                                 {group.imageData ? <img
@@ -392,7 +392,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
 
             {/* Messages */}
             <div
-                className={`h-full w-full overflow-y-auto p-4 ${theme === 'dark' ? 'bg-gray-800 ' : 'bg-gray-200'}`}
+                className={`h-full w-full overflow-y-auto p-4 `}
             >
                 {loading ? (
                     <div>Loading messages...</div>

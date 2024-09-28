@@ -2,10 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
-import Cropper from "react-cropper"; // Import Cropper component
-import "cropperjs/dist/cropper.css"; // Import Cropper styles
+import Cropper from "react-cropper";
+import "cropperjs/dist/cropper.css";
 
-export default function Profile({ dataFromProfile, theme, isMobile, userInfo }) {
+export default function Profile({ dataFromProfile, isMobile, userInfo }) {
     const navigate = useNavigate();
     const accessToken = Cookies.get("accessToken");
     const [profile, setProfile] = useState(null);
@@ -69,14 +69,14 @@ export default function Profile({ dataFromProfile, theme, isMobile, userInfo }) 
     };
 
     return (
-        <div className={`min-h-screen flex flex-col ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}>
+        <div className={`h-full flex flex-col bg-gray-100 text-gray-900 rounded-xl`}>
             {isMobile && (
                 <button onClick={navigateBackward} className="btn btn-outline btn-primary my-4 ml-4">
                     ← Back
                 </button>
             )}
             {userInfo ? (
-                <div className="flex flex-col items-center p-10 mx-auto w-full md:w-1/3 rounded-lg shadow-lg bg-base-100">
+                <div className="flex flex-col items-center p-10 mx-auto w-full  md:w-1/3 rounded-lg shadow-lg bg-base-100">
                     <div className="cursor-pointer flex flex-col items-center">
                         <div className="avatar mb-4" onClick={handleImageClick}> {/* Add click handler */}
                             <div className="w-32 h-32 rounded-full border-4 border-primary">

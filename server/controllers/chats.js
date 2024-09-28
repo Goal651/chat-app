@@ -166,12 +166,14 @@ const handlerChat = async (io) => {
                 const { message } = data;
                 const newMessage = new GMessage({
                     sender: socket.user,
-                    message: message.fileName,
+                    message: message.message,
                     group: message.group,
                     type: message.fileType,
                     time: formatTime(),
                 });
-                const sentMessage = { ...newMessage._doc, image: message.imageData };
+                const filePreview = await readFile(message.message)
+                const preview = `data:${message.fileType};base64,${filePreview}`
+                const sentMessage = { ...newMessage._doc, image:preview };
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
