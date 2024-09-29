@@ -95,16 +95,13 @@ export default function DMArea({ socket, isMobile, theme }) {
                 const response = await fetch(`http://localhost:3001/getUser/${friend}`, {
                     headers: { 'accessToken': `${accessToken}` },
                 });
-                console.log(friend)
                 const data = await response.json();
                 if (response.ok) setInfo(data.user);
-                else if (response.status === 401) {
-                    Cookies.set("accessToken", data.accessToken);
-                } else if (response.status === 403 || response.status === 403) {
+                else if (response.status === 401) Cookies.set("accessToken", data.accessToken);
+                else if (response.status === 403 || response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
                 } else navigate('/error')
-
             } catch (error) {
                 console.error("Error fetching user details:", error);
             }
@@ -332,7 +329,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                         <div className="avatar">
                             <div className="h-14 w-14 rounded-lg ">
                                 {info.imageData ? <img
-                                    src={`data:image/jpeg;base64,${info.imageData}`}
+                                    src={info.imageData}
                                     alt="Profile"
                                     className="h-full w-full object-cover"
                                 />

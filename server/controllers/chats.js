@@ -212,6 +212,7 @@ const handlerChat = async (io) => {
         });
 
         socket.on('member_typing', ({ group }) => {
+            console.log(group)
             socket.to(group).emit('member_typing', { member: socket.user, group })
         })
 

@@ -53,7 +53,7 @@ export default function Navigation({ socket, isMobile, theme, userInfo }) {
                 <div className="avatar">
                     <div className="h-16 w-16 rounded-full bg-gray-400 ">
                         {userInfo.imageData ? <img
-                            src={`data:image/jpeg;base64,${userInfo.imageData}`}
+                            src={userInfo.imageData}
                             alt="Profile"
                             className="h-full w-full object-cover"
                         />

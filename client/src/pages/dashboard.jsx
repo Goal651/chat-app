@@ -96,7 +96,7 @@ export default function Dashboard({ isMobile }) {
         const handleOnlineUsers = data => setOnlineUsers(data)
         const handleIncomingMessage = (message) => {
             const { newMessage } = message
-            console.log(newMessage.sender !==selectedFriend)
+            console.log(newMessage.sender !== selectedFriend)
             if (!user && newMessage.sender !== selectedFriend) {
                 socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender })
             }
@@ -117,7 +117,7 @@ export default function Dashboard({ isMobile }) {
                     )
                 )
             );
-        };    
+        };
         socket.emit("fetch_online_users");
         socket.on("online_users", handleOnlineUsers);
         socket.on("marked_as_read", updateAllData);
@@ -176,18 +176,16 @@ export default function Dashboard({ isMobile }) {
         }
     };
 
-    
+
     const handleMessageSent = (message) => {
         const { newMessage } = message
-        console.log(user,type,name)
-        setFriends((prevFriends) =>
-            sortByLatestMessage(
-                prevFriends.map((friend) =>
-                    [newMessage.sender, newMessage.receiver].includes(friend.email)
-                        ? { ...friend, latestMessage: newMessage }
-                        : friend
-                )
+        setFriends((prevFriends) => sortByLatestMessage(
+            prevFriends.map((friend) =>
+                [newMessage.sender, newMessage.receiver].includes(friend.email)
+                    ? { ...friend, latestMessage: newMessage }
+                    : friend
             )
+        )
         );
     };
 

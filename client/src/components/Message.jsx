@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Cookies from 'js-cookie'
 
-export default function Messages({ messages, info, group, onlineUsers, history }) {
+export default function Messages({ messages, info, group, onlineUsers, history,typingMembers }) {
 
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
@@ -81,10 +81,16 @@ export default function Messages({ messages, info, group, onlineUsers, history }
             <div
               className="w-10 rounded-lg bg-gray-500 ">
               {info.imageData ? <img
-                src={`data:image/jpeg;base64,${info.imageData}`}
+                src={info.imageData}
                 alt="Profile"
                 className=""
-              /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
+              /> : <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="24px"
+                height="24px"
+                className="relative left-1 top-1 text-gray-100 "                        >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>}
             </div>
@@ -187,10 +193,8 @@ export default function Messages({ messages, info, group, onlineUsers, history }
               <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
             </div>
           )}
-
         </div>
-      )
-    ))
+      )))
     ) : (
       <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
     ))}
@@ -203,10 +207,16 @@ export default function Messages({ messages, info, group, onlineUsers, history }
             onClick={() => chatNow(msg.sender)}
             className="w-10 rounded-lg bg-gray-500 ">
             {msg.sender ? <img
-              src={`data:image/jpeg;base64,${getMemberPhoto(msg.sender)}`}
+              src={getMemberPhoto(msg.sender)}
               alt="Profile"
               className=""
-            /> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" className="relative left-1 top-1 text-gray-100 "                        >
+            /> : <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="24px"
+              height="24px"
+              className="relative left-1 top-1 text-gray-100 "                        >
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>}
           </div>
@@ -284,7 +294,8 @@ export default function Messages({ messages, info, group, onlineUsers, history }
               <div className="text-xs opacity-70 text-right">
                 {msg.time}
               </div>
-            </div>                            </div>
+            </div>
+          </div>
         ) : (msg.type === 'image' ? (
           <div className="bg-blue-500 text-white w-96 p-4 chat-bubble">
             <img
@@ -348,7 +359,9 @@ export default function Messages({ messages, info, group, onlineUsers, history }
     ))
     ) : (
       <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-    ))}
+    ))}{typingMembers&&
+      typingMembers.length
+    }
     <div ref={messagesEndRef}></div>
   </div>
   )

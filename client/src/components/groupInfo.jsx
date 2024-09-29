@@ -111,7 +111,7 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
                             <div className='avatar'>
                                 <div className='rounded-full w-10 h-10'>
                                     <img
-                                        src={`data:image/jpeg;base64,${member.imageData}`}
+                                        src={member.imageData}
                                         alt={`${groupDetails.admin.email}'s profile`}
                                         className="h-full w-full"
                                     />

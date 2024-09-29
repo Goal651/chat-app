@@ -54,7 +54,7 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
                         <div className="avatar">
                             <div className="w-16 rounded-full">
                                 {group.imageData ? (
-                                    <img src={`data:image/jpeg;base64,${group.imageData}`} alt="Fetched Image" className="" />
+                                    <img src={group.imageData} alt="Fetched Image" className="" />
                                 ) : (
                                     <img src="/nopro.png" alt="No Image" className="h-14" />
                                 )}

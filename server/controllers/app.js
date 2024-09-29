@@ -146,9 +146,8 @@ const getUsers = async (req, res) => {
             let imageData = "";
             if (user.image) {
                 try {
-                    const imagePath = path.join(uploadsDir, user.image);
-                    const data = await fs.promises.readFile(imagePath);
-                    imageData = data.toString('base64');
+                    const imagePath = await readImage(user.image);
+                    imageData =imagePath;
                 } catch (err) {
                     console.error(`Error reading image for user ${user.email}:`, err);
                 }
@@ -218,7 +217,7 @@ const createGroup = async (req, res) => {
             admin,
             image,
             members: [{ email: admin, role: 'admin' }],
-            aesKey: aesKey.toString('hex'), 
+            aesKey: aesKey.toString('hex'),
             iv: iv.toString('hex'),
             encryptedPrivateKey
         });
@@ -318,7 +317,7 @@ const readImage = async (imagePath) => {
     try {
         const fullPath = path.join(uploadsDir, imagePath);
         const imageBuffer = await fs.promises.readFile(fullPath);
-        return imageBuffer.toString('base64');
+        return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
     } catch (err) {
         console.error('Error reading image:', err);
         return null;
@@ -347,12 +346,12 @@ const addMember = async (req, res) => {
 
 const fileUpload = async (req, res) => {
     const { name, totalchunks, currentchunk } = req.headers;
-    const filename=decodeURIComponent(name);
+    const filename = decodeURIComponent(name);
     const { file } = req.body;
     const firstChunk = parseInt(currentchunk) === 0;
     const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
     const ext = filename.split('.').pop();
-    const data = file.split(',')[1]; 
+    const data = file.split(',')[1];
     const buffer = Buffer.from(data, 'base64');
     const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
     const tmpFilepath = path.join(__dirname, '../uploads/messages/', tmpFilename);

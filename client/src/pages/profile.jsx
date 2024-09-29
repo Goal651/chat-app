@@ -81,7 +81,10 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                         <div className="avatar mb-4" onClick={handleImageClick}> {/* Add click handler */}
                             <div className="w-32 h-32 rounded-full border-4 border-primary">
                                 {userInfo.imageData ? (
-                                    <img src={`data:image/png;base64,${userInfo.imageData}`} alt="Fetched Image" className="rounded-full" />
+                                    <img
+                                        src={userInfo.imageData}
+                                        alt="Fetched Image"
+                                        className="rounded-full" />
                                 ) : (
                                     <div className="flex justify-center items-center h-full">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" viewBox="0 0 24 24">
@@ -136,13 +139,15 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
             )}
 
             {showFullImage && (
-                <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center" onClick={closeFullImageModal}>
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center border-4 border-red-600"
+                    onClick={closeFullImageModal}>
                     <div className="relative">
                         <img
-                            src={`data:image/png;base64,${userInfo.imageData}`}
+                            src={userInfo.imageData}
                             alt="Full Size Image"
                             className="max-h-screen max-w-screen rounded-lg"
-                            onClick={(e) => e.stopPropagation()} // Prevent modal close on image click
+                            onClick={(e) => e.stopPropagation()}
                         />
                         <button className="absolute top-2 right-2 btn btn-sm btn-circle btn-error" onClick={closeFullImageModal}>
                             ✕

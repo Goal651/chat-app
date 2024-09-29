@@ -139,7 +139,7 @@ const getMessage = async (req, res) => {
         try {
           const filePath = path.join(message.message);
           const data = await fs.readFile(filePath);
-          fileData = `data:audio/mpeg;base64,${data.toString('base64')}`;
+          fileData = `data:audio/mp3;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
       return { ...message._doc, message: decryptedMessage, file: fileData };

@@ -25,12 +25,10 @@ export default function Sender({ socket, theme }) {
     const [recording, setRecording] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0); // Progress in %
     const [timeRemaining, setTimeRemaining] = useState(null); // Time remaining in seconds
-    const [fileUrl, setFileUrl] = useState(null)
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
         if (!socket) return;
-
         if (message.trim() !== "") {
             if (user) {
                 socket.emit("send_message", { receiver: friend, message });
@@ -56,7 +54,7 @@ export default function Sender({ socket, theme }) {
         if (!fileMessage) return;
         const chunkSize = 50 * 1024;
         let fileName = fileMessage.name
-        if(!fileMessage.name) fileName=`${Date.now()}.mp3`
+        if (!fileMessage.name) fileName = `${Date.now()}.mp3`
         const totalChunks = Math.ceil(fileMessage.size / chunkSize);
         const reader = new FileReader();
         const from = currentChunk * chunkSize;
@@ -131,8 +129,10 @@ export default function Sender({ socket, theme }) {
                 setFilePreview(URL.createObjectURL(file));
                 setFileMessage(file);
                 socket.emit('typing', { receiver: friend });
+
             }
         } else {
+            socket.emit('member_typing', { group: name });
             setMessage(value);
             socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
         }
@@ -279,8 +279,8 @@ export default function Sender({ socket, theme }) {
                                 !fileMessage?.type?.startsWith('video/') &&
                                 !fileMessage?.type?.startsWith('audio/')) &&
                                 <DocViewer
-                                    documents={[{ 
-                                        uri: filePreview 
+                                    documents={[{
+                                        uri: filePreview
                                     }]}
                                 />}
                         </div>

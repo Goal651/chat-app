@@ -22,7 +22,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     const navigate = useNavigate()
     const [scrollToBottom, setScrollToBottom] = useState(false)
     const [history, setHistory] = useState([])
-    const [typingMember, setTypingMember] = useState([])
+    const [typingMembers, setTypingMembers] = useState([])
     const [typing, setTyping] = useState(false)
     const [group, setGroup] = useState([])
     const [localStream, setLocalStream] = useState(null);
@@ -91,7 +91,10 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
 
         const handleTyping = ({ group, member }) => {
             if (group === selectedGroup) {
-                setTypingMember((prevTypingMember) => [...prevTypingMember, member])
+                setTypingMembers((prev) => {
+                    if (!prev.includes(member)) return [...prev, member]
+                    return prev
+                })
             }
             else setTyping(false)
             setScrollToBottom(true)
@@ -313,7 +316,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     useEffect(() => {
         const getOnlineMembers = () => {
             if (!onlineUsers) return 0;
-            const result= onlineUsers.filter(u => u !== Cookies.get('user')).length;
+            const result = onlineUsers.filter(u => u !== Cookies.get('user')).length;
             setLou(result)
         };
         getOnlineMembers()
@@ -344,7 +347,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                         <div className="avatar ">
                             <div className="h-14 w-14 rounded-full ">
                                 {group.imageData ? <img
-                                    src={`data:image/jpeg;base64,${group.imageData}`}
+                                    src={group.imageData}
                                     alt="Profile"
                                     className="h-full w-full object-cover"
                                 />
@@ -390,7 +393,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 </div>
             </div>
 
-            {/* Messages */}
             <div
                 className={`h-full w-full overflow-y-auto p-4 `}
             >
@@ -400,18 +402,8 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                     history={history}
                     group={group}
                     onlineUsers={onlineUsers}
+                    typingMembers={typingMembers}
                 />}
-
-                {typing && typingMember.length > 0 && (
-                    <div className="flex justify-start mb-2">
-                        <div className="bg-white text-gray-800 rounded-lg p-2 max-w-xs">
-                            {group.members.map((tm) => (
-                                typingMember.includes(tm.email) && <div key={tm._id}>{tm.username} typing</div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef}></div>
             </div>
 
             <Sender socket={socket} />
