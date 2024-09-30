@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
@@ -12,7 +10,7 @@ import DocViewer from 'react-doc-viewer'
 
 
 export default function Sender({ socket, theme }) {
-    const { user, name } = useParams();
+    const { friend_name, group_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [fileName, setFileName] = useState(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -30,15 +28,14 @@ export default function Sender({ socket, theme }) {
         e.preventDefault();
         if (!socket) return;
         if (message.trim() !== "") {
-            if (user) {
+            if (friend_name) {
                 socket.emit("send_message", { receiver: friend, message });
             }
-            if (name) {
+            if (group_name) {
                 const newMessage = {
-                    sender: user,
                     type: 'text',
                     message,
-                    group: name,
+                    group: group_name,
                     time: new Date().toISOString().slice(11, 16),
                     seen: [],
                 };
@@ -48,7 +45,7 @@ export default function Sender({ socket, theme }) {
         setMessage("");
         setShowEmojiPicker(false);
         socket.emit("not_typing", { receiver: friend });
-    }, [message, socket, friend, user, name]);
+    }, [message, socket, friend, friend_name, group_name]);
 
     const readAndUploadCurrentChunk = async (currentChunk = 0) => {
         if (!fileMessage) return;
@@ -79,9 +76,7 @@ export default function Sender({ socket, theme }) {
                     setFileName(response.data.finalFileName);
                     setUploadProgress(100); // Mark as 100% completed
                     setTimeRemaining(0);
-                } else {
-                    readAndUploadCurrentChunk(currentChunk + 1);
-                }
+                } else readAndUploadCurrentChunk(currentChunk + 1);
             }).catch(error => {
                 console.error('Error uploading chunk:', error);
             });
@@ -94,15 +89,14 @@ export default function Sender({ socket, theme }) {
             const fileType = fileMessage?.type
             if ((fileName && fileMessage)) {
                 const newFileMessage = {
-                    sender: user,
-                    group: name || undefined,
+                    group: group_name || undefined,
                     receiver: friend || undefined,
                     fileType: fileType,
                     message: fileName,
                     preview: filePreview,
                     time: new Date().toISOString().slice(11, 16),
                 };
-                socket.emit(name ? 'send_group_file_message' : 'send_file_message', { message: newFileMessage });
+                socket.emit(group_name ? 'send_group_file_message' : 'send_file_message', { message: newFileMessage });
                 setFilePreview(null);
                 setFileMessage(null)
                 setFileName('')
@@ -110,7 +104,7 @@ export default function Sender({ socket, theme }) {
             }
         }
         sendDetailsToSocket();
-    }, [fileName, socket, user, name, friend, fileMessage, filePreview]);
+    }, [fileName, socket, friend_name, group_name, friend, fileMessage, filePreview]);
 
     const sendFileMessage = useCallback(async (e) => {
         e.preventDefault();
@@ -132,7 +126,7 @@ export default function Sender({ socket, theme }) {
 
             }
         } else {
-            socket.emit('member_typing', { group: name });
+            socket.emit('member_typing', { group: group_name });
             setMessage(value);
             socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
         }
@@ -219,7 +213,11 @@ export default function Sender({ socket, theme }) {
                         >
                             <path d="M21.44 11.05L12.41 20.07a5 5 0 01-7.07-7.07l8.42-8.41a3 3 0 014.24 4.24L10.59 16.76a1 1 0 01-1.42-1.42l7.07-7.07" />
                         </svg>
-                        <input type="file" onChange={handleChange} name="media" className="hidden" />
+                        <input
+                            type="file"
+                            onChange={handleChange}
+                            name="media"
+                            className="hidden" />
                     </label>
                     <button
                         type="button"

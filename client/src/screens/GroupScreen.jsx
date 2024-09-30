@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef, useCallback, } from "react";
 import Cookies from 'js-cookie';
@@ -18,7 +16,7 @@ function arrayBufferToBase64(buffer) {
 }
 
 export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFromScreen, friends }) {
-    const { name } = useParams()
+    const { group_name } = useParams()
     const navigate = useNavigate()
     const [scrollToBottom, setScrollToBottom] = useState(false)
     const [history, setHistory] = useState([])
@@ -48,25 +46,25 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     };
     useEffect(() => {
         const fetchGroup = async () => {
-            if (!name || !accessToken) return;
+            if (!group_name || !accessToken) return;
             const result = await fetch(`http://localhost:3001/getGroup/${name}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
             if (result.ok) setGroup(data.group);
             else navigate('/error');
         };
         fetchGroup();
-    }, [name, accessToken, navigate]);
+    }, [group_name, accessToken, navigate]);
 
 
     useEffect(() => {
         if (socket && history.length > 0) {
             socket.emit('mark_group_messages_seen', {
-                group: name,
+                group: group_name,
                 messages: history.map(msg => msg._id),
                 user: user,
             });
         }
-    }, [history, socket, name, user]);
+    }, [history, socket, group_name, user]);
 
     const handleScrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
@@ -81,7 +79,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     }, [scrollToBottom, handleScrollToBottom]);
 
     useEffect(() => {
-        if (!socket || !name) return;
+        if (!socket || !group_name) return;
 
         const handleReceiveMessage = ({ message }) => {
             setHistory((prevHistory) => [...prevHistory, message,]);
@@ -135,7 +133,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         }
 
         const handleCallOffer = async ({ offer, sender, type }) => {
-            if (sender !== name) return;
+            if (sender !== group_name) return;
 
             setCallType(type);
             setIsCalling(true);
@@ -158,7 +156,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 await pc.setRemoteDescription(new RTCSessionDescription(offer));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
-
                 socket.emit('call-answer', { answer, sender });
             } catch (error) {
                 console.error("Error handling call offer:", error);
@@ -202,12 +199,12 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             socket.off('call-answer', handleCallAnswer);
             socket.off('ice-candidate', handleICECandidate);
         };
-    }, [socket, name]);
+    }, [socket, group_name]);
 
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                if (!name || !accessToken) return;
+                if (!group_name || !accessToken) return;
                 const response = await fetch(`http://localhost:3001/gmessage/${name}`, {
                     headers: { 'accessToken': `${accessToken}` }
                 })
@@ -227,7 +224,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         };
 
         fetchMessages();
-    }, [name, accessToken, navigate]);
+    }, [group_name, accessToken, navigate]);
 
 
     const sendDataToParent = () => {
@@ -288,7 +285,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            socket.emit('call-offer', { offer, receiver: name, type, });
+            socket.emit('call-offer', { offer, receiver: group_name, type, });
         } catch (error) {
             console.error("Error starting call:", error);
             endCall();
@@ -327,7 +324,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         localStorage.setItem('g_i', showingGroupInfo)
         sendDataToParent()
     }
-    if (!name) return null
+    if (!group_name) return null
     if (loading) return <div className="loading loading-spinner"></div>
 
     return (
@@ -356,7 +353,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 24 24"
                                         width="24"
-                                        height="24"><path fill={`${theme === 'dark' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
+                                        height="24">
+                                        <path fill={`${theme === 'dark' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" />
+                                    </svg>
                                 }
                             </div>
                         </div>
@@ -468,7 +467,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 </div>
             )}
 
-            {name && (<div>
+            {group_name && (<div>
                 <UserInfo friends={friends} />
             </div>)}
         </div>

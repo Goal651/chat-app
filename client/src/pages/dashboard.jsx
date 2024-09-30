@@ -24,7 +24,7 @@ const useSocket = (url) => {
 
 export default function Dashboard({ isMobile }) {
     const navigate = useNavigate();
-    const { name, user, type } = useParams();
+    const { friend_name, group_name, type } = useParams();
     const [friends, setFriends] = useState([]);
     const [groups, setGroups] = useState([]);
     const [notifications, setNotifications] = useState({});
@@ -96,8 +96,7 @@ export default function Dashboard({ isMobile }) {
         const handleOnlineUsers = data => setOnlineUsers(data)
         const handleIncomingMessage = (message) => {
             const { newMessage } = message
-            console.log(newMessage.sender !== selectedFriend)
-            if (!user && newMessage.sender !== selectedFriend) {
+            if (!friend_name && newMessage.sender !== selectedFriend) {
                 socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender })
             }
             const newNotifications = {
@@ -157,7 +156,6 @@ export default function Dashboard({ isMobile }) {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
-
             setFriends(sortByLatestMessage(data.users));
         } catch (error) {
             console.error("Error updating friends:", error);
@@ -267,7 +265,9 @@ export default function Dashboard({ isMobile }) {
                     dataFromGroupContent={handleDataFromGroupContent}
                 />
             ),
-            "create-group": <CreateGroup isMobile={isMobile} theme={theme} />,
+            "create-group": <CreateGroup
+                isMobile={isMobile}
+                theme={theme} />,
             chat: (
                 <ChatContent
                     friends={friends}
@@ -292,7 +292,7 @@ export default function Dashboard({ isMobile }) {
                 theme={theme} />,
         };
 
-        if (name)
+        if (group_name)
             return (
                 <GroupContent
                     groups={groups}
@@ -305,7 +305,7 @@ export default function Dashboard({ isMobile }) {
                     dataFromGroupContent={handleDataFromGroupContent}
                 />
             );
-        if (user)
+        if (friend_name)
             return (
                 <ChatContent
                     friends={friends}
@@ -323,7 +323,7 @@ export default function Dashboard({ isMobile }) {
         >
             <NotificationBanner details={notifications} />
             <Suspense fallback={<div>Loading...</div>}>
-                <div className={`${isMobile ? `${type || name || user ? "hidden" : ""}` : "w-1/12 h-full"}`}>
+                <div className={`${isMobile ? `${type || friend_name || group_name ? "hidden" : ""}` : "w-1/12 h-full"}`}>
                     <Navigation
                         socket={socket}
                         isMobile={isMobile}

@@ -7,7 +7,7 @@ import Cookies from 'js-cookie'
 
 export default function ChatContent({ friends, socket, isMobile, theme }) {
     const navigate = useNavigate()
-    const { user, type } = useParams()
+    const { friend_name, type } = useParams()
     const selectedFriend = localStorage.getItem('selectedFriend')
     const [friend, setFriend] = useState('')
     const [lastFriend, setLastFriend] = useState(null)
@@ -99,7 +99,7 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
         <div className="flex flex-ro rounded-xl bg-white">
             <div id="mobile"
                 style={{ height: '98vh' }}
-                className={`bg-transparent text-gray-800 flex flex-col  overflow-y-auto overflow-x-hidden  ${isMobile ? `${type ? `${user ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`} >
+                className={`bg-transparent text-gray-800 flex flex-col  overflow-y-auto overflow-x-hidden  ${isMobile ? `${type ? `${friend_name ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`} >
                 {isMobile && (<button onClick={navigateBackward}>←</button>)}
                 <input type="text" onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
                 <div>
@@ -163,7 +163,7 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                     )}</div>
             </div >
             <div
-                className={`overflow-hidden  ${isMobile ? `${user ? 'w-full' : 'hidden '}` : '  w-2/3'}`}
+                className={`overflow-hidden  ${isMobile ? `${friend_name ? 'w-full' : 'hidden '}` : '  w-2/3'}`}
                 style={{ height: '95vh' }}>
                 <ChatArea
                     socket={socket}

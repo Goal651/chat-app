@@ -10,7 +10,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NotFound = lazy(() => import('./pages/Build'));
 
 export default function App() {
-  const isMobile = useMediaQuery({ query: '(max-width: 760px)' });
+  const isMobile = useMediaQuery({ query: '(max-width: 800px)' });
   return (
     <div className="h-screen">
       <Router>
@@ -23,8 +23,8 @@ export default function App() {
             <Route path='/login' element={<Login isMobile={isMobile} />} />
             <Route path='/signup' element={<Signup isMobile={isMobile} />} />
             <Route path='/' element={<Dashboard isMobile={isMobile} />} />
-            <Route path='/chat/:user' element={<Dashboard isMobile={isMobile} />} />
-            <Route path='/group/:name' element={<Dashboard isMobile={isMobile} />} />
+            <Route path='/chat/:friend_name' element={<Dashboard isMobile={isMobile} />} />
+            <Route path='/group/:group_name' element={<Dashboard isMobile={isMobile} />} />
             <Route path='/:type' element={<Dashboard isMobile={isMobile} />} />
             <Route path='*' element={<NotFound />} />
             <Route path='/testing' element={<Test />} />

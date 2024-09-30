@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
 
 export default function  GroupInfo  ({ theme, groupInfo,  })  {
-    const { name } = useParams();
+    const { group_name } = useParams();
     const navigate = useNavigate();
     const accessToken = Cookies.get('accessToken');
     const [groupDetails, setGroupDetails] = useState(null);
@@ -14,8 +14,8 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
 
     useEffect(() => {
         if (groupInfo) setGroupDetails(groupInfo);
-        else fetchGroupDetails(name);
-    }, [name, groupInfo]);
+        else fetchGroupDetails(group_name);
+    }, [group_name, groupInfo]);
 
 
     const fetchGroupDetails = async (name) => {
@@ -32,9 +32,9 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
     const handleAddMember = async () => {
         if (newMember.trim()) {
             try {
-                await addMember(name, newMember.trim());
+                await addMember(group_name, newMember.trim());
                 setNewMember('');
-                fetchGroupDetails(name)
+                fetchGroupDetails(group_name)
             } catch (error) { navigate('/error') }
         }
     };
@@ -57,12 +57,13 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
         }
         else if (response.ok) return data
         else navigate('/error')
-    };
+    }
+
     const handleEditing = async () => {
         const fileInput = document.getElementById('file')
         fileInput.click()
-
     }
+
     const handleChange = (e) => {
         const { name, value, files } = e.target
         if (name === 'file') {
@@ -82,14 +83,14 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
             const formDataToSend = new FormData();
             formDataToSend.append("image", file);
             if (!file) return
-            const response = await fetch(`http://localhost:3001/updateGroupProfile/${name}`, {
+            const response = await fetch(`http://localhost:3001/updateGroupProfile/${group_name}`, {
                 headers: { 'accessToken': `${accessToken}` },
                 body: formDataToSend,
                 method: 'PUT'
             })
             if (response.status === 200) {
                 handleCancel()
-                fetchGroupDetails(name)
+                fetchGroupDetails(group_name)
             }
 
         } catch (err) { console.error(err) }

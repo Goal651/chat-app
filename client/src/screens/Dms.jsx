@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
 import Cookies from 'js-cookie';
@@ -18,7 +17,7 @@ function arrayBufferToBase64(buffer) {
 
 export default function DMArea({ socket, isMobile, theme }) {
     const navigate = useNavigate();
-    const { user } = useParams();
+    const { friend_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [lastMessage, setLastMessage] = useState("");
     const [history, setHistory] = useState([]);
@@ -78,7 +77,7 @@ export default function DMArea({ socket, isMobile, theme }) {
 
     useEffect(() => {
         const isLastMessage = () => {
-            if (!user) return
+            if (!friend_name) return
             if (!history) return
             const lastM = history[history.length - 1]
             if (lastM && lastM.sender === friend) {
@@ -86,10 +85,10 @@ export default function DMArea({ socket, isMobile, theme }) {
             }
         }
         isLastMessage()
-    }, [history, friend, user, navigate])
+    }, [history, friend, friend_name, navigate])
 
     useEffect(() => {
-        if (!user) return;
+        if (!friend_name) return;
         const fetchUserDetails = async () => {
             try {
                 const response = await fetch(`http://localhost:3001/getUser/${friend}`, {
@@ -107,7 +106,7 @@ export default function DMArea({ socket, isMobile, theme }) {
             }
         };
         fetchUserDetails();
-    }, [friend, user, navigate, accessToken]);
+    }, [friend, friend_name, navigate, accessToken]);
 
 
 
@@ -131,9 +130,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         };
 
         const handleMessageSent = ({ newMessage }) => {
-            console.log(newMessage)
             setHistory((prevHistory) => [...prevHistory, newMessage]);
-            console.log(user)
         };
 
         const handleMessageSeen = ({ messageId }) => {
@@ -216,10 +213,10 @@ export default function DMArea({ socket, isMobile, theme }) {
             socket.off('ice-candidate', handleICECandidate);
             socket.off('receive_file', handleReceiveMessage)
         };
-    }, [socket, friend, user, peerConnection]);
+    }, [socket, friend, friend_name, peerConnection]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!friend_name) return;
         const fetchMessages = async () => {
             try {
                 const response = await fetch(`http://localhost:3001/message?receiver=${friend}`, {
@@ -234,7 +231,7 @@ export default function DMArea({ socket, isMobile, theme }) {
             }
         };
         fetchMessages();
-    }, [friend, user, navigate, accessToken]);
+    }, [friend,friend_name, navigate, accessToken]);
 
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend');
@@ -314,7 +311,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         setCallType(null);
     };
 
-    if (!user) return null
+    if (!friend_name) return null
     if (loading) return <div className="loading loading-spinner"></div>
     return (
         <div className="flex flex-col h-full" >

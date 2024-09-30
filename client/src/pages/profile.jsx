@@ -11,8 +11,8 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
     const [profile, setProfile] = useState(null);
     const [imagePreview, setImagePreview] = useState("");
     const [editing, setEditing] = useState(false);
-    const [showFullImage, setShowFullImage] = useState(false); // State for full-size image modal
-    const cropperRef = useRef(null); // Reference to the cropper instance
+    const [showFullImage, setShowFullImage] = useState(false)
+    const cropperRef = useRef(null); 
 
     useEffect(() => { if (!accessToken) navigate("/login") }, [navigate, accessToken]);
 

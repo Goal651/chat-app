@@ -45,57 +45,6 @@ const getPrivateKeyFromConfig = async (email) => {
   }
 };
 
-const getSingleMessage = async (req, res) => {
-  try {
-    const { messageId } = req.params;
-    const { sender } = req.body;
-    const receiver = req.user;
-    if (!messageId || !sender || !receiver) return res.status(400).json({ message: 'Message ID, sender, and receiver are required' });
-    const message = await Message.findOne({ _id: messageId, $or: [{ sender, receiver }, { sender: receiver, receiver: sender }] });
-    if (!message) return res.status(404).json({ message: 'Message not found' });
-
-    const recipient = message.receiver;
-    const user = await User.findOne({ email: recipient });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    const encryptedPrivateKey = await getPrivateKeyFromConfig(recipient);
-    const privateKey = decryptPrivateKey(encryptedPrivateKey);
-    if (!privateKey) return res.status(500).json({ message: 'Error decrypting message' });
-
-    let decryptedMessage = '';
-    let fileData = null;
-
-    if (message.type === 'text') {
-      try {
-        decryptedMessage = await decryptMessage(privateKey, message.message);
-      } catch (error) {
-        console.error('Error decrypting message:', error);
-        decryptedMessage = 'Error decrypting message';
-      }
-    } else if (message.type.startsWith('image')) {
-      try {
-        const filePath = path.join(message.message);
-        const data = await fs.readFile(filePath);
-        fileData = `data:image/jpeg;base64, ${data.toString('base64')}`;
-      } catch (err) {
-        console.error('Error reading image file:', err);
-      }
-    } else if (message.type.startsWith('video')) {
-      try {
-        const filePath = path.join(message.message);
-        const data = await fs.readFile(filePath);
-        fileData = `data:video/mp4;base64,${data.toString('base64')}`;
-      } catch (err) {
-        console.error('Error reading video file:', err);
-      }
-    }
-
-    return res.status(200).json({ ...message._doc, message: decryptedMessage, file: fileData });
-  } catch (error) {
-    console.error('Error retrieving message:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
 
 const getMessage = async (req, res) => {
   try {
@@ -149,83 +98,7 @@ const getMessage = async (req, res) => {
     res.sendStatus(500);
     console.log(error);
   }
-};
-
-
-const getSingleGMessage = async (req, res) => {
-  try {
-    const { messageId } = req.params; // Assume the message ID is passed in the URL parameters
-    const { group } = req.query;
-
-    if (!messageId || !group) {
-      return res.status(400).json({ message: 'Message ID and group are required' });
-    }
-
-    // Find the single group message based on the message ID and group
-    const gmessage = await GMessage.findOne({ _id: messageId, group });
-    if (!gmessage) {
-      return res.status(404).json({ message: 'Group message not found' });
-    }
-
-    const senderUser = await User.findOne({ email: gmessage.sender });
-    if (!senderUser) {
-      return res.status(404).json({ message: 'Sender not found' });
-    }
-
-    const senderUsername = senderUser.username;
-    const encryptedPrivateKey = await getPrivateKeyFromConfig(gmessage.sender);
-    const privateKey = decryptPrivateKey(encryptedPrivateKey);
-
-    if (!privateKey) {
-      return res.status(500).json({ message: 'Error decrypting message' });
-    }
-
-    let decryptedMessage = '';
-    let fileData = null;
-
-    if (gmessage.type === 'text') {
-      try {
-        decryptedMessage = await decryptMessage(privateKey, gmessage.message);
-      } catch (error) {
-        console.error('Error decrypting message:', error);
-        decryptedMessage = 'Error decrypting message';
-      }
-    } else if (gmessage.type.startsWith('image')) {
-      try {
-        const filePath = path.join(gmessage.message);
-        const data = await fs.readFile(filePath);
-        fileData = `data:image/jpeg;base64,${data.toString('base64')}`;
-      } catch (err) {
-        console.error('Error reading image file:', err);
-      }
-    } else if (gmessage.type.startsWith('video')) {
-      try {
-        const filePath = path.join(gmessage.message);
-        const data = await fs.readFile(filePath);
-        fileData = `data:video/mp4;base64,${data.toString('base64')}`;
-      } catch (err) {
-        console.error('Error reading video file:', err);
-      }
-    }
-    else if (gmessage.type.startsWith('audio')) {
-      try {
-        const filePath = path.join(gmessage.message);
-        const data = await fs.readFile(filePath);
-        console.log(data)
-        fileData = `data:audio/mp3;base64,${data.toString('base64')}`;
-      } catch (err) {
-        console.error('Error reading audio file:', err);
-      }
-    }
-
-    return res.status(200).json({ ...gmessage._doc, senderUsername, message: decryptedMessage, file: fileData });
-  } catch (error) {
-    console.error('Error retrieving group message:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-
+}
 
 const getGMessage = async (req, res) => {
   const { group } = req.params;
@@ -256,7 +129,7 @@ const getGMessage = async (req, res) => {
           image = data.toString('base64');
         } catch (err) { console.log(`Error reading image for user:`, err) }
       }
-      return { ...gm._doc, senderUsername, image:`data:image/jpeg;base64,${image}`, message: decryptedMessage };
+      return { ...gm._doc, senderUsername, image: `data:image/jpeg;base64,${image}`, message: decryptedMessage };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {
@@ -271,7 +144,7 @@ const deleteMessage = async (req, res) => {
     if (!id) return res.sendStatus(400)
     const result = await Message.findByIdAndDelete(id)
     if (!result) return res.sendStatus(500)
-    res.sendStatus(200).json({ messageDeleted: id })
+    res.status(200).json({ messageDeleted: id })
   }
   catch (err) { res.sendStatus(500) }
 }
@@ -279,8 +152,8 @@ const deleteMessage = async (req, res) => {
 const editMessage = async (req, res) => {
   try {
     const { id, message } = await req.body
-    if (!id) return res.sendStatus(400)
-    const result = await Message.updateOne({ id }, { message })
+    if (!id && !message) return res.sendStatus(400)
+    const result = await Message.updateOne({ id }, { message: message, edited: true })
     if (!result) return res.sendStatus(500)
     res.status(200).json({})
   } catch (err) { console.error(err) }
@@ -293,6 +166,4 @@ module.exports = {
   getGMessage,
   deleteMessage,
   editMessage,
-  getSingleMessage,
-  getSingleGMessage
 };

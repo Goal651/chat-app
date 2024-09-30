@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
     lastActiveTime: { type: Date, default: Date.now },
     groups: [{ type: String, required: true }],
     unreads: [{ sender: String, message: String, timestamp: Date }],
-    publicKey:String
+    publicKey: String
 });
 
 const groupSchema = mongoose.Schema({
@@ -18,9 +18,9 @@ const groupSchema = mongoose.Schema({
     admin: { type: String, required: true },
     image: String,
     members: [{ email: String, role: { type: String, default: '' } }],
-    aesKey:String,
-    iv:String,
-    encryptedPrivateKey:String,
+    aesKey: String,
+    iv: String,
+    encryptedPrivateKey: String,
     createdAt: { type: Date, default: Date.now, index: true }
 });
 
@@ -35,6 +35,8 @@ const messageSchema = mongoose.Schema({
     message: { type: String, required: true, },
     receiver: { type: String, required: true },
     seen: { type: Boolean, default: false },
+    edited: { type: Boolean, default: false },
+    reactions: [{ type: String, default: '' }],
     type: { type: String, required: true },
     time: { type: String, required: true },
     timestamp: { type: Date, default: Date.now }

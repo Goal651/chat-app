@@ -3,14 +3,24 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Cookies from 'js-cookie'
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
 
-export default function Messages({ messages, info, group, onlineUsers, history,typingMembers }) {
-
+export default function Messages({ messages, info, group, onlineUsers, history, typingMembers }) {
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
   const [scrollToBottom, setScrollToBottom] = useState(false);
-  const { name, user } = useParams()
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const { group_name, friend_name } = useParams()
   const navigate = useNavigate()
+  const accessToken = Cookies.get('accessToken')
+  const [reaction, setReaction] = useState(null)
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    messageId: null,
+  });
 
   const handleScrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -21,25 +31,50 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
 
   useEffect(() => handleScrollToBottom(), [scrollToBottom, handleScrollToBottom]);
 
+  const handleContextMenu = (e, msgId) => {
+    e.preventDefault();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      messageId: msgId,
+    });
+  };
 
-  const handleAuxClick = (e) => {
-    e.preventDefault()
-    alert('hello')
-  }
+  const handleClickOutside = () => {
+    if (contextMenu.visible) {
+      setContextMenu({ ...contextMenu, visible: false });
+    }
+  };
+
+  const addEmoji = (emoji) => {
+    setReaction((prevMessage) => prevMessage + emoji.native);
+    setShowEmojiPicker(false)
+  };
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(!showEmojiPicker);
+  };
+
+  useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [contextMenu]);
 
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const isLink = (message) => {
     const match = message.match(urlRegex);
     if (match) {
       const link = match[0];
-      const data = message.replace(link, `<a href="${link}" target="_blank">
-        ${link}
-        </a>`)
+      const data = message.replace(link, `<a href="${link}" target="_blank">${link} </a>`)
       return data
-    } else {
-      return message;
-    }
+    } else return message;
+
   };
+
+
 
   const getMemberPhoto = (data) => {
     let image;
@@ -47,8 +82,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
     if (group && group.members && group.members.length > 0) {
       const member = group.members.filter(member => member.email === data)[0]
       image = member.imageData
-    }
-    return image
+    } return image
   }
 
   const getMemberName = (data) => {
@@ -70,11 +104,66 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
     localStorage.setItem('selectedFriend', `${friend}`)
   }, [navigate])
 
+  const handleDeleteMessage = async (id) => {
+    if (!id) return
+    const response = await fetch(`http://localhost:3001/deleteMessage/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'accessToken': accessToken,
+      },
+    })
+    const data = await response.json()
+    console.log(data)
+  }
+
+  const renderContextMenu = () => {
+    if (!contextMenu.visible) return null;
+
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: `${contextMenu.y}px`,
+          left: `${contextMenu.x}px`,
+          padding: "10px",
+          zIndex: 1000,
+        }}
+      >
+        <ul className="*:text-sm menu bg-base-200 rounded-box w-40">
+          <li>
+            <button onClick={toggleEmojiPicker}>React</button>
+          </li>
+
+          <li
+            onClick={() => handleEditMessage(contextMenu.messageId)}>
+            <button >Edit</button>
+          </li>
+          <li
+            onClick={() => handleDeleteMessage(contextMenu.messageId)}
+          >
+            <button
+              className=""
+            >Delete</button>
+          </li>
+        </ul>
+      </div>
+    );
+  };
 
 
 
   return (<div className="">
-    {user && (messages && messages.length > 0 ? (messages.map((msg) => (
+    {renderContextMenu()}
+
+    {showEmojiPicker && (
+      <div className="absolute bottom-20">
+        <Picker
+          data={data}
+          onEmojiSelect={addEmoji}
+          theme="light" />
+      </div>
+    )}
+    {friend_name && (messages && messages.length > 0 ? (messages.map((msg) => (
       msg.sender === friend ? (
         <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
           <div className="chat-image avatar">
@@ -97,9 +186,23 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
           </div>
           {msg.type === 'text' && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
-              <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+              <div
+                className="max-w-96 h-auto break-words text-sm font-semibold"
+                dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+              <div className="float-left flex" >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                  <circle cx="50" cy="50" r="40" stroke="#FFF" strokeWidth="5" fill="none" />
+                  <circle cx="40" cy="40" r="5" fill="#FFF" />
+                  <circle cx="60" cy="40" r="5" fill="#FFF" />
+                  <path d="M40 60 Q50 70 60 60" stroke="#FFF" strokeWidth="5" fill="none" />
+                  <circle cx="75" cy="25" r="12" fill="none" stroke="#FFF" strokeWidth="5" />
+                  <line x1="75" y1="20" x2="75" y2="30" stroke="#FFF" strokeWidth="3" />
+                  <line x1="70" y1="25" x2="80" y2="25" stroke="#FFF" strokeWidth="3" />
+                </svg>
+
+              </div>
               <div className="flex float-right">
                 <div className="text-xs opacity-70 mt-1 text-right">
                   {msg.time}
@@ -108,7 +211,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
             </div>
           )}{msg.type.startsWith('image') && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className=" text-white w-96 p-4 rounded-xl">
               <img
                 src={msg.file}
@@ -119,7 +222,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
             </div>)}
           {msg.type.startsWith('video') && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className="bg-gray-500 text-white w-96 p-4 chat-bubble">
               <video
                 src={msg.file}
@@ -133,7 +236,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
           )}
           {msg.type.startsWith('audio') && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className=" text-white w-96 p-4  bg-gray-200">
               <audio
                 src={msg.file}
@@ -149,7 +252,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
         <div key={msg._id} className={`chat chat-end rounded-lg p-2  `} >
           {msg.type === 'text' && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className="max-w-96 min-w-24  h-auto bg-indigo-500 text-white chat-bubble text-xs">
               <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
               <div className="text-xs opacity-70 mt-1 text-right">
@@ -160,7 +263,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
           )}
           {msg.type.startsWith('image') && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className="text-white w-96 p-4 ">
               <img
                 src={msg.file}
@@ -170,7 +273,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
               <div className="relative bottom-5 right-4 text-right text-xs ">{msg.time}</div>
             </div>)}
           {msg.type.startsWith('video') && (<div
-            onAuxClick={handleAuxClick}
+            onContextMenu={(e) => handleContextMenu(e, msg._id)}
             className=" text-white w-96 p-4 rounded-lg bg-black">
             <video
               src={msg.file}
@@ -184,7 +287,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
           )}
           {msg.type.startsWith('audio') && (
             <div
-              onAuxClick={handleAuxClick}
+              onContextMenu={(e) => handleContextMenu(e, msg._id)}
               className="text-white w-96 p-4 rounded-lg  ">
               <audio
                 controls
@@ -200,7 +303,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
     ))}
 
 
-    {name && (history && history.length > 0 ? (history.map((msg) => (msg.sender !== Cookies.get('user') ? (
+    {group_name && (history && history.length > 0 ? (history.map((msg) => (msg.sender !== Cookies.get('user') ? (
       <div key={msg._id} className={` chat chat-start rounded-lg p-2  `} >
         <div className={`chat-image avatar  ${isOnline(msg.sender) ? 'online' : 'offline'}`}>
           <div
@@ -359,7 +462,7 @@ export default function Messages({ messages, info, group, onlineUsers, history,t
     ))
     ) : (
       <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-    ))}{typingMembers&&
+    ))}{typingMembers && typingMembers.length > 0&&group_name &&
       typingMembers.length
     }
     <div ref={messagesEndRef}></div>

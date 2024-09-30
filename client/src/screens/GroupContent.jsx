@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-/* eslint-disable no-unused-vars */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
@@ -11,7 +10,7 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
     const [group, setGroup] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const accessToken = useMemo(() => Cookies.get('accessToken'), []);
-    const { type, name } = useParams();
+    const { type, group_name } = useParams();
     const currentUser = useMemo(() => Cookies.get('user'), []);
 
     useEffect(() => {
@@ -54,9 +53,15 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
                         <div className="avatar">
                             <div className="w-16 rounded-full">
                                 {group.imageData ? (
-                                    <img src={group.imageData} alt="Fetched Image" className="" />
+                                    <img
+                                        src={group.imageData}
+                                        alt="Fetched Image"
+                                        className="" />
                                 ) : (
-                                    <img src="/nopro.png" alt="No Image" className="h-14" />
+                                    <img
+                                        src="/nopro.png"
+                                        alt="No Image"
+                                        className="h-14" />
                                 )}
                             </div>
                         </div>
@@ -100,7 +105,7 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
                 style={{ height: '98vh' }}
                 className={` text-gray-800  flex flex-col overflow-y-auto overflow-x-hidden 
                     ${isMobile ?
-                        `${type ? `${name ? 'hidden' : 'w-full'}` : 'hidden'}` :
+                        `${type ? `${group_name ? 'hidden' : 'w-full'}` : 'hidden'}` :
                         'w-1/3'}`}
             >
                 {isMobile && <button onClick={navigateBackward}>←</button>}
@@ -115,7 +120,7 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
                 <div>{memoizedGroups}</div>
             </div>
             <div
-                className={`overflow-hidden ${isMobile ? `${name ? 'w-full' : 'hidden '}` : 'w-2/3'}`}
+                className={`overflow-hidden ${isMobile ? `${group_name ? 'w-full' : 'hidden '}` : 'w-2/3'}`}
                 style={{ height: '98vh' }}
             >
                 <GroupArea
