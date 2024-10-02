@@ -1,7 +1,7 @@
 import  { useState } from 'react';
 import { ReactMic } from 'react-mic';
 
-export default function AudioRecorder() {
+export default function Testing() {
     const [record, setRecord] = useState(false);
     const [audioURL, setAudioURL] = useState('');
 
