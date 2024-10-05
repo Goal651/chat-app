@@ -42,7 +42,11 @@ const checkUser = async (req, res, next) => {
             const newAccessToken = refreshToken(decodedToken.email)
             return res.status(401).json({ newToken: newAccessToken })
         }
-        if (err) return res.sendStatus(403);
+        if (err) {
+            res.sendStatus(403)
+            console.log(err)
+            return
+        }
         req.user = user.email;
         req.id = user.id;
         next();
@@ -53,7 +57,7 @@ const checkUser = async (req, res, next) => {
 
 //Authentication
 router.post('/login', login)
-router.get('/', (req,res)=>{
+router.get('/', (req, res) => {
     res.sendStatus(200)
 })
 

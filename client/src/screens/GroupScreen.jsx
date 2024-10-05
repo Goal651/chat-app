@@ -7,14 +7,6 @@ import Messages from "../components/Message";
 import Sender from "../components/Sender";
 
 
-function arrayBufferToBase64(buffer) {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]) }
-    return window.btoa(binary);
-}
-
 export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFromScreen, friends }) {
     const { group_name } = useParams()
     const navigate = useNavigate()
@@ -22,7 +14,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     const [history, setHistory] = useState([])
     const [typingMembers, setTypingMembers] = useState([])
     const [typing, setTyping] = useState(false)
-    const [group, setGroup] = useState([])
+    const [group, setGroup] = useState({})
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
     const [peerConnection, setPeerConnection] = useState(null);
@@ -47,10 +39,17 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     useEffect(() => {
         const fetchGroup = async () => {
             if (!group_name || !accessToken) return;
-            const result = await fetch(`http://localhost:3001/getGroup/${name}`, { headers: { 'accessToken': `${accessToken}` } });
+            const result = await fetch(`http://localhost:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
-            if (result.ok) setGroup(data.group);
-            else navigate('/error');
+            if (result.ok) {console.log(data)
+                if (data.group == null) {
+                    
+                    localStorage.removeItem('selectedGroup')
+                    navigate('/group')
+                    return
+                }
+                else setGroup(data.group)
+            } else navigate('/error');
         };
         fetchGroup();
     }, [group_name, accessToken, navigate]);
@@ -205,7 +204,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         const fetchMessages = async () => {
             try {
                 if (!group_name || !accessToken) return;
-                const response = await fetch(`http://localhost:3001/gmessage/${name}`, {
+                const response = await fetch(`http://localhost:3001/gmessage/${group_name}`, {
                     headers: { 'accessToken': `${accessToken}` }
                 })
                 const data = await response.json();
@@ -325,6 +324,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         sendDataToParent()
     }
     if (!group_name) return null
+    if (Object.keys(group).length === 0) return null
     if (loading) return <div className="loading loading-spinner"></div>
 
     return (

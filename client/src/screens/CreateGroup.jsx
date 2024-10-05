@@ -18,7 +18,7 @@ export default function CreateGroup({ isMobile }) {
             const file = files[0];
             setImage(file);
             setImagePreview(URL.createObjectURL(file))
-        } else setGroup( value );
+        } else setGroup(value);
     };
 
     const sendData = async (e) => {
@@ -30,10 +30,16 @@ export default function CreateGroup({ isMobile }) {
             const response = await fetch("http://localhost:3001/create-group", { headers: { 'accessToken': ` ${accessToken}` }, method: "POST", body: formDataToSend })
             if (response.ok) navigate('/group');
             else if (response.status === 400) navigate('/group');
-            else if (response.status === 404) alert('no stop there');
-            else throw new Error("Something went wrong");
+            else if (response.status === 401) {
+                const newToken = await response.json();
+                Cookies.set("accessToken", newToken.newToken);
+            } else if (response.status === 403) {
+                Cookies.remove('accessToken')
+                navigate("/login")
+            } else console.log("Something went wrong");
         } catch (error) { navigate('/error') }
     };
+
 
     const handleCancel = () => {
         setImagePreview('')
@@ -42,7 +48,7 @@ export default function CreateGroup({ isMobile }) {
     const handleDrop = (e) => {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
-        setImage( file );
+        setImage(file);
         setImagePreview(URL.createObjectURL(file));
     }
     const handleDragOver = e => e.preventDefault()

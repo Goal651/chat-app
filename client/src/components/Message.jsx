@@ -154,7 +154,6 @@ export default function Messages({ messages, info, group, onlineUsers, history, 
 
   return (<div className="">
     {renderContextMenu()}
-
     {showEmojiPicker && (
       <div className="absolute bottom-20">
         <Picker
@@ -462,7 +461,7 @@ export default function Messages({ messages, info, group, onlineUsers, history, 
     ))
     ) : (
       <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
-    ))}{typingMembers && typingMembers.length > 0&&group_name &&
+    ))}{typingMembers && typingMembers.length > 0 && group_name &&
       typingMembers.length
     }
     <div ref={messagesEndRef}></div>

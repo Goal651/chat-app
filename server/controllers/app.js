@@ -147,7 +147,7 @@ const getUsers = async (req, res) => {
             if (user.image) {
                 try {
                     const imagePath = await readImage(user.image);
-                    imageData =imagePath;
+                    imageData = imagePath;
                 } catch (err) {
                     console.error(`Error reading image for user ${user.email}:`, err);
                 }
@@ -199,19 +199,14 @@ const createGroup = async (req, res) => {
         const admin = req.user;
         const existingGroup = await Group.findOne({ name });
         if (existingGroup) return res.sendStatus(400);
-
         const aesKey = crypto.randomBytes(AES_KEY_LENGTH);
-
         const privateKey = crypto.randomBytes(32).toString('hex'); // Example private key generation
-
         const iv = crypto.randomBytes(16);
         const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
         let encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex');
         encryptedPrivateKey += cipher.final('hex');
-
         let image = '';
         if (req.file) image = req.file.path;
-
         const newGroup = new Group({
             name,
             admin,
@@ -221,25 +216,8 @@ const createGroup = async (req, res) => {
             iv: iv.toString('hex'),
             encryptedPrivateKey
         });
-
         const savedGroup = await newGroup.save();
         if (!savedGroup) return res.sendStatus(500);
-
-        const privateKeyPath = path.join(__dirname, '../group_keys.json');
-        let existingKeys = {};
-        try {
-            const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
-            existingKeys = JSON.parse(fileContent);
-        } catch (err) {
-            console.error('Could not read existing keys file, creating a new one.', err);
-        }
-
-        existingKeys[name] = {
-            aesKey: aesKey.toString('hex'),
-            iv: iv.toString('hex'),
-            encryptedPrivateKey
-        };
-        await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
         await User.updateOne({ email: admin }, { $push: { groups: name } });
         res.status(201).json(savedGroup);
     } catch (err) {
@@ -271,6 +249,7 @@ const getGroup = async (req, res) => {
         const details = await groupDetails(name)
         const group = await Group.findOne({ name });
         if (!group) return res.status(404).json({ group: null });
+        if (!group.members.some(user => user.email === req.user)) return res.status(200).json({ group: null });
         const members = await Promise.all(group.members.map(async (member) => {
             const user = await User.findOne({ email: member.email });
             if (!user) return null
