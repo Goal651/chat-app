@@ -1,8 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
-const { Message, GMessage, User } = require('../models/models');
-const e = require('express');
+const { Message, GMessage, User, Group } = require('../models/models');
 
 
 const decryptPrivateKey = (encryptedPrivateKey) => {
@@ -18,6 +17,28 @@ const decryptPrivateKey = (encryptedPrivateKey) => {
     throw err;
   }
 };
+
+const decryptGroupMessage = (data) => {
+  try {
+    const ivBuffer = Buffer.from(data.iv, 'hex')
+    const aesKeyBuffer = Buffer.from(data.privateKey, 'hex')
+    const encryptedMessage = Buffer.from(data.message, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+    let decryptedMessage = decipher.update(encryptedMessage, undefined, 'utf-8')
+    decryptedMessage += decipher.final('utf-8')
+    return decryptedMessage
+  } catch (err) { console.error(err) }
+}
+
+const decryptGroupPrivateKey = (data) => {
+  const ivBuffer = Buffer.from(data.iv, 'hex')
+  const aesKeyBuffer = Buffer.from(data.aesKey, 'hex')
+  const encryptedPrivateKeyBuffer = Buffer.from(data.encryptedPrivateKey, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+  let decryptedPrivateKey = decipher.update(encryptedPrivateKeyBuffer, undefined, 'utf8')
+  decryptedPrivateKey += decipher.final('utf-8')
+  return decryptedPrivateKey
+}
 
 const decryptMessage = async (privateKey, encryptedMessage) => {
   try {
@@ -103,6 +124,10 @@ const getMessage = async (req, res) => {
 const getGMessage = async (req, res) => {
   const { group } = req.params;
   if (!group) return res.sendStatus(400);
+  const groupData = await Group.findOne({ name: group });
+  if (!groupData) return res.sendStatus(404);
+  const { aesKey, iv, encryptedPrivateKey } = groupData
+  const privateKey = decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey });
   const gmessages = await GMessage.find({ group: group });
   if (gmessages.length === 0) return res.status(200).json({ gmessages: [] });
   try {
@@ -110,13 +135,11 @@ const getGMessage = async (req, res) => {
       const senderUser = await User.findOne({ email: gm.sender })
       const senderUsername = senderUser.username
       if (!senderUser) return { ...gm._doc, senderUsername, image: null, message: '' };
-      const encryptedPrivateKey = await getPrivateKeyFromConfig(gm.sender)
-      const privateKey = decryptPrivateKey(encryptedPrivateKey, 'your-passphrase')
       let decryptedMessage = ''
       let image = null;
       if (gm.type == 'text') {
         try {
-          decryptedMessage = await decryptMessage(privateKey, gm.message);
+          decryptedMessage = await decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
         } catch (error) {
           console.error(`Error decrypting message for recipient ${recipient}:`, error);
           decryptedMessage = 'Error decrypting message';

@@ -3,6 +3,7 @@ const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 const fs = require('fs').promises;
 const crypto = require('crypto');
+const { Buffer } = require('buffer');
 
 const userSockets = new Map();
 const rooms = {};
@@ -34,21 +35,22 @@ const encryptMessage = (publicKey, message) => {
     return encryptedData.toString('base64');
 };
 
-const decryptPrivateKey = (iv, aesKey, privateKey) => {
-    const ivBuffer=Buffer.from(iv,'hex')
-    const aesKeyBuffer=Buffer.from(aesKey,'hex')
+const decryptPrivateKey = (data) => {
+    const ivBuffer = Buffer.from(data.iv, 'hex')
+    const aesKeyBuffer = Buffer.from(data.aesKey, 'hex')
+    const encryptedPrivateKeyBuffer = Buffer.from(data.encryptedPrivateKey, 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
-    let decryptedPrivateKey = decipher.update(privateKey, 'base64', 'utf8')
-    decryptedPrivateKey += decipher.final('utf8')
-    console.log(decryptedPrivateKey)
+    let decryptedPrivateKey = decipher.update(encryptedPrivateKeyBuffer, undefined, 'utf8')
+    decryptedPrivateKey += decipher.final('utf-8')
     return decryptedPrivateKey
 }
 
-const encryptGroupMessage = (key, iv, message) => {
+const encryptGroupMessage = (data) => {
+    const key = Buffer.from(data.privateKey, 'hex')
+    const iv = Buffer.from(data.iv, 'hex')
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
-    let encryptedMessage = cipher.update(message, 'utf8', 'hex')
+    let encryptedMessage = cipher.update(data.message, 'utf8', 'hex')
     encryptedMessage += cipher.final('hex')
-    console.log(encryptedMessage)
     return encryptedMessage
 }
 
@@ -88,12 +90,8 @@ const handlerChat = async (io) => {
         socket.on('send_group_message', async ({ message }) => {
             try {
                 const { aesKey, iv, encryptedPrivateKey } = await Group.findOne({ name: message.group })
-                decryptPrivateKey(iv,aesKey,encryptedPrivateKey)
-                console.log(aesKey, iv, encryptedPrivateKey)
-                const senderUser = await User.findOne({ email: socket.user })
-                const senderPublicKey = senderUser.publicKey;
-                encryptGroupMessage(iv, privateKey, message.message)
-                const encryptedMessage = encryptMessage(senderPublicKey, message.message)
+                const privateKey = decryptPrivateKey({ iv, aesKey, encryptedPrivateKey })
+                const encryptedMessage = encryptGroupMessage({ iv, privateKey, message: message.message })
                 const newMessage = new GMessage({
                     sender: socket.user,
                     message: encryptedMessage,
