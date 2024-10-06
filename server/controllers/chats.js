@@ -1,7 +1,6 @@
 const { Message, GMessage, User, Group } = require('../models/models');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 
@@ -24,18 +23,6 @@ const readFile = async (filePath) => {
     }
 }
 
-const getPrivateKeyFromConfig = async (email) => {
-    try {
-        const configPath = path.join(__dirname, '../config.json');
-        const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
-        return config[`${email}`];
-    } catch (error) {
-        console.error('Error reading private key from config:', error);
-        throw error;
-    }
-};
-
-
 const encryptMessage = (publicKey, message) => {
     const encryptedData = crypto.publicEncrypt(
         {
@@ -46,6 +33,24 @@ const encryptMessage = (publicKey, message) => {
     );
     return encryptedData.toString('base64');
 };
+
+const decryptPrivateKey = (iv, aesKey, privateKey) => {
+    const ivBuffer=Buffer.from(iv,'hex')
+    const aesKeyBuffer=Buffer.from(aesKey,'hex')
+    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+    let decryptedPrivateKey = decipher.update(privateKey, 'base64', 'utf8')
+    decryptedPrivateKey += decipher.final('utf8')
+    console.log(decryptedPrivateKey)
+    return decryptedPrivateKey
+}
+
+const encryptGroupMessage = (key, iv, message) => {
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
+    let encryptedMessage = cipher.update(message, 'utf8', 'hex')
+    encryptedMessage += cipher.final('hex')
+    console.log(encryptedMessage)
+    return encryptedMessage
+}
 
 
 const handlerChat = async (io) => {
@@ -82,8 +87,12 @@ const handlerChat = async (io) => {
 
         socket.on('send_group_message', async ({ message }) => {
             try {
+                const { aesKey, iv, encryptedPrivateKey } = await Group.findOne({ name: message.group })
+                decryptPrivateKey(iv,aesKey,encryptedPrivateKey)
+                console.log(aesKey, iv, encryptedPrivateKey)
                 const senderUser = await User.findOne({ email: socket.user })
                 const senderPublicKey = senderUser.publicKey;
+                encryptGroupMessage(iv, privateKey, message.message)
                 const encryptedMessage = encryptMessage(senderPublicKey, message.message)
                 const newMessage = new GMessage({
                     sender: socket.user,
@@ -173,7 +182,7 @@ const handlerChat = async (io) => {
                 });
                 const filePreview = await readFile(message.message)
                 const preview = `data:${message.fileType};base64,${filePreview}`
-                const sentMessage = { ...newMessage._doc, image:preview };
+                const sentMessage = { ...newMessage._doc, image: preview };
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
