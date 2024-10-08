@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Messages from '../components/Message'
 import Sender from "../components/Sender";
 
+
 function arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -133,13 +134,13 @@ export default function DMArea({ socket, isMobile, theme }) {
             setHistory((prevHistory) => [...prevHistory, newMessage]);
         };
 
-        const handleMessageSeen = ({ messageId }) => {
-            const result = history.map(msg => {
-                if (msg._id === messageId) {
-                    return { ...msg, seen: true }
-                } else return msg
-            })
-            console.log(result)
+        const handleMessageSeen = ({ id, sender }) => {
+            if (sender !== friend) return
+            setHistory((prevHistory) => {
+                const message = prevHistory.filter((message) => message._id === id)[0]
+                const newMessage = { ...message, seen: true }
+                return prevHistory.map((message) => message._id === id ? newMessage : message)
+            });
         }
 
         const handleCallOffer = async ({ offer, sender, type }) => {
@@ -198,7 +199,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         socket.on("typing", handleTyping);
         socket.on("not_typing", handleNotTyping);
         socket.on('message_sent', handleMessageSent);
-        socket.on('user_saw_message', handleMessageSeen)
+        socket.on('message_seen', handleMessageSeen)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
@@ -231,12 +232,19 @@ export default function DMArea({ socket, isMobile, theme }) {
             }
         };
         fetchMessages();
-    }, [friend,friend_name, navigate, accessToken]);
+    }, [friend, friend_name, navigate, accessToken]);
 
     const navigateBackward = () => {
         localStorage.removeItem('selectedFriend');
         navigate('/chat');
     };
+
+    const handleMessageDeletion = (id) => {
+        if (!id) return
+        setHistory((prevHistory) => {
+            return prevHistory.filter((message) => message._id !== id)
+        })
+    }
 
 
 
@@ -376,6 +384,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                 ) : <Messages
                     messages={history}
                     info={info}
+                    deletedMessage={handleMessageDeletion}
                 />}
 
             </div>

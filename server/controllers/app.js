@@ -43,6 +43,28 @@ const decryptPrivateKey = async (encryptedPrivateKey) => {
     }
 };
 
+const decryptGroupMessage = (data) => {
+    try {
+        const ivBuffer = Buffer.from(data.iv, 'hex')
+        const aesKeyBuffer = Buffer.from(data.privateKey, 'hex')
+        const encryptedMessage = Buffer.from(data.message, 'hex');
+        const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+        let decryptedMessage = decipher.update(encryptedMessage, undefined, 'utf-8')
+        decryptedMessage += decipher.final('utf-8')
+        return decryptedMessage
+    } catch (err) { console.error(err) }
+}
+
+const decryptGroupPrivateKey = (data) => {
+    const ivBuffer = Buffer.from(data.iv, 'hex')
+    const aesKeyBuffer = Buffer.from(data.aesKey, 'hex')
+    const encryptedPrivateKeyBuffer = Buffer.from(data.encryptedPrivateKey, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+    let decryptedPrivateKey = decipher.update(encryptedPrivateKeyBuffer, undefined, 'utf8')
+    decryptedPrivateKey += decipher.final('utf-8')
+    return decryptedPrivateKey
+}
+
 // Function to decrypt messages
 const decryptMessage = async (privateKey, encryptedMessage) => {
     try {
@@ -233,7 +255,11 @@ const getGroups = async (req, res) => {
         const userEmail = req.user;
         const groups = await Group.find({ "members.email": userEmail });
         const groupsWithImages = await Promise.all(groups.map(async (group) => {
+            const { aesKey, iv, encryptedPrivateKey } = group
+            const privateKey = await decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey })
+            if (!privateKey) return null
             let latestMessage = await GMessage.findOne({ group: group.name }).sort({ timestamp: -1 }).exec();
+            latestMessage = { ...latestMessage._doc, message: await decryptGroupMessage({ privateKey, iv, message: latestMessage.message }) }
             const details = await groupDetails(group.name)
             let imageData = null
             if (group.image) imageData = await readImage(group.image);

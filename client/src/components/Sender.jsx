@@ -9,7 +9,7 @@ import { ReactMic } from 'react-mic'; // Import React Mic
 import DocViewer from 'react-doc-viewer'
 
 
-export default function Sender({ socket, theme }) {
+export default function Sender({ socket }) {
     const { friend_name, group_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [fileName, setFileName] = useState(null);
@@ -21,8 +21,8 @@ export default function Sender({ socket, theme }) {
     const [isSendingFile, setIsSendingFile] = useState(false);
     const [recordedAudio, setRecordedAudio] = useState(null);
     const [recording, setRecording] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0); // Progress in %
-    const [timeRemaining, setTimeRemaining] = useState(null); // Time remaining in seconds
+    const [uploadProgress, setUploadProgress] = useState(0); 
+    const [timeRemaining, setTimeRemaining] = useState(null);
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();

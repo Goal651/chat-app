@@ -135,15 +135,6 @@ const handlerChat = async (io) => {
             }
         });
 
-        socket.on('message_not_seen', async ({ message, sender }) => {
-            console.log(message, sender)
-            const receiverUser = await User.findOne({ email: socket.user });
-            if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
-            const receiverPublicKey = receiverUser.publicKey;
-            const encryptedMessage = encryptMessage(receiverPublicKey, message);
-            await User.updateOne({ email: socket.user }, { $push: { unreads: { message: encryptedMessage, sender: sender } } });
-        })
-
         socket.on('send_file_message', async (data) => {
             try {
                 const { message } = data;
@@ -192,6 +183,15 @@ const handlerChat = async (io) => {
             }
         });
 
+        socket.on('message_not_seen', async ({ message, sender }) => {
+            const receiverUser = await User.findOne({ email: socket.user });
+            if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
+            const receiverPublicKey = receiverUser.publicKey;
+            const encryptedMessage = encryptMessage(receiverPublicKey, message);
+            await User.updateOne({ email: socket.user }, { $push: { unreads: { message: encryptedMessage, sender: sender } } });
+        })
+
+
         socket.on('fetch_unread_messages', async () => {
             try {
                 const user = await User.findOne({ email: socket.user });
@@ -219,7 +219,6 @@ const handlerChat = async (io) => {
         });
 
         socket.on('member_typing', ({ group }) => {
-            console.log(group)
             socket.to(group).emit('member_typing', { member: socket.user, group })
         })
 
@@ -232,15 +231,13 @@ const handlerChat = async (io) => {
             }
         });
 
-
-        // Handling Seen Messages for DMs
         socket.on('message_seen', async ({ receiver, messageId }) => {
             try {
                 const updateResult = await Message.updateOne({ _id: messageId, receiver: socket.user }, { $set: { seen: true } });
                 if (updateResult) {
                     const receiverSocketId = userSockets.get(receiver);
                     if (receiverSocketId) {
-                        io.to(receiverSocketId).emit('user_saw_message', { id: messageId, member: socket.user });
+                        io.to(receiverSocketId).emit('message_seen', { id: messageId, sender: socket.user });
                     }
                 }
             } catch (error) {
@@ -250,19 +247,14 @@ const handlerChat = async (io) => {
         // Event to join room and mark all messages as read
         socket.on('join_room_and_mark_read', async ({ group }) => {
             try {
-                // Mark all messages in the group as read for this user
                 const messages = await GMessage.find({ group: group, 'seen.member': { $ne: socket.user } });
-
                 for (const message of messages) {
                     await GMessage.updateOne(
                         { _id: message._id },
                         { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } } // Add user to seen if not already present
                     );
                 }
-
-                // Notify others in the group
                 socket.to(group).emit('group_message_seen', { messages: messages.map(msg => msg._id), user: socket.user });
-
             } catch (error) {
                 console.error('Error marking messages as read when joining room:', error);
             }

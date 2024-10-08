@@ -136,7 +136,7 @@ const getGMessage = async (req, res) => {
       const senderUsername = senderUser.username
       if (!senderUser) return { ...gm._doc, senderUsername, image: null, message: '' };
       let decryptedMessage = ''
-      let image = null;
+      let file = null;
       if (gm.type == 'text') {
         try {
           decryptedMessage = await decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
@@ -145,14 +145,28 @@ const getGMessage = async (req, res) => {
           decryptedMessage = 'Error decrypting message';
         }
       }
-      if (gm.type.startsWith('image')) {
+      else if (gm.type.startsWith('image')) {
         try {
-          const imagePath = path.join(gm.message);
-          const data = await fs.readFile(imagePath);
-          image = data.toString('base64');
-        } catch (err) { console.log(`Error reading image for user:`, err) }
+          const filePath = path.join(gm.message);
+          const data = await fs.readFile(filePath);
+          file= `data:image/jpeg;base64, ${data.toString('base64')}`;
+        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
-      return { ...gm._doc, senderUsername, image: `data:image/jpeg;base64,${image}`, message: decryptedMessage };
+      else if (gm.type.startsWith('video')) {
+        try {
+          const filePath = path.join(gm.message);
+          const data = await fs.readFile(filePath);
+          file = `data:video/mp4;base64,${data.toString('base64')}`;
+        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
+      }
+      else if (gm.type.startsWith('audio')) {
+        try {
+          const filePath = path.join(gm.message);
+          const data = await fs.readFile(filePath);
+          file = `data:audio/mp3;base64,${data.toString('base64')}`;
+        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+      }
+      return { ...gm._doc, senderUsername, image:file, message: decryptedMessage };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

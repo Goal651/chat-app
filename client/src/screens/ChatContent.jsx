@@ -49,12 +49,12 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
             socket.emit('fetch_unread_messages');
         })
         socket.on('typing', ({ sender }) => {
-            setTypingUsers((prev) => {
+            setTypingUsers((prev = []) => {
                 if (!prev.includes(sender)) return [...prev, sender]
                 return prev
             })
         })
-        socket.on('not_typing', ({ sender }) => setTypingUsers(prevUsers => {
+        socket.on('not_typing', ({ sender }) => setTypingUsers((prevUsers = []) => {
             if (prevUsers.includes(sender)) {
                 return prevUsers.filter(user => user !== sender)
             }
@@ -93,6 +93,8 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
         navigate('/')
     }
     const isTyping = (data) => {
+        if (!typingUsers) return false
+        if (typingUsers.length === 0) return false
         return typingUsers.includes(data)
     }
     return (
@@ -111,7 +113,9 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                 const isOnline = onlineUsers.includes(friend.email)
                                 return (
                                     <div onClick={() => chatNow(friend)}
-                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2 ${theme === 'dark' ? `${selectedFriend === friend.email ? 'bg-gray-800 hover:bg-gray-900' : ''} hover:bg-gray-700 ` : `${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}`}
+                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2 
+                                            ${theme === 'dark' ? `${selectedFriend === friend.email ? 'bg-gray-800 hover:bg-gray-900' : ''} hover:bg-gray-700 ` :
+                                                `${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}`}
                                         key={friend._id}>
                                         <div className="flex flex-row justify-between w-full mx-4">
                                             <span className="flex items-center w-full h-fit">
