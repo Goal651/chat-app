@@ -33,6 +33,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     const accessToken = Cookies.get('accessToken');
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [lastActiveTime, setLastActiveTime] = useState('');
+    const [editingMessage, setEditingMessage] = useState(null)
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -143,6 +144,13 @@ export default function DMArea({ socket, isMobile, theme }) {
             });
         }
 
+        const handleMessageEdition = (id, message) => {
+            if (!id) return
+            setHistory((prevHistory) => {
+                return prevHistory.map((history) => history._id === id ? { ...history, edited: true, message } : message)
+            })
+        }
+
         const handleCallOffer = async ({ offer, sender, type }) => {
             if (sender !== friend) return;
             setCallType(type);
@@ -246,6 +254,13 @@ export default function DMArea({ socket, isMobile, theme }) {
         })
     }
 
+
+
+    const handleEditMessage = (id) => {
+        if (!id) return
+        const message = history.filter((message) => message._id === id)[0]
+        setEditingMessage(message)
+    }
 
 
     // WebRTC Functions
@@ -385,10 +400,12 @@ export default function DMArea({ socket, isMobile, theme }) {
                     messages={history}
                     info={info}
                     deletedMessage={handleMessageDeletion}
+                    editingMessage={handleEditMessage}
                 />}
 
             </div>
             <Sender
+                editingMessage={editingMessage}
                 socket={socket}
             />
 

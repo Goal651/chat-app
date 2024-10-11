@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
@@ -9,7 +9,7 @@ import { ReactMic } from 'react-mic'; // Import React Mic
 import DocViewer from 'react-doc-viewer'
 
 
-export default function Sender({ socket }) {
+export default function Sender({ socket, editingMessage }) {
     const { friend_name, group_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [fileName, setFileName] = useState(null);
@@ -21,12 +21,48 @@ export default function Sender({ socket }) {
     const [isSendingFile, setIsSendingFile] = useState(false);
     const [recordedAudio, setRecordedAudio] = useState(null);
     const [recording, setRecording] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0); 
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [timeRemaining, setTimeRemaining] = useState(null);
+    const [editMode, setEditMode] = useState(false)
+    const navigate = useNavigate()
+
+
+    useEffect(() => {
+        if (editingMessage) {
+            setEditMode(true)
+            setMessage(editingMessage.message)
+        }
+    }, [editingMessage])
+
+
+    const handleMessageEdition = async (id, message) => {
+        if (!id) return
+        const response = await fetch(`http://localhost:3001/editMessage/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'accessToken': accessToken,
+            },
+            body: JSON.stringify({ message })
+        })
+        if (response.status === 401) Cookies.set("accessToken", data.accessToken);
+        else if (response.status === 403 || response.status === 403) {
+            Cookies.remove('accessToken')
+            navigate("/login")
+        } else { 
+            socket.emit("message_edited", { receiver: friend, message });
+            setEditMode(false)
+         }
+    }
+
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
         if (!socket) return;
+        if (editMode) {
+            handleMessageEdition(editingMessage._id, message)
+            setEditMode(false)
+            return
+        }
         if (message.trim() !== "") {
             if (friend_name) {
                 socket.emit("send_message", { receiver: friend, message });

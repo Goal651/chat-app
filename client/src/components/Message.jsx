@@ -1,12 +1,12 @@
 /* eslint-disable react/prop-types */
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Cookies from 'js-cookie'
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
-export default function Messages({ messages, info, group, onlineUsers, history, typingMembers,deletedMessage }) {
+export default function Messages(props) {
+  const { messages, info, group, onlineUsers, history, typingMembers, deletedMessage,editingMessage} = props
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
   const [scrollToBottom, setScrollToBottom] = useState(false);
@@ -128,16 +128,14 @@ export default function Messages({ messages, info, group, onlineUsers, history, 
         'accessToken': accessToken,
       },
     })
-    if (response.status === 401) {
-      Cookies.set("accessToken", data.accessToken);
-    } else if (response.status === 403 || response.status === 403) {
+    if (response.status === 401) Cookies.set("accessToken", data.accessToken);
+    else if (response.status === 403 || response.status === 403) {
       Cookies.remove('accessToken')
       navigate("/login")
-    }
-    else {
-      deletedMessage(id)
-    }
+    } else deletedMessage(id)
   }
+
+  const handleEditMessage = (id) => editingMessage(id)
 
   const renderContextMenu = () => {
     if (!contextMenu.visible) return null;
