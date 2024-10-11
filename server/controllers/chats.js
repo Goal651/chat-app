@@ -209,6 +209,24 @@ const handlerChat = async (io) => {
             }
         })
 
+        socket.on('edit_message', async ({ id, message, receiver }) => {
+            try {
+                const receiverUser = await User.findOne({ email: receiver });
+                if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
+                const receiverPublicKey = receiverUser.publicKey;
+                const encryptedMessage = encryptMessage(receiverPublicKey, message);
+                const result = await Message.updateOne({ _id:id }, { message: encryptedMessage, edited: true })
+                if (!result) return socket.emit('edit_message_error', 'Error editing message');
+                const senderSocketId = userSockets.get(socket.user);
+                const receiverSocketId = userSockets.get(receiver);
+                if (receiverSocketId) io.to(receiverSocketId).emit("message_edited", { id, message });
+                else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
+                io.to(senderSocketId).emit("message_edited", { id, message});
+            } catch (err) {
+                console.error(err)
+            }
+        })
+
         socket.on('typing', ({ receiver }) => {
             try {
                 const receiverSocketId = userSockets.get(receiver);
@@ -218,10 +236,6 @@ const handlerChat = async (io) => {
             }
         });
 
-        socket.on('member_typing', ({ group }) => {
-            socket.to(group).emit('member_typing', { member: socket.user, group })
-        })
-
         socket.on('not_typing', ({ receiver }) => {
             try {
                 const receiverSocketId = userSockets.get(receiver);
@@ -230,6 +244,14 @@ const handlerChat = async (io) => {
                 console.error(err);
             }
         });
+
+        socket.on('member_typing', ({ group }) => {
+            socket.to(group).emit('member_typing', { member: socket.user, group })
+        })
+
+        socket.on('member_not_typing', ({ group }) => {
+            socket.to(group).emit('member_not_typing', { member: socket.user, group })
+        })
 
         socket.on('message_seen', async ({ receiver, messageId }) => {
             try {
@@ -244,7 +266,7 @@ const handlerChat = async (io) => {
                 console.error('Error marking message as seen:', error);
             }
         });
-        // Event to join room and mark all messages as read
+
         socket.on('join_room_and_mark_read', async ({ group }) => {
             try {
                 const messages = await GMessage.find({ group: group, 'seen.member': { $ne: socket.user } });
@@ -265,7 +287,7 @@ const handlerChat = async (io) => {
             try {
                 const updateResult = await GMessage.updateOne({ _id: id, group: group, 'seen.member': { $ne: socket.user } }, { $addToSet: { seen: { member: socket.user, timestamp: new Date() } } });
                 if (!updateResult) return
-                socket.to(group).emit('member_saw_message', { id, member: socket.user })
+                socket.to(group).emit('member_saw_message', { id, member: socket.user, group })
             } catch (err) { console.error(err) }
 
         })

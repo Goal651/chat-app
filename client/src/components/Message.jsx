@@ -6,7 +6,7 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
 export default function Messages(props) {
-  const { messages, info, group, onlineUsers, history, typingMembers, deletedMessage,editingMessage} = props
+  const { messages, info, group, onlineUsers, history, typingMembers, deletedMessage, editingMessage } = props
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
   const [scrollToBottom, setScrollToBottom] = useState(false);
@@ -42,7 +42,6 @@ export default function Messages(props) {
       });
     }, { threshold: 0.5 });  // Trigger when 50% of the element is visible
 
-    // Observe each referenced element
     observerRefs.current.map(ref => {
       console.log(ref)
       if (ref) {
@@ -50,7 +49,6 @@ export default function Messages(props) {
       }
     });
 
-    // Cleanup function to disconnect the observer
     return () => {
       observer.disconnect();
     };
@@ -171,8 +169,6 @@ export default function Messages(props) {
     );
   };
 
-
-
   return (
     <div className="">
       {renderContextMenu()}
@@ -231,8 +227,10 @@ export default function Messages(props) {
                     <line x1="70" y1="25" x2="80" y2="25" stroke="#FFF" strokeWidth="3" />
                   </svg>
                 </div>
+
                 <div className="flex float-right">
                   <div className="text-xs opacity-70 mt-1 text-right">
+                    {msg.edited ? 'edited' : ''}
                     {msg.time}
                   </div>
                 </div>
@@ -288,10 +286,12 @@ export default function Messages(props) {
                 onContextMenu={(e) => handleContextMenu(e, msg._id)}
                 className="max-w-96 min-w-24  h-auto bg-indigo-500 text-white chat-bubble text-xs">
                 <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
-                <div className="text-xs opacity-70 mt-1 text-right">
-                  {msg.time}
-                  {msg.seen && (<div className="text-green-400 text-end text-xs font-black">✓✓</div>)}
-                </div>
+                <div className="text-xs opacity-70 mt-1 flex justify-between w-full">
+                  <div>{msg.edited ? 'edited' : ''}</div>
+                  <div> {msg.time}</div>
+                  <div>
+                    {msg.seen && (<div className="text-green-400 text-end text-xs font-black">✓✓</div>)}
+                  </div>                </div>
               </div>
             )}
             {msg.type.startsWith('image') && (

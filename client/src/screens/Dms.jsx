@@ -144,10 +144,13 @@ export default function DMArea({ socket, isMobile, theme }) {
             });
         }
 
-        const handleMessageEdition = (id, message) => {
-            if (!id) return
+        const handleMessageEdition = (data) => {
+            if (!data) return
             setHistory((prevHistory) => {
-                return prevHistory.map((history) => history._id === id ? { ...history, edited: true, message } : message)
+                const message = prevHistory.filter((history) => history._id === data.id)[0]
+                const newMessage = { ...message, message: data.message, edited: true }
+                console.log(newMessage)
+                return prevHistory.map((message) => message._id === data.id ? newMessage : message)
             })
         }
 
@@ -208,6 +211,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         socket.on("not_typing", handleNotTyping);
         socket.on('message_sent', handleMessageSent);
         socket.on('message_seen', handleMessageSeen)
+        socket.on('message_edited', handleMessageEdition)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);

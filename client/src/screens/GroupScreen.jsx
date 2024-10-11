@@ -41,9 +41,10 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             if (!group_name || !accessToken) return;
             const result = await fetch(`http://localhost:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
-            if (result.ok) {console.log(data)
+            if (result.ok) {
+                console.log(data)
                 if (data.group == null) {
-                    
+
                     localStorage.removeItem('selectedGroup')
                     navigate('/group')
                     return
@@ -84,6 +85,20 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             setHistory((prevHistory) => [...prevHistory, message,]);
             setScrollToBottom(true);
             socket.emit('group_message_seen', { id: message._id, group: message.group })
+            setHistory((prev) =>
+                prev.map((message) => {
+                    if (message._id === message._id) {
+                        const hasSeen = message.seen.some(x => x.member == user);
+                        if (!hasSeen) {
+                            return {
+                                ...message,
+                                seen: [...message.seen, { user, timestamp: new Date() }]
+                            };
+                        } else return message
+                    }
+                    return message;
+                })
+            );
         };
 
         const handleTyping = ({ group, member }) => {
@@ -97,7 +112,15 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             setScrollToBottom(true)
         }
 
-        const handleNotTyping = () => setTyping(false);
+        const handleNotTyping = ({ group, member }) => {
+            if (group === selectedGroup) {
+                setTypingMembers((prev) => {
+                    if (prev.includes(member)) return prev.filter(user => user !== member)
+                    return prev
+                })
+            }
+            setScrollToBottom(true)
+        };
 
         const handleMessageSeen = ({ messages: seenMessages, user }) => {
             setHistory((prevMessages) =>
@@ -107,26 +130,34 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                             ...message,
                             seen: [...message.seen, { member: user, timestamp: new Date() }],
                         };
-                    }
-                    return message;
+                    } return message;
                 })
             );
         }
 
 
-        const handleMemberSawMessage = ({ id, member }) => {
-            setHistory((prevHistory) => {
-                return prevHistory.map((message) => {
+        const handleMemberSawMessage = ({ id, member, group }) => {
+            if (group !== selectedGroup) return null;
+            setHistory((prev) =>
+                prev.map((message) => {
                     if (message._id === id) {
-                        return { ...message, seen: [...message.seen, member] };
+                        const hasSeen = message.seen.some(x => x.member == member);
+                        console.log(message)
+                        if (!hasSeen) {
+                            return {
+                                ...message,
+                                seen: [...message.seen, { member, timestamp: new Date() }]
+                            };
+                        } else return message
                     }
                     return message;
-                });
-            });
+                })
+            );
         };
 
-        const handleGroupMessageSent = ({ message }) => {
 
+
+        const handleGroupMessageSent = ({ message }) => {
             setHistory((prevHistory) => [...prevHistory, message])
             setScrollToBottom(true)
         }
@@ -179,7 +210,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
 
         socket.on("receive_group_message", handleReceiveMessage);
         socket.on('member_typing', handleTyping);
-        socket.on('not_typing', handleNotTyping);
+        socket.on('member_not_typing', handleNotTyping);
         socket.on('group-message', handleReceiveMessage);
         socket.on('group_message_sent', handleGroupMessageSent);
         socket.on("group_message_seen", handleMessageSeen);

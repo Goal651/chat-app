@@ -36,22 +36,9 @@ export default function Sender({ socket, editingMessage }) {
 
 
     const handleMessageEdition = async (id, message) => {
-        if (!id) return
-        const response = await fetch(`http://localhost:3001/editMessage/${id}`, {
-            method: 'PATCH',
-            headers: {
-                'accessToken': accessToken,
-            },
-            body: JSON.stringify({ message })
-        })
-        if (response.status === 401) Cookies.set("accessToken", data.accessToken);
-        else if (response.status === 403 || response.status === 403) {
-            Cookies.remove('accessToken')
-            navigate("/login")
-        } else { 
-            socket.emit("message_edited", { receiver: friend, message });
-            setEditMode(false)
-         }
+        if (!socket || !id || !message) return
+        socket.emit('edit_message', { id, message, receiver: friend })
+
     }
 
 
@@ -61,21 +48,22 @@ export default function Sender({ socket, editingMessage }) {
         if (editMode) {
             handleMessageEdition(editingMessage._id, message)
             setEditMode(false)
-            return
-        }
-        if (message.trim() !== "") {
-            if (friend_name) {
-                socket.emit("send_message", { receiver: friend, message });
-            }
-            if (group_name) {
-                const newMessage = {
-                    type: 'text',
-                    message,
-                    group: group_name,
-                    time: new Date().toISOString().slice(11, 16),
-                    seen: [],
-                };
-                socket.emit("send_group_message", { message: newMessage });
+
+        } else {
+            if (message.trim() !== "") {
+                if (friend_name) {
+                    socket.emit("send_message", { receiver: friend, message });
+                }
+                if (group_name) {
+                    const newMessage = {
+                        type: 'text',
+                        message,
+                        group: group_name,
+                        time: new Date().toISOString().slice(11, 16),
+                        seen: [],
+                    };
+                    socket.emit("send_group_message", { message: newMessage });
+                }
             }
         }
         setMessage("");
