@@ -6,7 +6,7 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
 export default function Messages(props) {
-  const { messages, info, group, onlineUsers, history, typingMembers, deletedMessage, editingMessage } = props
+  const { messages, info, group, onlineUsers, history, typingMembers, socket, editingMessage } = props
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
   const [scrollToBottom, setScrollToBottom] = useState(false);
@@ -57,13 +57,14 @@ export default function Messages(props) {
 
   useEffect(() => handleScrollToBottom(), [scrollToBottom, handleScrollToBottom]);
 
-  const handleContextMenu = (e, msgId) => {
+  const handleContextMenu = (e, msgId, sender) => {
     e.preventDefault();
     setContextMenu({
       visible: true,
       x: e.clientX,
       y: e.clientY,
       messageId: msgId,
+      sender: sender
     });
   };
 
@@ -74,7 +75,7 @@ export default function Messages(props) {
   };
 
   const addEmoji = (emoji) => {
-    setReaction((prevMessage) => prevMessage + emoji.native);
+    setReaction(emoji.native);
     setShowEmojiPicker(false)
   };
 
@@ -118,32 +119,30 @@ export default function Messages(props) {
     localStorage.setItem('selectedFriend', `${friend}`)
   }, [navigate])
 
+  useEffect(() => {
+    const handleReacting = () => {
+      if (!friend || !socket) return
+      if (reaction) socket.emit('reacting', { id: contextMenu.messageId, reaction, receiver: friend })
+    }
+    handleReacting()
+  }, [reaction])
+
   const handleDeleteMessage = async (id) => {
-    if (!id) return
-    const response = await fetch(`http://localhost:3001/deleteMessage/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'accessToken': accessToken,
-      },
-    })
-    if (response.status === 401) Cookies.set("accessToken", data.accessToken);
-    else if (response.status === 403 || response.status === 403) {
-      Cookies.remove('accessToken')
-      navigate("/login")
-    } else deletedMessage(id)
+    if (!id || !socket) return
+    socket.emit('delete_message', { id, receiver: friend })
   }
 
   const handleEditMessage = (id) => editingMessage(id)
 
   const renderContextMenu = () => {
     if (!contextMenu.visible) return null;
-
+    const isSender = contextMenu.sender === friend
     return (
       <div
         style={{
           position: "absolute",
-          top: `${contextMenu.y}px`,
-          left: `${contextMenu.x}px`,
+          top: `${isSender ? contextMenu.y : contextMenu.y}px`,
+          left: `${isSender ? contextMenu.x : contextMenu.x - 100}px`,
           padding: "10px",
           zIndex: 1000,
         }}
@@ -153,17 +152,21 @@ export default function Messages(props) {
             <button onClick={toggleEmojiPicker}>React</button>
           </li>
 
-          <li
+          <li>
+            <button>Reply</button>
+          </li>
+
+          {!isSender && <li
             onClick={() => handleEditMessage(contextMenu.messageId)}>
             <button >Edit</button>
-          </li>
-          <li
-            onClick={() => handleDeleteMessage(contextMenu.messageId)}
-          >
+          </li>}
+          {!isSender && <li
+            className="text-red-500"
+            onClick={() => handleDeleteMessage(contextMenu.messageId)}          >
             <button
               className=""
             >Delete</button>
-          </li>
+          </li>}
         </ul>
       </div>
     );
@@ -211,21 +214,13 @@ export default function Messages(props) {
             </div>
             {msg.type === 'text' && (
               <div
-                onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
                 className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
                 <div
                   className="max-w-96 h-auto break-words text-sm font-semibold"
                   dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
                 <div className="float-left flex" >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                    <circle cx="50" cy="50" r="40" stroke="#FFF" strokeWidth="5" fill="none" />
-                    <circle cx="40" cy="40" r="5" fill="#FFF" />
-                    <circle cx="60" cy="40" r="5" fill="#FFF" />
-                    <path d="M40 60 Q50 70 60 60" stroke="#FFF" strokeWidth="5" fill="none" />
-                    <circle cx="75" cy="25" r="12" fill="none" stroke="#FFF" strokeWidth="5" />
-                    <line x1="75" y1="20" x2="75" y2="30" stroke="#FFF" strokeWidth="3" />
-                    <line x1="70" y1="25" x2="80" y2="25" stroke="#FFF" strokeWidth="3" />
-                  </svg>
+                  {msg.reactions.length > 0 && msg.reactions[0].reaction}
                 </div>
 
                 <div className="flex float-right">
@@ -283,7 +278,7 @@ export default function Messages(props) {
             className={`chat chat-end rounded-lg p-2  `} >
             {msg.type === 'text' && (
               <div
-                onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
                 className="max-w-96 min-w-24  h-auto bg-indigo-500 text-white chat-bubble text-xs">
                 <div className="max-w-96 h-auto break-words text-sm font-semibold" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
                 <div className="text-xs opacity-70 mt-1 flex justify-between w-full">

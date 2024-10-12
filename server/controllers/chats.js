@@ -191,6 +191,14 @@ const handlerChat = async (io) => {
             await User.updateOne({ email: socket.user }, { $push: { unreads: { message: encryptedMessage, sender: sender } } });
         })
 
+        socket.on('reacting', async ({ id, reaction, receiver }) => {
+            const receiverSocketId = userSockets.get(receiver);
+            const senderSocketId = userSockets.get(socket.user);
+            const result = await Message.updateOne({ _id: id }, { $push: { reactions: [{ reaction, reactor: socket.user }] } });
+            if (!result) return
+            if (receiverSocketId) io.to(receiverSocketId).emit('receive_reacting', { id, reaction, reactor: socket.user });
+            if (senderSocketId) io.to(senderSocketId).emit('receive_reacting', { id, reaction, reactor: receiver });
+        })
 
         socket.on('fetch_unread_messages', async () => {
             try {
@@ -215,13 +223,26 @@ const handlerChat = async (io) => {
                 if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
                 const receiverPublicKey = receiverUser.publicKey;
                 const encryptedMessage = encryptMessage(receiverPublicKey, message);
-                const result = await Message.updateOne({ _id:id }, { message: encryptedMessage, edited: true })
+                const result = await Message.updateOne({ _id: id }, { message: encryptedMessage, edited: true })
                 if (!result) return socket.emit('edit_message_error', 'Error editing message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
                 if (receiverSocketId) io.to(receiverSocketId).emit("message_edited", { id, message });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
-                io.to(senderSocketId).emit("message_edited", { id, message});
+                io.to(senderSocketId).emit("message_edited", { id, message });
+            } catch (err) {
+                console.error(err)
+            }
+        })
+
+        socket.on('delete_message', async ({ id, receiver }) => {
+            try {
+                const result = await Message.findByIdAndDelete(id)
+                if (!result) return socket.emit('delete_message_error', 'Error deleting message');
+                const senderSocketId = userSockets.get(socket.user);
+                const receiverSocketId = userSockets.get(receiver);
+                if (receiverSocketId) io.to(receiverSocketId).emit("message_deleted", id);
+                io.to(senderSocketId).emit("message_deleted", id);
             } catch (err) {
                 console.error(err)
             }

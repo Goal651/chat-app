@@ -36,7 +36,10 @@ const messageSchema = mongoose.Schema({
     receiver: { type: String, required: true },
     seen: { type: Boolean, default: false },
     edited: { type: Boolean, default: false },
-    reactions: [{ type: String, default: '' }],
+    reactions: [{
+        reaction: String,
+        reactor: String,
+    }],
     type: { type: String, required: true },
     time: { type: String, required: true },
     timestamp: { type: Date, default: Date.now }

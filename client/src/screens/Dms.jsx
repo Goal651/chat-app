@@ -6,16 +6,6 @@ import Messages from '../components/Message'
 import Sender from "../components/Sender";
 
 
-function arrayBufferToBase64(buffer) {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]) }
-    return window.btoa(binary);
-}
-
-
-
 export default function DMArea({ socket, isMobile, theme }) {
     const navigate = useNavigate();
     const { friend_name } = useParams();
@@ -65,13 +55,21 @@ export default function DMArea({ socket, isMobile, theme }) {
             const timestampNow = Date.now();
             const difference = (timestampNow - data.getTime()) / 60000;
             if (difference * 60 > 86400) {
-                setLastActiveTime(`${Math.floor(difference / 1440)} days`);
+                const lastActiveTime = Math.floor(difference / 1440)
+                if (lastActiveTime > 1) setLastActiveTime(`${lastActiveTime} days ago`)
+                else setLastActiveTime('today')
             } else if (difference * 60 > 3600) {
-                setLastActiveTime(`${Math.floor(difference / 60)} hours`);
+                const lastActiveTime = Math.floor(difference / 60)
+                if (lastActiveTime > 0) setLastActiveTime(`${lastActiveTime} hours ago`)
+                else setLastActiveTime('an hour ago')
             } else if (difference * 60 > 60) {
-                setLastActiveTime(`${Math.floor(difference)} minutes`);
+                const lastActiveTime = Math.floor(difference)
+                if (lastActiveTime > 0) setLastActiveTime(`${lastActiveTime} minutes ago`)
+                else setLastActiveTime('a minute ago')
             } else {
-                setLastActiveTime(`${Math.floor(difference * 60)} seconds`);
+                const lastActiveTime = Math.floor(difference * 60)
+                if (lastActiveTime > 0) setLastActiveTime(`${lastActiveTime} seconds ago`)
+                else setLastActiveTime('just now')
             }
         };
         getTimeDifference()
@@ -154,6 +152,22 @@ export default function DMArea({ socket, isMobile, theme }) {
             })
         }
 
+        const handleMessageDeletion = (id) => {
+            if (!id) return
+            setHistory((prevHistory) => {
+                return prevHistory.filter((message) => message._id !== id)
+            })
+        }
+
+        const handleReaction = (data) => {
+            if (!data) return
+            setHistory((prevHistory) => {
+                const message = prevHistory.filter((history) => history._id === data.id)[0]
+                const newMessage = { ...message, reactions: [{ reaction: data.reaction, reactor: data.reactor }] }
+                return prevHistory.map((message) => message._id === data.id ? newMessage : message)
+            })
+        }
+
         const handleCallOffer = async ({ offer, sender, type }) => {
             if (sender !== friend) return;
             setCallType(type);
@@ -212,6 +226,8 @@ export default function DMArea({ socket, isMobile, theme }) {
         socket.on('message_sent', handleMessageSent);
         socket.on('message_seen', handleMessageSeen)
         socket.on('message_edited', handleMessageEdition)
+        socket.on('message_deleted', handleMessageDeletion)
+        socket.on('receive_reacting', handleReaction)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
@@ -250,15 +266,6 @@ export default function DMArea({ socket, isMobile, theme }) {
         localStorage.removeItem('selectedFriend');
         navigate('/chat');
     };
-
-    const handleMessageDeletion = (id) => {
-        if (!id) return
-        setHistory((prevHistory) => {
-            return prevHistory.filter((message) => message._id !== id)
-        })
-    }
-
-
 
     const handleEditMessage = (id) => {
         if (!id) return
@@ -395,7 +402,6 @@ export default function DMArea({ socket, isMobile, theme }) {
                     </button>
                 </div>
             </div>
-
             <div
                 className={`h-full w-full overflow-y-auto p-4 bg-transparent`}>
                 {loading ? (
@@ -403,8 +409,8 @@ export default function DMArea({ socket, isMobile, theme }) {
                 ) : <Messages
                     messages={history}
                     info={info}
-                    deletedMessage={handleMessageDeletion}
                     editingMessage={handleEditMessage}
+                    socket={socket}
                 />}
 
             </div>
