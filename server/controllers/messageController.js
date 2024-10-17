@@ -139,7 +139,7 @@ const getGMessage = async (req, res) => {
       let file = null;
       if (gm.type == 'text') {
         try {
-          decryptedMessage = await decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
+          decryptedMessage = decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
         } catch (error) {
           console.error(`Error decrypting message for recipient ${recipient}:`, error);
           decryptedMessage = 'Error decrypting message';
@@ -149,8 +149,8 @@ const getGMessage = async (req, res) => {
         try {
           const filePath = path.join(gm.message);
           const data = await fs.readFile(filePath);
-          file= `data:image/jpeg;base64, ${data.toString('base64')}`;
-        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+          file= `data:image/jpeg;base64, ${data}`;
+        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
       else if (gm.type.startsWith('video')) {
         try {
@@ -166,7 +166,7 @@ const getGMessage = async (req, res) => {
           file = `data:audio/mp3;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
-      return { ...gm._doc, senderUsername, image:file, message: decryptedMessage };
+      return { ...gm._doc, senderUsername, file, message: decryptedMessage };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

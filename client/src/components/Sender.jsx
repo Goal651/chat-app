@@ -9,7 +9,6 @@ import { ReactMic } from 'react-mic'; // Import React Mic
 import DocViewer from 'react-doc-viewer'
 
 
-
 export default function Sender({ socket, editingMessage, replying }) {
     const { friend_name, group_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
@@ -26,7 +25,7 @@ export default function Sender({ socket, editingMessage, replying }) {
     const [timeRemaining, setTimeRemaining] = useState(null);
     const [editMode, setEditMode] = useState(false)
     const [replyMode, setReplyMode] = useState(false)
-    const chat_user=Cookies.get('user')
+    const chat_user = Cookies.get('user')
 
     useEffect(() => {
         if (editingMessage) {
@@ -72,13 +71,13 @@ export default function Sender({ socket, editingMessage, replying }) {
                         seen: [],
                     };
                     socket.emit("send_group_message", { message: newMessage });
+                    socket.emit("member_not_typing", { group: group_name })
                 }
             }
         }
         setMessage("");
         setShowEmojiPicker(false);
         setReplyMode(false)
-        replying(null)
         socket.emit("not_typing", { receiver: friend });
     }, [message, socket, friend, friend_name, group_name]);
 
@@ -158,10 +157,9 @@ export default function Sender({ socket, editingMessage, replying }) {
                 setFilePreview(URL.createObjectURL(file));
                 setFileMessage(file);
                 socket.emit('typing', { receiver: friend });
-
             }
         } else {
-            socket.emit('member_typing', { group: group_name });
+            socket.emit(value.trim()? 'member_typing':'member_not_typing', { group: group_name });
             setMessage(value);
             socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
         }
@@ -205,7 +203,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                         > X
                         </button>
                     </div>
-                    <p className="text-gray-500 font-bold">Replying to {replying.sender== chat_user ? 'Yourself' : friend_name}</p>
+                    <p className="text-gray-500 font-bold">Replying to {replying.sender == chat_user ? 'Yourself' : friend_name}</p>
                     <p className="text-gray-500">{replying?.message}</p>
                 </div>
             )}

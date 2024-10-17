@@ -24,6 +24,7 @@ export default function DMArea({ socket, isMobile, theme }) {
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [lastActiveTime, setLastActiveTime] = useState('');
     const [editingMessage, setEditingMessage] = useState(null)
+    const [replying, setReplying] = useState(null)
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -273,6 +274,13 @@ export default function DMArea({ socket, isMobile, theme }) {
         setEditingMessage(message)
     }
 
+    const handleReplying = (id) => {
+        if (!id) return
+        const message = history.filter((message) => message._id === id)[0]
+        setReplying(message)
+    }
+
+
 
     // WebRTC Functions
     const createPeerConnection = (peerId) => {
@@ -411,12 +419,14 @@ export default function DMArea({ socket, isMobile, theme }) {
                     info={info}
                     editingMessage={handleEditMessage}
                     socket={socket}
+                    replying={handleReplying}
                 />}
 
             </div>
             <Sender
                 editingMessage={editingMessage}
                 socket={socket}
+                replying={replying}
             />
 
             {/* Call Modal */}

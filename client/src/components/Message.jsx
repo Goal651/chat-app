@@ -6,7 +6,7 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
 export default function Messages(props) {
-  const { messages, info, group, onlineUsers, history, typingMembers, socket, editingMessage } = props
+  const { messages, info, group, onlineUsers, history, typingMembers, socket, editingMessage, replying } = props
   const friend = localStorage.getItem('selectedFriend')
   const messagesEndRef = useRef(null);
   const [scrollToBottom, setScrollToBottom] = useState(false);
@@ -29,7 +29,7 @@ export default function Messages(props) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
       setScrollToBottom(false);
     }
-  }, [messages, history]);
+  }, [messages, history, typingMembers]);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -132,6 +132,8 @@ export default function Messages(props) {
     socket.emit('delete_message', { id, receiver: friend })
   }
 
+  const handleReplying = (id) => replying(id)
+
   const handleEditMessage = (id) => editingMessage(id)
 
   const renderContextMenu = () => {
@@ -153,7 +155,7 @@ export default function Messages(props) {
           </li>
 
           <li>
-            <button>Reply</button>
+            <button onClick={() => handleReplying(contextMenu.messageId)}>Reply</button>
           </li>
 
           {!isSender && <li
@@ -382,7 +384,7 @@ export default function Messages(props) {
             </div >
           )}
           {msg.type.startsWith('image') && (<div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-            <img src={msg.image} alt="attachment" className="rounded" />
+            <img src={msg.file} alt="attachment" className="rounded" />
             <div className="mt-1 flex justify-between">
               <div className="text-sm font-semibold flex grow pr-4">
                 <svg
@@ -405,7 +407,7 @@ export default function Messages(props) {
             </div>
           </div>)}
           {msg.type.startsWith('video') && (<div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-            <video src={msg.image} alt="attachment" className="rounded" />
+            <video src={msg.file} alt="attachment" className="rounded" />
             <div className="mt-1 flex justify-between">
               <div className="text-sm font-semibold flex grow pr-4">
                 <svg
@@ -427,8 +429,9 @@ export default function Messages(props) {
               </div>
             </div>
           </div>)}
-          {msg.type.startsWith('audio') && (<div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-            <audio src={msg.image} className="rounded" />
+          {msg.type.startsWith('audio') && (<div className="bg-gray-400 text-gray-800 w-96 p-4 chat-bubble ">
+            <audio controls src={msg.file} >
+              </audio>
             <div className="mt-1 flex justify-between">
               <div className="text-sm font-semibold flex grow pr-4">
                 <svg
@@ -485,7 +488,7 @@ export default function Messages(props) {
           {msg.type.startsWith('image') && (
             <div className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
               <img
-                src={msg.image}
+                src={msg.file}
                 alt="attachment"
                 className="rounded max-w-80 max-h-96 justify-center "
               />
@@ -513,7 +516,7 @@ export default function Messages(props) {
               </div>
             </div>)}
           {msg.type.startsWith('video') && (<div className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
-            <img src={msg.image} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
+            <img src={msg.file} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
             <div className="mt-1 flex justify-between">
               <div className="text-sm font-semibold grow pr-4 flex">
                 <svg
@@ -539,7 +542,7 @@ export default function Messages(props) {
           </div>)}
 
           {msg.type.startsWith('audio') && (<div className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
-            <audio controls src={msg.image} />
+            <audio controls src={msg.file} />
             <div className="mt-1 flex justify-between">
               <div className="text-sm font-semibold grow pr-4 flex">
                 <svg
@@ -571,7 +574,16 @@ export default function Messages(props) {
       ))
       }
       {typingMembers && typingMembers.length > 0 && group_name &&
-        typingMembers.length
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="ml-2 *:text-green-500">
+              {typingMembers.length == 1 && (<p className="text-sm font-bold">{getMemberDetails(typingMembers[0]).username} typing...</p>)}
+              {typingMembers.length == 2 && (<p className="text-sm font-bold">{getMemberDetails(typingMembers[0]).username} and {getMemberDetails(typingMembers[1]).username} are typing...</p>)}
+              {typingMembers.length>2&&( <p className="text-sm font-bold">multiple members are typing...</p>)}
+            </div>
+          </div>
+        </div>
+
       }
       <div ref={messagesEndRef}></div>
     </div >

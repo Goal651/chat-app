@@ -42,11 +42,7 @@ const checkUser = async (req, res, next) => {
             const newAccessToken = refreshToken(decodedToken.email)
             return res.status(401).json({ newToken: newAccessToken })
         }
-        if (err) {
-            res.sendStatus(403)
-            console.log(err)
-            return
-        }
+        if (err) return res.sendStatus(403)
         req.user = user.email;
         req.id = user.id;
         next();
