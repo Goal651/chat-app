@@ -56,7 +56,7 @@ export default function Sender({ socket, editingMessage, replying }) {
         } else {
             if (message.trim() !== "") {
                 if (friend_name) {
-                    if (replyMode) socket.emit("reply_message", { receiver: friend, message, id: replying._id });
+                    if (replyMode) socket.emit("reply_message", { receiver: friend, message, id: replying._id,replying });
                     else socket.emit("send_message", { receiver: friend, message });
                     socket.emit("not_typing", { receiver: friend });
 

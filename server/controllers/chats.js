@@ -248,9 +248,9 @@ const handlerChat = async (io) => {
             }
         })
 
-        socket.on('reply_message', async ({ id, message, receiver }) => {
+        socket.on('reply_message', async ({ id, message, receiver,replying }) => {
             try {
-                console.log(id, message, receiver)
+                console.log(replying)
                 const receiverUser = await User.findOne({ email: receiver });
                 if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
                 const receiverPublicKey = receiverUser.publicKey;
@@ -262,14 +262,15 @@ const handlerChat = async (io) => {
                     type: "text",
                     receiver,
                     time: formatTime(),
+
                 });
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('reply_message_error', 'Error replying message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", {newMessage:{...savedMessage._doc,message}});
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", {newMessage:{...savedMessage._doc,message,replyingMessage:replying}});
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
-                io.to(senderSocketId).emit("message_sent", { newMessage: { ...savedMessage._doc, message } });
+                io.to(senderSocketId).emit("message_sent", { newMessage: { ...savedMessage._doc, message,replyingMessage:replying } });
             } catch (err) {
                 console.error(err)
             }

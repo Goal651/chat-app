@@ -42,7 +42,8 @@ const messageSchema = mongoose.Schema({
     }],
     replyingTo: {
         messageId: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Message',
             default: null
         },
     },
