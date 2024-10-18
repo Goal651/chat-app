@@ -72,8 +72,11 @@ const getMessage = async (req, res) => {
     const { receiver } = req.query;
     const sender = req.user;
     if (!sender || !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });
-    const messages = await Message.find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] });
-    if (messages.length === 0) return res.status(200).json({ messages: [] });
+    const messages = await Message
+      .find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] })
+      .populate('replyingTo.messageId')
+    if (messages.length === 0) return res.status(200).json({ messages: [] })
+
     const messageWithDetails = await Promise.all(messages.map(async (message) => {
       const recipient = message.receiver
       const user = await User.findOne({ email: recipient });
@@ -112,7 +115,27 @@ const getMessage = async (req, res) => {
           fileData = `data:audio/mp3;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
-      return { ...message._doc, message: decryptedMessage, file: fileData };
+      let decryptedReplyingToMessage = null;
+      if (message.replyingTo && message.replyingTo.messageId) {
+        const replyingToMessage = await Message.findById(message.replyingTo.messageId._id);
+        const recipient = replyingToMessage.receiver
+        const user = await User.findOne({ email: recipient });
+        if (!user) return console.log("No user")
+        const encryptedPrivateKey = await getPrivateKeyFromConfig(recipient);
+        const privateKey = decryptPrivateKey(encryptedPrivateKey);
+        if (!privateKey) return console.log("No private key found")
+        if (replyingToMessage) {
+          try {
+            const decryptedReplyingMessage = await decryptMessage(privateKey, replyingToMessage.message);
+            decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage };
+          } catch (error) {
+            console.error('Error decrypting replyingTo message:', error);
+            decryptedReplyingToMessage = 'Error decrypting replyingTo message';
+          }
+        }
+      }
+
+      return { ...message._doc, message: decryptedMessage, file: fileData, replyingMessage: decryptedReplyingToMessage ? decryptedReplyingToMessage : null };
     }));
     res.status(200).json({ messages: messageWithDetails });
   } catch (error) {
@@ -139,7 +162,7 @@ const getGMessage = async (req, res) => {
       let file = null;
       if (gm.type == 'text') {
         try {
-          decryptedMessage = await decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
+          decryptedMessage = decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
         } catch (error) {
           console.error(`Error decrypting message for recipient ${recipient}:`, error);
           decryptedMessage = 'Error decrypting message';
@@ -149,8 +172,8 @@ const getGMessage = async (req, res) => {
         try {
           const filePath = path.join(gm.message);
           const data = await fs.readFile(filePath);
-          file= `data:image/jpeg;base64, ${data.toString('base64')}`;
-        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+          file = `data:image/jpeg;base64, ${data}`;
+        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
       else if (gm.type.startsWith('video')) {
         try {
@@ -166,7 +189,7 @@ const getGMessage = async (req, res) => {
           file = `data:audio/mp3;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
-      return { ...gm._doc, senderUsername, image:file, message: decryptedMessage };
+      return { ...gm._doc, senderUsername, file, message: decryptedMessage };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

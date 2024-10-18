@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
@@ -9,7 +9,7 @@ import { ReactMic } from 'react-mic'; // Import React Mic
 import DocViewer from 'react-doc-viewer'
 
 
-export default function Sender({ socket, editingMessage }) {
+export default function Sender({ socket, editingMessage, replying }) {
     const { friend_name, group_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [fileName, setFileName] = useState(null);
@@ -24,8 +24,8 @@ export default function Sender({ socket, editingMessage }) {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [timeRemaining, setTimeRemaining] = useState(null);
     const [editMode, setEditMode] = useState(false)
-    const navigate = useNavigate()
-
+    const [replyMode, setReplyMode] = useState(false)
+    const chat_user = Cookies.get('user')
 
     useEffect(() => {
         if (editingMessage) {
@@ -35,12 +35,16 @@ export default function Sender({ socket, editingMessage }) {
     }, [editingMessage])
 
 
+    useEffect(() => {
+        if (replying) setReplyMode(true)
+    }, [replying])
+
+
     const handleMessageEdition = async (id, message) => {
         if (!socket || !id || !message) return
         socket.emit('edit_message', { id, message, receiver: friend })
 
     }
-
 
     const sendMessage = useCallback((e) => {
         e.preventDefault();
@@ -52,7 +56,11 @@ export default function Sender({ socket, editingMessage }) {
         } else {
             if (message.trim() !== "") {
                 if (friend_name) {
-                    socket.emit("send_message", { receiver: friend, message });
+                    if (replyMode) socket.emit("reply_message", { receiver: friend, message, id: replying._id,replying });
+                    else socket.emit("send_message", { receiver: friend, message });
+                    socket.emit("not_typing", { receiver: friend });
+
+
                 }
                 if (group_name) {
                     const newMessage = {
@@ -63,11 +71,13 @@ export default function Sender({ socket, editingMessage }) {
                         seen: [],
                     };
                     socket.emit("send_group_message", { message: newMessage });
+                    socket.emit("member_not_typing", { group: group_name })
                 }
             }
         }
         setMessage("");
         setShowEmojiPicker(false);
+        setReplyMode(false)
         socket.emit("not_typing", { receiver: friend });
     }, [message, socket, friend, friend_name, group_name]);
 
@@ -75,7 +85,7 @@ export default function Sender({ socket, editingMessage }) {
         if (!fileMessage) return;
         const chunkSize = 50 * 1024;
         let fileName = fileMessage.name
-        if (!fileMessage.name) fileName = `${Date.now()}.mp3`
+        if (!fileMessage.name) fileName = `${fileMessage.size + friend.split('.')[0]}.mp3`
         const totalChunks = Math.ceil(fileMessage.size / chunkSize);
         const reader = new FileReader();
         const from = currentChunk * chunkSize;
@@ -147,10 +157,9 @@ export default function Sender({ socket, editingMessage }) {
                 setFilePreview(URL.createObjectURL(file));
                 setFileMessage(file);
                 socket.emit('typing', { receiver: friend });
-
             }
         } else {
-            socket.emit('member_typing', { group: group_name });
+            socket.emit(value.trim()? 'member_typing':'member_not_typing', { group: group_name });
             setMessage(value);
             socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
         }
@@ -185,6 +194,19 @@ export default function Sender({ socket, editingMessage }) {
 
     return (
         <>
+            {replyMode && (
+                <div className={`p-5 mx-4 border-t-slate-300 border-t-2 text-gray-800 `}>
+                    <div className='float-right'>
+                        <button
+                            className='text-gray-500 btn btn-circle btn-xs'
+                            onClick={() => setReplyMode(false)}
+                        > X
+                        </button>
+                    </div>
+                    <p className="text-gray-500 font-bold">Replying to {replying.sender == chat_user ? 'Yourself' : friend_name}</p>
+                    <p className="text-gray-500">{replying?.message}</p>
+                </div>
+            )}
             <div className={`px-2 mx-4 bg-slate-300 text-gray-800  rounded-lg`}>
                 <form onSubmit={sendMessage} className="flex items-center">
                     <button type="button" onClick={toggleEmojiPicker} className="text-gray-500 text-lg">

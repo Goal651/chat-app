@@ -45,10 +45,13 @@ const decryptPrivateKey = async (encryptedPrivateKey) => {
 
 const decryptGroupMessage = (data) => {
     try {
+        if (!data) return
         const ivBuffer = Buffer.from(data.iv, 'hex')
         const aesKeyBuffer = Buffer.from(data.privateKey, 'hex')
         const encryptedMessage = Buffer.from(data.message, 'hex');
+        console.log(data)
         const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+        console.log(decipher)
         let decryptedMessage = decipher.update(encryptedMessage, undefined, 'utf-8')
         decryptedMessage += decipher.final('utf-8')
         return decryptedMessage
@@ -254,19 +257,29 @@ const getGroups = async (req, res) => {
     try {
         const userEmail = req.user;
         const groups = await Group.find({ "members.email": userEmail });
+        if (!groups) return res.sendStatus(404)
         const groupsWithImages = await Promise.all(groups.map(async (group) => {
             const { aesKey, iv, encryptedPrivateKey } = group
-            const privateKey = await decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey })
+            let lMessage = ''
+            const privateKey = decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey })
             if (!privateKey) return null
-            let latestMessage = await GMessage.findOne({ group: group.name }).sort({ timestamp: -1 }).exec();
-            latestMessage = { ...latestMessage._doc, message: await decryptGroupMessage({ privateKey, iv, message: latestMessage.message }) }
+            const latestMessage = await GMessage.findOne({ group: group.name }).sort({ timestamp: -1 }).exec();
+            if (latestMessage) {
+                let message = ''
+                if (latestMessage.type == 'text') message = decryptGroupMessage({ privateKey, iv, message: latestMessage.message })
+                else message = 'sent file'
+                lMessage = { ...latestMessage._doc, message }
+            }
             const details = await groupDetails(group.name)
             let imageData = null
             if (group.image) imageData = await readImage(group.image);
-            return { ...group.toObject(), imageData, latestMessage, details };
+            return { ...group.toObject(), imageData, latestMessage: lMessage, details };
         }));
         res.status(200).json({ groups: groupsWithImages });
-    } catch (err) { res.sendStatus(500) }
+    } catch (err) {
+        res.sendStatus(500)
+        console.log(err)
+    }
 };
 
 const getGroup = async (req, res) => {
