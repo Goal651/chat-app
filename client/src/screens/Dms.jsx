@@ -242,6 +242,11 @@ export default function DMArea({ socket, isMobile, theme }) {
             socket.off('call-answer', handleCallAnswer);
             socket.off('ice-candidate', handleICECandidate);
             socket.off('receive_file', handleReceiveMessage)
+            socket.off('message_seen', handleMessageSeen)
+            socket.off('message_edited', handleMessageEdition)
+            socket.off('message_deleted', handleMessageDeletion)
+            socket.off('receive_reacting', handleReaction)
+            socket.off('online_users', handleOnlineUsers)
         };
     }, [socket, friend, friend_name, peerConnection]);
 

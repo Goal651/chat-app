@@ -1,14 +1,18 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Cookies from 'js-cookie'
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import WaveSurfer from "wavesurfer.js";
 
 export default function Messages(props) {
   const { messages, info, group, onlineUsers, history, typingMembers, socket, editingMessage, replying } = props
   const friend = localStorage.getItem('selectedFriend')
+  const chat_user = Cookies.get('user')
   const messagesEndRef = useRef(null);
+
   const [scrollToBottom, setScrollToBottom] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { group_name, friend_name } = useParams()
@@ -129,7 +133,8 @@ export default function Messages(props) {
 
   const handleDeleteMessage = async (id) => {
     if (!id || !socket) return
-    socket.emit('delete_message', { id, receiver: friend })
+    if (friend_name) socket.emit('delete_message', { id, receiver: friend })
+    if (group_name) socket.emit('delete_gm', { id, group: group_name })
   }
 
   const handleReplying = (id) => replying(id)
@@ -138,13 +143,20 @@ export default function Messages(props) {
 
   const renderContextMenu = () => {
     if (!contextMenu.visible) return null;
-    const isSender = contextMenu.sender === friend
+    const isSender = contextMenu.sender === chat_user
+    const isGSender = contextMenu.sender === chat_user
+    let xPosition;
+    let yPosition;
+    if (contextMenu.x > 900) xPosition= 900
+    else xPosition = contextMenu.x
+    if (contextMenu.y > 700) yPosition = 700
+    else yPosition = contextMenu.y
     return (
       <div
         style={{
           position: "absolute",
-          top: `${isSender ? contextMenu.y : contextMenu.y}px`,
-          left: `${isSender ? contextMenu.x : contextMenu.x - 100}px`,
+          top: `${!isSender || !isGSender ? yPosition : yPosition}px`,
+          left: `${!isSender || !isGSender ? xPosition : xPosition - 100}px`,
           padding: "10px",
           zIndex: 1000,
         }}
@@ -158,11 +170,11 @@ export default function Messages(props) {
             <button onClick={() => handleReplying(contextMenu.messageId)}>Reply</button>
           </li>
 
-          {!isSender && <li
+          {!isSender || isGSender && <li
             onClick={() => handleEditMessage(contextMenu.messageId)}>
             <button >Edit</button>
           </li>}
-          {!isSender && <li
+          {!isSender || isGSender && <li
             className="text-red-500"
             onClick={() => handleDeleteMessage(contextMenu.messageId)}          >
             <button
@@ -178,7 +190,7 @@ export default function Messages(props) {
     <div className="">
       {renderContextMenu()}
       {showEmojiPicker && (
-        <div className="absolute bottom-20">
+        <div className="absolute bottom-20 right-96 z-50">
           <Picker
             data={data}
             onEmojiSelect={addEmoji}
@@ -203,7 +215,7 @@ export default function Messages(props) {
                   messageID.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }}
               >
-                <div className="mb-2 font-semibold chat-header"> replied to {msg.replyingMessage.sender == friend ?'himself' : 'you'}</div>
+                <div className="mb-2 font-semibold chat-header"> replied to {msg.replyingMessage.sender == friend ? 'himself' : 'you'}</div>
                 <div className="chat-bubble text-sm"> {msg.replyingMessage.message}</div>
               </div>)}
             <div
@@ -260,17 +272,17 @@ export default function Messages(props) {
                       </div>
                     </div>
                   </div>))}
-              )
+
               {msg.type.startsWith('image') && (
                 <div
                   onContextMenu={(e) => handleContextMenu(e, msg._id)}
-                  className=" text-white w-96 p-4 rounded-xl">
+                  className=" text-black w-80 p-4 rounded-xl bg-slate-200 chat-bubble">
                   <img
                     src={msg.file}
                     alt="attachment"
-                    className="rounded-lg max-w-80 max-h-96 justify-center "
+                    className="rounded-lg w-full max-h-80 justify-center "
                   />
-                  <div className="relative right-12 bottom-6 text-xs  text-right">{msg.time}</div>
+                  <div className="relative right-12  text-xs  text-right">{msg.time}</div>
                 </div>)}
               {msg.type.startsWith('video') && (
                 <div
@@ -289,7 +301,7 @@ export default function Messages(props) {
               {msg.type.startsWith('audio') && (
                 <div
                   onContextMenu={(e) => handleContextMenu(e, msg._id)}
-                  className=" text-white w-96 p-4  bg-gray-200">
+                  className=" text-white w-96 p-4  bg-gray-200 chat-bubble">
                   <audio
                     src={msg.file}
                     className="rounded max-w-80 max-h-96 justify-center "
@@ -319,7 +331,6 @@ export default function Messages(props) {
               </div>)}
             <div
               ref={el => (observerRefs.current[msg._id] = el)}
-
               className={`chat chat-end rounded-lg p-2  `} >
               {msg.type === 'text' && (
                 <div
@@ -337,13 +348,13 @@ export default function Messages(props) {
               {msg.type.startsWith('image') && (
                 <div
                   onContextMenu={(e) => handleContextMenu(e, msg._id)}
-                  className="text-white w-96 p-4 ">
+                  className="text-white w-96 p-4 bg-indigo-500 chat-bubble ">
                   <img
                     src={msg.file}
                     alt="attachment"
                     className="rounded-lg max-w-full h-auto justify-center "
                   />
-                  <div className="relative bottom-5 right-4 text-right text-xs ">{msg.time}</div>
+                  <div className="relative top-1 right-4 text-right text-xs ">{msg.time}</div>
                 </div>)}
               {msg.type.startsWith('video') && (<div
                 onContextMenu={(e) => handleContextMenu(e, msg._id)}
@@ -361,7 +372,7 @@ export default function Messages(props) {
               {msg.type.startsWith('audio') && (
                 <div
                   onContextMenu={(e) => handleContextMenu(e, msg._id)}
-                  className="text-white w-96 p-4 rounded-lg  ">
+                  className="text-white w-96 p-4 rounded-lg  bg-indigo-500 chat-bubble ">
                   <audio
                     controls
                     src={msg.file}
@@ -382,160 +393,230 @@ export default function Messages(props) {
         <div ref={el => (observerRefs.current[msg._id] = el)}
           key={msg._id}
           id={msg._id}
-          className={` chat chat-start rounded-lg p-2  `} >
-          <div className={`chat-image avatar  ${isOnline(msg.sender) ? 'online' : 'offline'}`}>
+
+        >
+          {msg.replyingMessage && (
             <div
-              onClick={() => chatNow(msg.sender)}
-              className="w-10 rounded-lg bg-gray-500 ">
-              {msg.sender ? <img
-                src={getMemberDetails(msg.sender).image}
-                alt="Profile"
-                className=""
-              /> : <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                width="24px"
-                height="24px"
-                className="relative left-1 top-1 text-gray-100 "                        >
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>}
+              className=" opacity-70 mt-5  chat chat-start ml-10"
+              onClick={() => {
+                const messageID = document.getElementById(msg.replyingMessage._id)
+                messageID.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+            >
+              <div className="mb-2 font-semibold chat-header"> replied to {msg.replyingMessage.sender == chat_user ? 'you' : msg.replyingMessage.sender === msg.sender ? 'himself' : getMemberDetails(msg.replyingMessage.sender).username}</div>
+              <div className="chat-bubble text-sm"> {msg.replyingMessage.message}</div>
+            </div>)}
+          <div
+            className={` chat chat-start rounded-lg p-2  `}
+          >
+            <div className={`chat-image avatar  ${isOnline(msg.sender) ? 'online' : 'offline'}`}>
+              <div
+                onClick={() => chatNow(msg.sender)}
+                className="w-10 rounded-lg bg-gray-500 ">
+                {msg.sender ? <img
+                  src={getMemberDetails(msg.sender).image}
+                  alt="Profile"
+                  className=""
+                /> : <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  width="24px"
+                  height="24px"
+                  className="relative left-1 top-1 text-gray-100 "                        >
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>}
+              </div>
             </div>
-          </div>
-          {msg.type === 'text' && (
-            <div className="max-w-96 min-w-24 h-auto bg-white text-gray-800 chat-bubble">
-              <div className="font-semibold text-sm text-indigo-900 mb-1 link-hover hover:cursor-pointer">{getMemberDetails(msg.sender).username}</div>
-              <div className="max-w-96 h-auto  text-sm break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+
+            {msg.type === 'text' && (
+              <div
+                onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                className="max-w-96 min-w-24 h-auto bg-slate-400 text-gray-800 chat-bubble">
+                <div className="font-semibold text-sm text-indigo-900 mb-1 link-hover hover:cursor-pointer">{getMemberDetails(msg.sender).username}</div>
+                <div className="max-w-96 h-auto  text-sm break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+                <div className="mt-1 flex justify-between">
+                  <div className=" font-semibold grow pr-4 flex">
+                    <svg
+                      width="20"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="light-gray"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                        fill="lightgray"
+                      />
+                    </svg>
+                    <div className="text-gray-300 text-center text-xs font-semibold"> {msg.seen.length}</div></div>
+                  <div className="text-xs opacity-70 text-right">
+                    {msg.time}
+                  </div>
+                </div>
+              </div >
+            )}
+            {msg.type.startsWith('image') && (<div
+              onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+              className="bg-slate-400 text-gray-800 w-96 p-4 chat-bubble ">
+              <img src={msg.file} alt="attachment" className="rounded" />
               <div className="mt-1 flex justify-between">
-                <div className=" font-semibold grow pr-4 flex">
+                <div className="text-sm font-semibold flex grow pr-4">
                   <svg
                     width="20"
-                    height="15"
+                    height="20"
                     viewBox="0 0 24 24"
-                    fill="light-gray"
+                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
                       d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                      fill="lightgray"
+                      fill="white"
                     />
                   </svg>
-                  <div className="text-gray-300 text-center text-xs font-semibold"> {msg.seen.length}</div></div>
+                  <div>{msg.seen.length}</div>
+                </div>
                 <div className="text-xs opacity-70 text-right">
                   {msg.time}
                 </div>
               </div>
-            </div >
-          )}
-          {msg.type.startsWith('image') && (<div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-            <img src={msg.file} alt="attachment" className="rounded" />
-            <div className="mt-1 flex justify-between">
-              <div className="text-sm font-semibold flex grow pr-4">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                    fill="white"
-                  />
-                </svg>
-                <div>{msg.seen.length}</div>
+            </div>)}
+            {msg.type.startsWith('video') && (<div
+              onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+              className="bg-slate-400 text-gray-800 w-96 p-4 chat-bubble ">
+              <video controls src={msg.file} alt="attachment" className="rounded w-full bg-black max-h-80 justify-center" />
+              <div className="mt-1 flex justify-between">
+                <div className="text-sm font-semibold flex grow pr-4">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                      fill="white"
+                    />
+                  </svg>
+                  <div>{msg.seen.length}</div>
+                </div>
+                <div className="text-xs opacity-70 text-right">
+                  {msg.time}
+                </div>
               </div>
-              <div className="text-xs opacity-70 text-right">
-                {msg.time}
+            </div>)}
+            {msg.type.startsWith('audio') && (<div
+              onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+              className="bg-slate-400 text-gray-800 w-96 p-4 chat-bubble ">
+              <audio controls src={msg.file} >
+              </audio>
+              <div className="mt-1 flex justify-between">
+                <div className="text-sm font-semibold flex grow pr-4">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                      fill="white"
+                    />
+                  </svg>
+                  <div>{msg.seen.length}</div>
+                </div>
+                <div className="text-xs opacity-70 text-right">
+                  {msg.time}
+                </div>
               </div>
-            </div>
-          </div>)}
-          {msg.type.startsWith('video') && (<div className="bg-white text-gray-800 w-96 p-4 chat-bubble ">
-            <video src={msg.file} alt="attachment" className="rounded" />
-            <div className="mt-1 flex justify-between">
-              <div className="text-sm font-semibold flex grow pr-4">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                    fill="white"
-                  />
-                </svg>
-                <div>{msg.seen.length}</div>
-              </div>
-              <div className="text-xs opacity-70 text-right">
-                {msg.time}
-              </div>
-            </div>
-          </div>)}
-          {msg.type.startsWith('audio') && (<div className="bg-gray-400 text-gray-800 w-96 p-4 chat-bubble ">
-            <audio controls src={msg.file} >
-            </audio>
-            <div className="mt-1 flex justify-between">
-              <div className="text-sm font-semibold flex grow pr-4">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                    fill="white"
-                  />
-                </svg>
-                <div>{msg.seen.length}</div>
-              </div>
-              <div className="text-xs opacity-70 text-right">
-                {msg.time}
-              </div>
-            </div>
-          </div>)
-          }
+            </div>)
+            }
+          </div>
         </div>
       ) : (
         <div
-          ref={el => (observerRefs.current[msg._id] = el)}
           key={msg._id}
           id={msg._id}
-          className={`chat  chat-end rounded-lg p-2  `} >
-          {msg.type === 'text' && (
-            <div className="max-w-96 h-auto bg-indigo-700 text-white chat-bubble"                                >
-              <div className="max-w-80  h-auto text-xs break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
-              <div className="mt-1 flex  justify-between">
-                <div className="text-sm flex opacity-75 font-semibold grow pr-4"> <svg
-                  width="20"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                    fill="white"
-                  />
-                </svg>
-                  <div className="text-gray-300 text-center text-xs font-semibold"> {msg.seen.length}</div>
-                </div>
-                <div className="text-xs opacity-70 text-right">
-                  {msg.time}
+        >
+          {msg.replyingMessage && (
+            <div
+              className=" opacity-70 mt-5  chat chat-end mr-10"
+              onClick={() => {
+                const messageID = document.getElementById(msg.replyingMessage._id)
+                messageID.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
+            >
+              <div className="mb-2 font-semibold chat-header"> you replied to {msg.replyingMessage.sender == chat_user ? 'yourself' : getMemberDetails(msg.replyingMessage.sender).username}</div>
+              <div className="chat-bubble text-sm"> {msg.replyingMessage.message}</div>
+            </div>)}
+          <div
+            ref={el => (observerRefs.current[msg._id] = el)}
+
+            className={`chat  chat-end rounded-lg p-2  `} >
+            {msg.type === 'text' && (
+              <div
+                onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                className="max-w-96 h-auto bg-indigo-700 text-white chat-bubble"                                >
+                <div className="max-w-80  h-auto text-xs break-words" dangerouslySetInnerHTML={{ __html: isLink(msg.message) }} />
+                <div className="mt-1 flex  justify-between">
+                  <div className="text-sm flex opacity-75 font-semibold grow pr-4"> <svg
+                    width="20"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                      fill="white"
+                    />
+                  </svg>
+                    <div className="text-gray-300 text-center text-xs font-semibold"> {msg.seen.length}</div>
+                  </div>
+                  <div className="text-xs opacity-70 text-right">
+                    {msg.time}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          {msg.type.startsWith('image') && (
-            <div className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
-              <img
-                src={msg.file}
-                alt="attachment"
-                className="rounded max-w-80 max-h-96 justify-center "
-              />
+            )}
+            {msg.type.startsWith('image') && (
+              <div
+                onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
+                <img
+                  src={msg.file}
+                  alt="attachment"
+                  className="rounded max-w-80 max-h-96 justify-center "
+                />
+                <div className="mt-1 flex justify-between">
+                  <div className="text-sm font-semibold grow pr-4 flex">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                        fill="white"
+                      />
+                    </svg>
+                    <div>
+                      {msg.seen.length}
+                    </div>
+                  </div>
+                  <div className="text-xs opacity-70 text-right">
+                    {msg.time}
+                  </div>
+                </div>
+              </div>)}
+            {msg.type.startsWith('video') && (<div
+              onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+              className="bg-indigo-700 text-white w-96 p-4 chat-bubble ">
+              <video controls src={msg.file} alt="attachment" className="rounded w-full bg-black max-h-80 justify-center" />
               <div className="mt-1 flex justify-between">
                 <div className="text-sm font-semibold grow pr-4 flex">
                   <svg
@@ -559,57 +640,35 @@ export default function Messages(props) {
                 </div>
               </div>
             </div>)}
-          {msg.type.startsWith('video') && (<div className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
-            <img src={msg.file} alt="attachment" className="rounded max-w-80 max-h-96 justify-center " />
-            <div className="mt-1 flex justify-between">
-              <div className="text-sm font-semibold grow pr-4 flex">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                    fill="white"
-                  />
-                </svg>
-                <div>
-                  {msg.seen.length}
-                </div>
-              </div>
-              <div className="text-xs opacity-70 text-right">
-                {msg.time}
-              </div>
-            </div>
-          </div>)}
 
-          {msg.type.startsWith('audio') && (<div className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
-            <audio controls src={msg.file} />
-            <div className="mt-1 flex justify-between">
-              <div className="text-sm font-semibold grow pr-4 flex">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
-                    fill="white"
-                  />
-                </svg>
-                <div>
-                  {msg.seen.length}
+            {msg.type.startsWith('audio') && (<div
+              onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+              className="bg-indigo-700 text-white w-96 p-4 chat-bubble">
+              <audio controls src={msg.file} className="bg-white rounded-xl" />
+              <div className="mt-1 flex justify-between">
+                <div className="text-sm font-semibold grow pr-4 flex">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 5C7 5 3.2 9 2 12c1.2 3 5 7 10 7s8.8-4 10-7c-1.2-3-5-7-10-7zm0 11c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"
+                      fill="white"
+                    />
+                  </svg>
+                  <div>
+                    {msg.seen.length}
+                  </div>
+                </div>
+                <div className="text-xs opacity-70 text-right">
+                  {msg.time}
                 </div>
               </div>
-              <div className="text-xs opacity-70 text-right">
-                {msg.time}
-              </div>
-            </div>
-          </div>)}
+            </div>)}
+          </div>
         </div>
       )))) : (
         <div className="text-center text-gray-500">

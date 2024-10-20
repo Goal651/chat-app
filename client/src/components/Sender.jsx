@@ -56,11 +56,9 @@ export default function Sender({ socket, editingMessage, replying }) {
         } else {
             if (message.trim() !== "") {
                 if (friend_name) {
-                    if (replyMode) socket.emit("reply_message", { receiver: friend, message, id: replying._id,replying });
+                    if (replyMode) socket.emit("reply_message", { receiver: friend, message, id: replying._id, replying });
                     else socket.emit("send_message", { receiver: friend, message });
                     socket.emit("not_typing", { receiver: friend });
-
-
                 }
                 if (group_name) {
                     const newMessage = {
@@ -70,7 +68,8 @@ export default function Sender({ socket, editingMessage, replying }) {
                         time: new Date().toISOString().slice(11, 16),
                         seen: [],
                     };
-                    socket.emit("send_group_message", { message: newMessage });
+                    if(replyMode) socket.emit("reply_group_message", { message: newMessage, id: replying._id,  replying });
+                    else socket.emit("send_group_message", { message: newMessage });
                     socket.emit("member_not_typing", { group: group_name })
                 }
             }
@@ -85,7 +84,7 @@ export default function Sender({ socket, editingMessage, replying }) {
         if (!fileMessage) return;
         const chunkSize = 50 * 1024;
         let fileName = fileMessage.name
-        if (!fileMessage.name) fileName = `${fileMessage.size + friend.split('.')[0]}.mp3`
+        if (!fileMessage.name) fileName = `${fileMessage.size + (friend?.split('.')[0] || group_name)}.mp3`
         const totalChunks = Math.ceil(fileMessage.size / chunkSize);
         const reader = new FileReader();
         const from = currentChunk * chunkSize;
@@ -159,7 +158,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                 socket.emit('typing', { receiver: friend });
             }
         } else {
-            socket.emit(value.trim()? 'member_typing':'member_not_typing', { group: group_name });
+            socket.emit(value.trim() ? 'member_typing' : 'member_not_typing', { group: group_name });
             setMessage(value);
             socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
         }
@@ -203,7 +202,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                         > X
                         </button>
                     </div>
-                    <p className="text-gray-500 font-bold">Replying to {replying.sender == chat_user ? 'Yourself' : friend_name}</p>
+                    <p className="text-gray-500 font-bold">Replying to {replying.sender == chat_user ? 'Yourself' : replying.sender}</p>
                     <p className="text-gray-500">{replying?.message}</p>
                 </div>
             )}

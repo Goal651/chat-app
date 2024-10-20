@@ -171,7 +171,7 @@ const getGMessage = async (req, res) => {
       else if (gm.type.startsWith('image')) {
         try {
           const filePath = path.join(gm.message);
-          const data = await fs.readFile(filePath);
+          const data = (await fs.readFile(filePath)).toString('base64');
           file = `data:image/jpeg;base64, ${data}`;
         } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
@@ -187,9 +187,22 @@ const getGMessage = async (req, res) => {
           const filePath = path.join(gm.message);
           const data = await fs.readFile(filePath);
           file = `data:audio/mp3;base64,${data.toString('base64')}`;
-        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
+        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
-      return { ...gm._doc, senderUsername, file, message: decryptedMessage };
+      let decryptedReplyingToMessage = null;
+      if (gm.replyingTo && gm.replyingTo.messageId) {
+        const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
+        if (replyingToMessage) {
+          try {
+            const decryptedReplyingMessage = await decryptGroupMessage({privateKey,iv,message:replyingToMessage.message})
+            decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage };
+          } catch (error) {
+            console.error('Error decrypting replyingTo message:', error);
+            decryptedReplyingToMessage = 'Error decrypting replyingTo message';
+          }
+        }
+      }
+      return { ...gm._doc, senderUsername, file, message: decryptedMessage,replyingMessage: decryptedReplyingToMessage ? decryptedReplyingToMessage : null  };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

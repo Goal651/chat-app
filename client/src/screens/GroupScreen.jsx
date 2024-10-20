@@ -26,6 +26,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     const accessToken = Cookies.get('accessToken')
     const selectedGroup = localStorage.getItem('selectedGroup')
     const [lou, setLou] = useState(0)
+    const [editingMessage, setEditingMessage] = useState(null)
+    const [replying, setReplying] = useState(null)
+
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -135,7 +138,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             );
         }
 
-
         const handleMemberSawMessage = ({ id, member, group }) => {
             if (group !== selectedGroup) return null;
             setHistory((prev) =>
@@ -155,12 +157,38 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             );
         };
 
-
-
         const handleGroupMessageSent = ({ message }) => {
+            console.log(message)
             setHistory((prevHistory) => [...prevHistory, message])
             setScrollToBottom(true)
         }
+
+        const handleGMessageEdition = (data) => {
+            if (!data) return
+            setHistory((prevHistory) => {
+                const message = prevHistory.filter((history) => history._id === data.id)[0]
+                const newMessage = { ...message, message: data.message, edited: true }
+                console.log(newMessage)
+                return prevHistory.map((message) => message._id === data.id ? newMessage : message)
+            })
+        }
+
+        const handleGMessageDeletion = (id) => {
+            if (!id) return
+            setHistory((prevHistory) => {
+                return prevHistory.filter((message) => message._id !== id)
+            })
+        }
+
+        const handleGReaction = (data) => {
+            if (!data) return
+            setHistory((prevHistory) => {
+                const message = prevHistory.filter((history) => history._id === data.id)[0]
+                const newMessage = { ...message, reactions: [{ reaction: data.reaction, reactor: data.reactor }] }
+                return prevHistory.map((message) => message._id === data.id ? newMessage : message)
+            })
+        }
+
 
         const handleCallOffer = async ({ offer, sender, type }) => {
             if (sender !== group_name) return;
@@ -215,6 +243,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         socket.on('group_message_sent', handleGroupMessageSent);
         socket.on("group_message_seen", handleMessageSeen);
         socket.on('member_saw_message', handleMemberSawMessage)
+        socket.on('group_message_edited', handleGMessageEdition)
+        socket.on('group_message_deleted', handleGMessageDeletion)
+        socket.on('group_reaction', handleGReaction)
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
@@ -266,6 +297,19 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         localStorage.removeItem('selectedGroup');
         navigate('/group');
     };
+
+
+    const handleEditMessage = (id) => {
+        if (!id) return
+        const message = history.filter((message) => message._id === id)[0]
+        setEditingMessage(message)
+    }
+
+    const handleReplying = (id) => {
+        if (!id) return
+        const message = history.filter((message) => message._id === id)[0]
+        setReplying(message)
+    }
 
 
     // WebRTC Functions
@@ -432,11 +476,18 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                     history={history}
                     group={group}
                     onlineUsers={onlineUsers}
+                    editMessage={handleEditMessage}
+                    replying={handleReplying}
                     typingMembers={typingMembers}
                 />}
+
             </div>
 
-            <Sender socket={socket} />
+            <Sender
+             socket={socket} 
+             editingMessage={editingMessage}
+             replying={replying}
+             />
 
             {isCalling && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">

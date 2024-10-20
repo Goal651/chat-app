@@ -49,9 +49,7 @@ const decryptGroupMessage = (data) => {
         const ivBuffer = Buffer.from(data.iv, 'hex')
         const aesKeyBuffer = Buffer.from(data.privateKey, 'hex')
         const encryptedMessage = Buffer.from(data.message, 'hex');
-        console.log(data)
         const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
-        console.log(decipher)
         let decryptedMessage = decipher.update(encryptedMessage, undefined, 'utf-8')
         decryptedMessage += decipher.final('utf-8')
         return decryptedMessage
@@ -376,7 +374,7 @@ const fileUpload = async (req, res) => {
     if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
     fs.appendFileSync(tmpFilepath, buffer);
     if (lastChunk) {
-        const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id) + filename;
+        const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
         const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
         fs.renameSync(tmpFilepath, finalFilepath);
         const fileUrl = `http://localhost:3001/uploads/messages/${finalFileName}`;

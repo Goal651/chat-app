@@ -171,7 +171,7 @@ const handlerChat = async (io) => {
                 });
                 const filePreview = await readFile(message.message)
                 const preview = `data:${message.fileType};base64,${filePreview}`
-                const sentMessage = { ...newMessage._doc, image: preview };
+                const sentMessage = { ...newMessage._doc, file: preview };
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('file_upload_error', 'Error saving file message');
                 const senderSocketId = userSockets.get(socket.user);
@@ -198,6 +198,44 @@ const handlerChat = async (io) => {
             if (!result) return
             if (receiverSocketId) io.to(receiverSocketId).emit('receive_reacting', { id, reaction, reactor: socket.user });
             if (senderSocketId) io.to(senderSocketId).emit('receive_reacting', { id, reaction, reactor: receiver });
+        })
+
+        socket.on('reply_group_message', async ({ id, message, replying }) => {
+            try {
+                const { aesKey, iv, encryptedPrivateKey } = await Group.findOne({ name: message.group })
+                const privateKey = decryptPrivateKey({ iv, aesKey, encryptedPrivateKey })
+                const encryptedMessage = encryptGroupMessage({ iv, privateKey, message: message.message })
+                const newMessage = new GMessage({
+                    sender: socket.user,
+                    message: encryptedMessage,
+                    group: message.group,
+                    type: message.type,
+                    time: message.time,
+                    replyingTo: { messageId: id }
+                });
+                const savedMessage = await newMessage.save();
+                if (!savedMessage) return null;
+                const senderSocketId = userSockets.get(socket.user);
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message,replyingMessage: replying } });
+                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message, replyingMessage: replying } });
+            } catch (error) {
+                console.error('Error sending group message:', error);
+            }
+        })
+
+        socket.on('delete_gm', async ({ id, group }) => {
+            try {
+                console.log('deleting')
+                const sender = socket.user
+                const senderSocketId = userSockets.get(sender);
+                console.log('group message deleted', id)
+                const result = await GMessage.deleteOne({ _id: id });
+                if (!result) return console.log('Error deleting message');
+                if (senderSocketId) io.to(senderSocketId).emit('gm_deleted', { id, sender });
+                io.to(group).emit('gm_deleted', { id, sender });
+            } catch (error) {
+                console.error(error)
+            }
         })
 
         socket.on('fetch_unread_messages', async () => {
@@ -248,7 +286,7 @@ const handlerChat = async (io) => {
             }
         })
 
-        socket.on('reply_message', async ({ id, message, receiver,replying }) => {
+        socket.on('reply_message', async ({ id, message, receiver, replying }) => {
             try {
                 console.log(replying)
                 const receiverUser = await User.findOne({ email: receiver });
@@ -268,9 +306,9 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return socket.emit('reply_message_error', 'Error replying message');
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", {newMessage:{...savedMessage._doc,message,replyingMessage:replying}});
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...savedMessage._doc, message, replyingMessage: replying } });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
-                io.to(senderSocketId).emit("message_sent", { newMessage: { ...savedMessage._doc, message,replyingMessage:replying } });
+                io.to(senderSocketId).emit("message_sent", { newMessage: { ...savedMessage._doc, message, replyingMessage: replying } });
             } catch (err) {
                 console.error(err)
             }
