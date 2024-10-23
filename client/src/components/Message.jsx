@@ -19,7 +19,6 @@ export default function Messages(props) {
   const navigate = useNavigate()
   const observerRefs = useRef([]);
   const [visibleMessages, setVisibleMessages] = useState([]);
-  const accessToken = Cookies.get('accessToken')
   const [reaction, setReaction] = useState(null)
   const [contextMenu, setContextMenu] = useState({
     visible: false,
@@ -148,7 +147,7 @@ export default function Messages(props) {
     const isGSender = contextMenu.sender === chat_user
     let xPosition;
     let yPosition;
-    if (contextMenu.x > 900) xPosition= 900
+    if (contextMenu.x > 900) xPosition = 900
     else xPosition = contextMenu.x
     if (contextMenu.y > 700) yPosition = 700
     else yPosition = contextMenu.y
@@ -217,7 +216,66 @@ export default function Messages(props) {
                 }}
               >
                 <div className="mb-2 font-semibold chat-header"> replied to {msg.replyingMessage.sender == friend ? 'himself' : 'you'}</div>
-                <div className="chat-bubble text-sm"> {msg.replyingMessage.message}</div>
+                {msg.replyingMessage.type === 'text' && (
+                  msg.replyingTo && msg.replyingTo.messageId ?
+                    <div
+                      onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                      className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
+                      <div
+                        className="max-w-96 h-auto break-words text-sm font-semibold"
+                        dangerouslySetInnerHTML={{ __html: isLink(msg.replyingMessage.message) }} />
+                      <div className="flex float-right">
+                        <div className="text-xs opacity-70 mt-1 text-right">
+                          {msg.edited ? 'edited' : ''}
+                          {msg.time}
+                        </div>
+                      </div>
+                    </div> : (<div
+                      onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                      className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
+                      <div
+                        className="max-w-96 h-auto break-words text-sm font-semibold"
+                        dangerouslySetInnerHTML={{ __html: isLink(msg.replyingMessage.message) }} />
+                    </div>))}
+
+                {msg.replyingMessage.type.startsWith('image') && (
+                  <div
+                    onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                    className=" text-black w-80 p-4 rounded-xl bg-slate-200 chat-bubble">
+                    <img
+                      src={msg.replyingMessage.file}
+                      alt="attachment"
+                      className="rounded-lg w-full max-h-80 justify-center "
+                    />
+                    <div className="relative right-12  text-xs  text-right">{msg.time}</div>
+                  </div>)}
+                {msg.replyingMessage.type.startsWith('video') && (
+                  <div
+                    onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                    className="bg-gray-500 text-white w-96 p-4 chat-bubble">
+                    <video
+                      src={msg.file}
+                      alt="attachment"
+                      className="rounded max-w-80 max-h-96 justify-center"
+                      autoPlay={false}
+                      controls={true}
+                    />
+                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                  </div>
+                )}
+                {msg.replyingMessage.type.startsWith('audio') && (
+                  <div
+                    onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                    className=" text-white w-96 p-4  bg-gray-200 chat-bubble">
+                    <audio
+                      src={msg.file}
+                      className="rounded max-w-80 max-h-96 justify-center "
+                      autoPlay={false}
+                      controls={true}
+                    />
+                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                  </div>
+                )}
               </div>)}
             <div
               className={` chat chat-start rounded-lg p-2  `} >
@@ -321,14 +379,73 @@ export default function Messages(props) {
           >
             {msg.replyingMessage && (
               <div
-                className=" opacity-70 mt-5  chat chat-end mr-10"
+                className=" opacity-70 mt-5  chat chat-end ml-10"
                 onClick={() => {
                   const messageID = document.getElementById(msg.replyingMessage._id)
                   messageID.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }}
               >
-                <div className="mb-2 font-semibold chat-header"> you replied to {msg.replyingMessage.sender == friend ? friend_name : 'yourself'}</div>
-                <div className="chat-bubble text-sm"> {msg.replyingMessage.message}</div>
+                <div className="mb-2 font-semibold chat-header"> replied to {msg.replyingMessage.sender == friend ? 'him' : 'yourself'}</div>
+                {msg.replyingMessage.type === 'text' && (
+                  msg.replyingTo && msg.replyingTo.messageId ?
+                    <div
+                      onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                      className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
+                      <div
+                        className="max-w-96 h-auto break-words text-sm font-semibold"
+                        dangerouslySetInnerHTML={{ __html: isLink(msg.replyingMessage.message) }} />
+                      <div className="flex float-right">
+                        <div className="text-xs opacity-70 mt-1 text-right">
+                          {msg.edited ? 'edited' : ''}
+                          {msg.time}
+                        </div>
+                      </div>
+                    </div> : (<div
+                      onContextMenu={(e) => handleContextMenu(e, msg._id, msg.sender)}
+                      className="max-w-96 min-w-24 h-auto bg-gray-200  text-xs text-gray-800 chat-bubble">
+                      <div
+                        className="max-w-96 h-auto break-words text-sm font-semibold"
+                        dangerouslySetInnerHTML={{ __html: isLink(msg.replyingMessage.message) }} />
+                    </div>))}
+
+                {msg.replyingMessage.type.startsWith('image') && (
+                  <div
+                    onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                    className=" text-black w-80 p-4 rounded-xl bg-slate-200 chat-bubble">
+                    <img
+                      src={msg.replyingMessage.file}
+                      alt="attachment"
+                      className="rounded-lg w-full max-h-80 justify-center "
+                    />
+                    <div className="relative right-12  text-xs  text-right">{msg.time}</div>
+                  </div>)}
+                {msg.replyingMessage.type.startsWith('video') && (
+                  <div
+                    onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                    className="bg-gray-500 text-white w-96 p-4 chat-bubble">
+                    <video
+                      src={msg.file}
+                      alt="attachment"
+                      className="rounded max-w-80 max-h-96 justify-center"
+                      autoPlay={false}
+                      controls={true}
+                    />
+                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                  </div>
+                )}
+                {msg.replyingMessage.type.startsWith('audio') && (
+                  <div
+                    onContextMenu={(e) => handleContextMenu(e, msg._id)}
+                    className=" text-white w-96 p-4  bg-gray-200 chat-bubble">
+                    <audio
+                      src={msg.file}
+                      className="rounded max-w-80 max-h-96 justify-center "
+                      autoPlay={false}
+                      controls={true}
+                    />
+                    <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
+                  </div>
+                )}
               </div>)}
             <div
               ref={el => (observerRefs.current[msg._id] = el)}

@@ -45,14 +45,15 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             const result = await fetch(`http://localhost:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
             if (result.ok) {
-                console.log(data)
                 if (data.group == null) {
-
                     localStorage.removeItem('selectedGroup')
                     navigate('/group')
-                    return
                 }
                 else setGroup(data.group)
+            } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
+            else if (result.status == 403) {
+                Cookies.remove('accessToken')
+                navigate("/login")
             } else navigate('/error');
         };
         fetchGroup();
@@ -158,7 +159,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         };
 
         const handleGroupMessageSent = ({ message }) => {
-            console.log(message)
             setHistory((prevHistory) => [...prevHistory, message])
             setScrollToBottom(true)
         }
@@ -484,10 +484,10 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             </div>
 
             <Sender
-             socket={socket} 
-             editingMessage={editingMessage}
-             replying={replying}
-             />
+                socket={socket}
+                editingMessage={editingMessage}
+                replying={replying}
+            />
 
             {isCalling && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">

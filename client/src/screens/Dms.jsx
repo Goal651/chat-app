@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
 import Cookies from 'js-cookie';
@@ -97,8 +98,8 @@ export default function DMArea({ socket, isMobile, theme }) {
                 });
                 const data = await response.json();
                 if (response.ok) setInfo(data.user);
-                else if (response.status === 401) Cookies.set("accessToken", data.accessToken);
-                else if (response.status === 403 || response.status === 403) {
+                else if (response.status === 401) Cookies.set("accessToken", data.newToken);
+                else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
                 } else navigate('/error')
@@ -258,9 +259,12 @@ export default function DMArea({ socket, isMobile, theme }) {
                     headers: { 'accessToken': `${accessToken}` },
                 });
                 const data = await response.json();
-                setHistory(data.messages);
+                if (response.status === 401) Cookies.set("accessToken", data.newToken);
+                else if (response.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate('/login')
+                } else if (response.ok) setHistory(data.messages);
                 setLoading(false);
-                if (response.status === 403) navigate('/login');
             } catch (error) {
                 console.error("Error fetching messages:", error);
             }
@@ -284,8 +288,6 @@ export default function DMArea({ socket, isMobile, theme }) {
         const message = history.filter((message) => message._id === id)[0]
         setReplying(message)
     }
-
-
 
     // WebRTC Functions
     const createPeerConnection = (peerId) => {

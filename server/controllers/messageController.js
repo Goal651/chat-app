@@ -41,14 +41,16 @@ const decryptGroupPrivateKey = (data) => {
 }
 
 const decryptMessage = async (privateKey, encryptedMessage) => {
+  if (!privateKey || !encryptedMessage) return null;
   try {
-    return crypto.privateDecrypt(
+    const decryptedData = crypto.privateDecrypt(
       {
         key: privateKey,
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
       },
       Buffer.from(encryptedMessage, 'base64')
-    ).toString('utf-8');
+    )
+    return decryptedData.toString('utf-8');
   } catch (err) {
     console.error('Error decrypting message:', err);
     throw err;
@@ -57,6 +59,7 @@ const decryptMessage = async (privateKey, encryptedMessage) => {
 
 const getPrivateKeyFromConfig = async (email) => {
   try {
+    if (!email) return null;
     const configPath = path.join(__dirname, '../config.json');
     const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
     return config[`${email}`];
@@ -65,6 +68,19 @@ const getPrivateKeyFromConfig = async (email) => {
     throw error;
   }
 };
+
+const readFile = async (filePath) => {
+  try {
+    if (!filePath) return null;
+    const data = await fs.readFile(filePath);
+    if (!data) return null;
+    const fileData = data.toString('base64');
+    return fileData;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
 
 
 const getMessage = async (req, res) => {
@@ -96,23 +112,20 @@ const getMessage = async (req, res) => {
       }
       else if (message.type.startsWith('image')) {
         try {
-          const filePath = path.join(message.message);
-          const data = await fs.readFile(filePath);
-          fileData = `data:image/jpeg;base64, ${data.toString('base64')}`;
+          const data = await readFile(message.message);
+          fileData = `data:image/jpeg;base64, ${data}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
       else if (message.type.startsWith('video')) {
         try {
-          const filePath = path.join(message.message);
-          const data = await fs.readFile(filePath);
-          fileData = `data:video/mp4;base64,${data.toString('base64')}`;
+          const data = await readFile(message.message);
+          fileData = `data:video/mp4;base64,${data}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
       else if (message.type.startsWith('audio')) {
         try {
-          const filePath = path.join(message.message);
-          const data = await fs.readFile(filePath);
-          fileData = `data:audio/mp3;base64,${data.toString('base64')}`;
+          const data = await readFile(message.message);
+          fileData = `data:audio/mp3;base64,${data}`;
         } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
       }
       let decryptedReplyingToMessage = null;
@@ -126,10 +139,22 @@ const getMessage = async (req, res) => {
         if (!privateKey) return console.log("No private key found")
         if (replyingToMessage) {
           try {
-            const decryptedReplyingMessage = await decryptMessage(privateKey, replyingToMessage.message);
-            decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage };
-          } catch (error) {
-            console.error('Error decrypting replyingTo message:', error);
+            let decryptedReplyingMessage = '';
+            let file = ''
+            if (replyingToMessage.type === 'text') decryptedReplyingMessage = await decryptMessage(privateKey, replyingToMessage.message);
+            else if (replyingToMessage.type.startsWith('image')) {
+              const data = await readFile(replyingToMessage.message);
+              file = `data:image/jpeg;base64,${data}`;
+            } else if (replyingToMessage.type.startsWith('video')) {
+              const data = await readFile(replyingToMessage.message);
+              file = `data:video/mp4;base64,${data}`;
+            } else if (replyingToMessage.type.startsWith('audio')) {
+              const data = await readFile(replyingToMessage.message);
+              file= `data:audio/mp3;base64,${data}`;
+            }
+            decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage, file };
+          } catch (err) {
+            console.error('Error decrypting replyingTo message:', err);
             decryptedReplyingToMessage = 'Error decrypting replyingTo message';
           }
         }
@@ -170,22 +195,19 @@ const getGMessage = async (req, res) => {
       }
       else if (gm.type.startsWith('image')) {
         try {
-          const filePath = path.join(gm.message);
-          const data = (await fs.readFile(filePath)).toString('base64');
+          const data = await readFile(gm.message);
           file = `data:image/jpeg;base64, ${data}`;
         } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
       else if (gm.type.startsWith('video')) {
         try {
-          const filePath = path.join(gm.message);
-          const data = await fs.readFile(filePath);
+          const data = await readFile(gm.message);
           file = `data:video/mp4;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
       else if (gm.type.startsWith('audio')) {
         try {
-          const filePath = path.join(gm.message);
-          const data = await fs.readFile(filePath);
+          const data = await readFile(gm.message);
           file = `data:audio/mp3;base64,${data.toString('base64')}`;
         } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
       }
@@ -194,7 +216,7 @@ const getGMessage = async (req, res) => {
         const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
         if (replyingToMessage) {
           try {
-            const decryptedReplyingMessage = await decryptGroupMessage({privateKey,iv,message:replyingToMessage.message})
+            const decryptedReplyingMessage = decryptGroupMessage({ privateKey, iv, message: replyingToMessage.message })
             decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage };
           } catch (error) {
             console.error('Error decrypting replyingTo message:', error);
@@ -202,7 +224,7 @@ const getGMessage = async (req, res) => {
           }
         }
       }
-      return { ...gm._doc, senderUsername, file, message: decryptedMessage,replyingMessage: decryptedReplyingToMessage ? decryptedReplyingToMessage : null  };
+      return { ...gm._doc, senderUsername, file, message: decryptedMessage, replyingMessage: decryptedReplyingToMessage ? decryptedReplyingToMessage : null };
     }))
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {

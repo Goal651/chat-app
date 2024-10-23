@@ -156,7 +156,12 @@ export default function Dashboard({ isMobile }) {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
-            setFriends(sortByLatestMessage(data.users));
+            if (response.ok) setFriends(sortByLatestMessage(data.users));
+            else if (response.status === 401) Cookies.set("accessToken", data.newToken);
+            else if (response.status === 403) {
+                Cookies.remove('accessToken')
+                navigate("/login")
+            }
         } catch (error) {
             console.error("Error updating friends:", error);
         }
@@ -168,7 +173,12 @@ export default function Dashboard({ isMobile }) {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
-            setGroups(sortByLatestMessage(data.groups));
+            if(response.ok) setGroups(sortByLatestMessage(data.groups));
+            else if (response.status === 401) Cookies.set("accessToken", data.newToken);
+            else if (response.status === 403) {
+                Cookies.remove('accessToken')
+                navigate("/login")
+            }
         } catch (error) {
             console.error("Error updating groups:", error);
         }

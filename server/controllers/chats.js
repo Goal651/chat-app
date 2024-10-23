@@ -288,7 +288,6 @@ const handlerChat = async (io) => {
 
         socket.on('reply_message', async ({ id, message, receiver, replying }) => {
             try {
-                console.log(replying)
                 const receiverUser = await User.findOne({ email: receiver });
                 if (!receiverUser || !receiverUser.publicKey) throw new Error("Receiver's public key not found");
                 const receiverPublicKey = receiverUser.publicKey;

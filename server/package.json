@@ -35,6 +35,5 @@
     "react-cropper": "^2.3.3",
     "socket.io": "^4.7.5"
   },
-  "devDependencies": {},
   "description": ""
 }
