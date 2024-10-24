@@ -18,6 +18,10 @@ app.use(cookieParser());
 app.use(cors());
 app.use('/', routes);
 
+app.get('/', (req, res) => {
+    res.sendStatus(200)
+})
+
 
 
 const server = http.createServer(app);
