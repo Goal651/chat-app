@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 const crypto = require('crypto');
 const { Buffer } = require('buffer');
 
+
 const userSockets = new Map();
 const rooms = {};
 
@@ -72,6 +73,7 @@ const handlerChat = async (io) => {
 
     io.on('connection', async (socket) => {
         userSockets.set(socket.user, socket.id)
+        console.log(`User ${socket.user} connected`);
         io.emit('online_users', Array.from(userSockets.keys()));
         await User.updateOne({ email: socket.user }, { lastActiveTime: Date.now() })
         for (const groupName of Object.keys(rooms)) {

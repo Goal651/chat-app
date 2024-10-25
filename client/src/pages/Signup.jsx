@@ -72,7 +72,7 @@ export default function SignUp({ isMobile }) {
             formDataToSend.append('email', formData.email)
             formDataToSend.append('password', formData.password)
             formDataToSend.append('image', formData.image)
-            const response = await fetch("http://localhost:3001/signup", { method: "POST", body: formDataToSend });
+            const response = await fetch("http://10.12.75.175:3001/signup", { method: "POST", body: formDataToSend });
             if (response.ok) navigate('/login')
             else if (response.status === 400) setEmailFound(true);
             else if (response.status === 500) navigate('/error')

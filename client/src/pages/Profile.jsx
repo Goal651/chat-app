@@ -26,7 +26,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                 formDataToSend.append("image", blob); // Send cropped image as blob
 
                 try {
-                    const response = await fetch("http://localhost:3001/editUser/profile", {
+                    const response = await fetch("http://10.12.75.175:3001/editUser/profile", {
                         headers: { accessToken: `${accessToken}` },
                         method: "PUT",
                         body: formDataToSend,

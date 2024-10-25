@@ -42,7 +42,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     useEffect(() => {
         const fetchGroup = async () => {
             if (!group_name || !accessToken) return;
-            const result = await fetch(`http://localhost:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
+            const result = await fetch(`http://10.12.75.175:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
             if (result.ok) {
                 if (data.group == null) {

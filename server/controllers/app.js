@@ -191,7 +191,7 @@ const getUserProfile = async (req, res) => {
         if (!user) return res.status(404).json({ user: null })
         const imageData = user.image ? await readImage(user.image) : null
         res.status(200).json({ user: { ...user.toObject(), imageData } })
-    } catch (err) { res.sendStatus(500) }
+    } catch (err) { res.send(500) }
 };
 
 const getUser = async (req, res) => {

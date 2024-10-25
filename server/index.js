@@ -1,47 +1,50 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
+const http = require('http');
+const mongoose = require('mongoose');
+const { Server } = require('socket.io');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
 const routes = require('./routes/routes');
 const { handlerChat } = require('./controllers/chats');
 
+const app = express();
 
+// Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(bodyParser.raw())
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({
+    origin: "http://10.12.75.175:5173", // Adjust this for production
+    credentials: true
+}));
+
 app.use('/', routes);
 
-app.get('/', (req, res) => {
-    res.sendStatus(200)
-})
-
-
-
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "http://localhost:5173",
-        methods: ["GET", "POST"],
-        credentials: true
-    }
-})
-
-handlerChat(io);
-
+// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('Connected to database');
-        server.listen(3001, () => {
-            console.log('listening on *:3001');
+        
+        // Create an HTTP server after the database connection
+        const server = http.createServer(app);
+        const io = new Server(server, {
+            cors: {
+                origin: "http://10.12.75.175:5173", // Ensure this matches your client
+                methods: ["GET", "POST"],
+                credentials: true
+            }
+        });
+
+        // Setup Socket.IO event handling
+        handlerChat(io);
+
+        // Start listening for incoming requests
+        server.listen(3001, '0.0.0.0',() => {
+            console.log('Server listening on port 3001');
         });
     })
     .catch((error) => {
-        console.log(error);
+        console.log('Database connection error:', error);
     });
