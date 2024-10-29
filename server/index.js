@@ -16,7 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: "http://10.12.75.175:5173", // Adjust this for production
+    origin: "http://localhost:5173", // Adjust this for production
     credentials: true
 }));
 
@@ -31,7 +31,7 @@ mongoose.connect(process.env.MONGO_URI)
         const server = http.createServer(app);
         const io = new Server(server, {
             cors: {
-                origin: "http://10.12.75.175:5173", // Ensure this matches your client
+                origin: "http://localhost:5173", // Ensure this matches your client
                 methods: ["GET", "POST"],
                 credentials: true
             }
@@ -41,7 +41,7 @@ mongoose.connect(process.env.MONGO_URI)
         handlerChat(io);
 
         // Start listening for incoming requests
-        server.listen(3001, '0.0.0.0',() => {
+        server.listen(3001, () => {
             console.log('Server listening on port 3001');
         });
     })

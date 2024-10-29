@@ -17,7 +17,7 @@ export default function Settings({ isMobile }) {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const response = await fetch('http://10.12.75.175:3001/getUserProfile', {
+                const response = await fetch('http://localhost:3001/getUserProfile', {
                     headers: { accessToken: `${accessToken}` },
                 });
                 const data = await response.json();
@@ -42,7 +42,7 @@ export default function Settings({ isMobile }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://10.12.75.175:3001/updateProfile', {
+            const response = await fetch('http://localhost:3001/updateProfile', {
                 headers: { 'accessToken': `${accessToken}` },
                 method: 'PUT',
                 body: JSON.stringify(user),
