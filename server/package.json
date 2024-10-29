@@ -2,7 +2,6 @@
   "name": "chat-app",
   "version": "1.0.0",
   "main": "index.js",
-  "node": "20.17.0",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
@@ -32,6 +31,9 @@
     "path": "^0.12.7",
     "react-cropper": "^2.3.3",
     "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": "=20.17.0"
   },
   "description": "this is a chat application"
 }
