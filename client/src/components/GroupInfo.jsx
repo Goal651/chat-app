@@ -20,7 +20,7 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
 
     const fetchGroupDetails = async (name) => {
         try {
-            const response = await fetch(`http://localhost:3001/getGroup/${name}`, {
+            const response = await fetch(`https://chat-app-leqa.onrender.com/getGroup/${name}`, {
                 headers: { 'accessToken': accessToken }
             });
             const data = await response.json()
