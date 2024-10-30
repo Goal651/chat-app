@@ -15,7 +15,7 @@ const NotificationBanner = lazy(() => import("../components/Notification"))
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
     useEffect(() => {
-        const newSocket = io(url, { withCredentials: true });
+        const newSocket = io(url, { withCredentials: true ,extraHeaders: { "x-access-token": `${Cookies.get("accessToken")}` }});
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [url]);
@@ -173,7 +173,7 @@ export default function Dashboard({ isMobile }) {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
-            if(response.ok) setGroups(sortByLatestMessage(data.groups));
+            if (response.ok) setGroups(sortByLatestMessage(data.groups));
             else if (response.status === 401) Cookies.set("accessToken", data.newToken);
             else if (response.status === 403) {
                 Cookies.remove('accessToken')

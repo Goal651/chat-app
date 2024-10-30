@@ -21,14 +21,7 @@ app.use(cors({
 }));
 
 app.use('/', routes);
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('Connected to database');
-        
-        // Create an HTTP server after the database connection
-        const server = http.createServer(app);
+const server = http.createServer(app);
         const io = new Server(server, {
             cors: {
                 origin: "https://chat-app-silk-one.vercel.app", // Ensure this matches your client
@@ -37,7 +30,11 @@ mongoose.connect(process.env.MONGO_URI)
             }
         });
 
-        // Setup Socket.IO event handling
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => {
+        console.log('Connected to database');
+
         handlerChat(io);
 
         // Start listening for incoming requests
