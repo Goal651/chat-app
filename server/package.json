@@ -30,7 +30,7 @@
     "nodemon": "^3.1.0",
     "path": "^0.12.7",
     "react-cropper": "^2.3.3",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.0"
   },
   "engines": {
     "node": "=20.17.0"
