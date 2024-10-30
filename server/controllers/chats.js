@@ -58,9 +58,9 @@ const encryptGroupMessage = (data) => {
 
 const handlerChat = async (io) => {
     io.use((socket, next) => {
-        const cookies = cookie.parse(socket.handshake.headers.cookie || '');
-        console.log(socket.handshake)
-        const accessToken = cookies['accessToken'];
+        const cookies = socket.handshake.headers;
+        if (!cookies) return next(new Error('Invalid token'));
+        const accessToken = cookies['x-access-token'];
         if (!accessToken) return next(new Error('Invalid token'));
         jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
             if (err) return next(new Error('Invalid token'))
