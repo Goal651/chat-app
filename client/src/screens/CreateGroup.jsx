@@ -27,7 +27,7 @@ export default function CreateGroup({ isMobile }) {
         formDataToSend.append('name', group);
         formDataToSend.append('photo', image);
         try {
-            const response = await fetch("http://localhost:3001/create-group", { headers: { 'accessToken': ` ${accessToken}` }, method: "POST", body: formDataToSend })
+            const response = await fetch("https://chat-app-production-2663.up.railway.app/create-group", { headers: { 'accessToken': ` ${accessToken}` }, method: "POST", body: formDataToSend })
             if (response.ok) navigate('/group');
             else if (response.status === 400) navigate('/group');
             else if (response.status === 401) {

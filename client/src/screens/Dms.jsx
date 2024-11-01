@@ -93,7 +93,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         if (!friend_name) return;
         const fetchUserDetails = async () => {
             try {
-                const response = await fetch(`http://localhost:3001/getUser/${friend}`, {
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
                     headers: { 'accessToken': `${accessToken}` },
                 });
                 const data = await response.json();
@@ -255,7 +255,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         if (!friend_name) return;
         const fetchMessages = async () => {
             try {
-                const response = await fetch(`http://localhost:3001/message?receiver=${friend}`, {
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/message?receiver=${friend}`, {
                     headers: { 'accessToken': `${accessToken}` },
                 });
                 const data = await response.json();

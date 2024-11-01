@@ -41,7 +41,7 @@ export default function Login  ({ isMobile })  {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:3001/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) })
+      const response = await fetch("https://chat-app-production-2663.up.railway.app/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) })
       if (response.status === 200) {
         const data = await response.json();
         Cookies.set('accessToken', data.accessToken, { expires: 999 });

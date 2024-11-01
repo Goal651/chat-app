@@ -42,7 +42,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     useEffect(() => {
         const fetchGroup = async () => {
             if (!group_name || !accessToken) return;
-            const result = await fetch(`http://localhost:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
+            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
             if (result.ok) {
                 if (data.group == null) {
@@ -266,7 +266,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         const fetchMessages = async () => {
             try {
                 if (!group_name || !accessToken) return;
-                const response = await fetch(`http://localhost:3001/gmessage/${group_name}`, {
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/gmessage/${group_name}`, {
                     headers: { 'accessToken': `${accessToken}` }
                 })
                 const data = await response.json();

@@ -33,7 +33,7 @@ export default function Dashboard({ isMobile }) {
     const [loading, setLoading] = useState(true);
     const [reloadProfile, setReloadProfile] = useState(false);
     const accessToken = Cookies.get("accessToken");
-    const socket = useSocket("http://localhost:3001");
+    const socket = useSocket("https://chat-app-production-2663.up.railway.app/");
     const theme = localStorage.getItem("theme");
     const [showGroupInfo, setShowingGroupInfo] = useState(false)
     const selectedFriend = localStorage.getItem('selectedFriend')
@@ -46,7 +46,7 @@ export default function Dashboard({ isMobile }) {
         const fetchUserDetails = async () => {
             if (!accessToken) return
             try {
-                const response = await fetch(`http://localhost:3001/getUserProfile`, { headers: { accessToken: `${accessToken}` }, });
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUserProfile`, { headers: { accessToken: `${accessToken}` }, });
                 const data = await response.json();
                 if (response.status === 401) {
                     Cookies.set("accessToken", data);
@@ -65,10 +65,10 @@ export default function Dashboard({ isMobile }) {
         const fetchInitialData = async () => {
             try {
                 const [friendsResponse, groupsResponse] = await Promise.all([
-                    fetch("http://localhost:3001/allFriends", {
+                    fetch("https://chat-app-production-2663.up.railway.app/allFriends", {
                         headers: { accessToken },
                     }),
-                    fetch("http://localhost:3001/allGroups", {
+                    fetch("https://chat-app-production-2663.up.railway.app/allGroups", {
                         headers: { accessToken },
                     }),
                 ]);
@@ -152,7 +152,7 @@ export default function Dashboard({ isMobile }) {
 
     const updateFriends = async () => {
         try {
-            const response = await fetch("http://localhost:3001/allFriends", {
+            const response = await fetch("https://chat-app-production-2663.up.railway.app/allFriends", {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
@@ -169,7 +169,7 @@ export default function Dashboard({ isMobile }) {
 
     const updateGroups = async () => {
         try {
-            const response = await fetch("http://localhost:3001/allGroups", {
+            const response = await fetch("https://chat-app-production-2663.up.railway.app/allGroups", {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
