@@ -364,6 +364,7 @@ const fileUpload = async (req, res) => {
     const { name, totalchunks, currentchunk } = req.headers;
     const filename = decodeURIComponent(name);
     const { file } = req.body;
+    fs.mkdir(path.join(__dirname, '../uploads/messages/'), { recursive: true });
     const firstChunk = parseInt(currentchunk) === 0;
     const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
     const ext = filename.split('.').pop();

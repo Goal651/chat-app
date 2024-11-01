@@ -20,7 +20,7 @@ const {
 
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads/photo/'),
+    destination: (req, file, cb) => cb(null, './uploads/profiles/'),
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now();
         cb(null, uniqueSuffix + file.originalname)

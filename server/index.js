@@ -17,7 +17,9 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors({
     origin: "https://chat-app-silk-one.vercel.app", // Adjust this for production
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    
 }));
 
 app.use('/', routes);
@@ -25,7 +27,7 @@ const server = http.createServer(app);
         const io = new Server(server, {
             cors: {
                 origin: "https://chat-app-silk-one.vercel.app", // Ensure this matches your client
-                methods: ["GET", "POST"],
+                methods: ["GET", "POST", "PUT", "DELETE"],
                 credentials: true
             }
         });
