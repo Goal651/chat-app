@@ -91,6 +91,7 @@ export default function DMArea({ socket, isMobile, theme }) {
 
     useEffect(() => {
         if (!friend_name) return;
+        const cachedData = sessionStorage.getItem(`friend-${friend}`)
         const fetchUserDetails = async () => {
             try {
                 const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
@@ -107,7 +108,8 @@ export default function DMArea({ socket, isMobile, theme }) {
                 console.error("Error fetching user details:", error);
             }
         };
-        fetchUserDetails();
+        if (cachedData) setInfo(JSON.parse(cachedData))
+        else fetchUserDetails();
     }, [friend, friend_name, navigate, accessToken]);
 
 

@@ -15,7 +15,7 @@ const NotificationBanner = lazy(() => import("../components/Notification"))
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
     useEffect(() => {
-        const newSocket = io(url, { withCredentials: true ,extraHeaders: { "x-access-token": `${Cookies.get("accessToken")}` }});
+        const newSocket = io(url, { withCredentials: true, extraHeaders: { "x-access-token": `${Cookies.get("accessToken")}` } });
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [url]);
@@ -37,6 +37,7 @@ export default function Dashboard({ isMobile }) {
     const theme = localStorage.getItem("theme");
     const [showGroupInfo, setShowingGroupInfo] = useState(false)
     const selectedFriend = localStorage.getItem('selectedFriend')
+    const friend = localStorage.getItem('selectedFriend')
 
     useEffect(() => {
         if (!accessToken) navigate("/login");
@@ -54,7 +55,7 @@ export default function Dashboard({ isMobile }) {
                 } else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
-                }else if(response.status === 404) navigate("/login")
+                } else if (response.status === 404) navigate("/login")
                 else if (response.ok) setUserInfo(data.user)
             } catch (error) { navigate("/error"); }
         }
@@ -89,6 +90,8 @@ export default function Dashboard({ isMobile }) {
         };
         fetchInitialData();
     }, [accessToken, navigate]);
+
+
 
 
     useEffect(() => {
@@ -144,6 +147,51 @@ export default function Dashboard({ isMobile }) {
             clearInterval(groupsInterval);
         };
     }, []);
+
+
+    useEffect(() => {
+        if (!friend) return;
+        const fetchUserDetails = async () => {
+            try {
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
+                    headers: { 'accessToken': `${accessToken}` },
+                });
+                const data = await response.json();
+                if (response.ok) sessionStorage.setItem(`friend_${data.user.email}`, JSON.stringify(data.user));
+                else if (response.status === 401) Cookies.set("accessToken", data.newToken);
+                else if (response.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate("/login")
+                } else navigate('/error')
+            } catch (error) {
+                console.error("Error fetching user details:", error);
+            }
+        };
+        fetchUserDetails();
+    }, []);
+
+    useEffect(() => {
+        const fetchGroup = async () => {
+            if (!localStorage.getItem('selectedGroup')) return;
+            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
+            const data = await result.json();
+            if (result.ok) {
+                if (data.group == null) {
+                    localStorage.removeItem('selectedGroup')
+                    navigate('/group')
+                }
+                else sessionStorage.setItem(`group_${data.group.name}`,JSON.stringify(data.group))
+            } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
+            else if (result.status == 403) {
+                Cookies.remove('accessToken')
+                navigate("/login")
+            } else navigate('/error');
+        };
+        fetchGroup();
+    }, [group_name, accessToken, navigate]);
+
+
+
 
     const updateAllData = async () => {
         await updateFriends();

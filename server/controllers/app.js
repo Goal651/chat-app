@@ -378,7 +378,7 @@ const fileUpload = async (req, res) => {
         const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
         const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
         fs.renameSync(tmpFilepath, finalFilepath);
-        const fileUrl = `http://localhost:3001/uploads/messages/${finalFileName}`;
+        const fileUrl = `https://chat-app-production-2663.up.railway.app/uploads/messages/${finalFileName}`;
         console.log(fileUrl)
         return res.status(200).json({ finalFileName: finalFilepath });
     }

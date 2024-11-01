@@ -40,6 +40,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         ],
     };
     useEffect(() => {
+        const cachedData = sessionStorage.getItem(`group_${group_name}`)
         const fetchGroup = async () => {
             if (!group_name || !accessToken) return;
             const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
@@ -56,7 +57,9 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 navigate("/login")
             } else navigate('/error');
         };
-        fetchGroup();
+
+        if (cachedData) setGroup(JSON.parse(cachedData))
+        else fetchGroup();
     }, [group_name, accessToken, navigate]);
 
 
