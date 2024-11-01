@@ -23,10 +23,9 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
             const croppedCanvas = cropperRef.current.cropper.getCroppedCanvas();
             croppedCanvas.toBlob(async (blob) => {
                 const formDataToSend = new FormData();
-                formDataToSend.append("image", blob); // Send cropped image as blob
-
+                formDataToSend.append("image", blob); 
                 try {
-                    const response = await fetch("https://chat-app-production-2663.up.railway.app/editUser/profile", {
+                    const response = await fetch("https://chat-app-production-2663.up.railway.app/editUserProfile", {
                         headers: { accessToken: `${accessToken}` },
                         method: "PUT",
                         body: formDataToSend,

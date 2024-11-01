@@ -74,7 +74,7 @@ router.get('/message', checkUser, getMessage)
 router.delete('/deleteMessage/:id', checkUser, deleteMessage)
 
 //updating user,groups and messages
-router.put('/editUser/profile', checkUser, upload.single('image'), updateUser)
+router.put('/editUserProfile', checkUser, upload.single('image'), updateUser)
 router.put('/updateGroupProfile/:group', checkUser, upload.single('image'), updateGroup)
 router.post('/addMember', checkUser, addMember)
 

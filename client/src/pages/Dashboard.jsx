@@ -136,8 +136,8 @@ export default function Dashboard({ isMobile }) {
     }, [socket])
 
     useEffect(() => {
-        const friendsInterval = setInterval(updateFriends, 10000);
-        const groupsInterval = setInterval(updateGroups, 10000);
+        const friendsInterval = setInterval(updateFriends, 100000);
+        const groupsInterval = setInterval(updateGroups, 100000);
 
         return () => {
             clearInterval(friendsInterval);
