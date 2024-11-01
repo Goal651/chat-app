@@ -38,7 +38,7 @@ const io = new Server(server, {
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('Connected to database');
-        fs.mkdir(path.join(__dirname, '../uploads/profiles/'), { recursive: true });
+        fs.mkdir(path.join(__dirname, './uploads/profiles/'), { recursive: true });
         handlerChat(io);
 
         // Start listening for incoming requests
