@@ -8,6 +8,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const routes = require('./routes/routes');
 const { handlerChat } = require('./controllers/chats');
+const fs = require('fs').promises;
+const path = require('path');
 
 const app = express();
 
@@ -19,24 +21,24 @@ app.use(cors({
     origin: "https://chat-app-silk-one.vercel.app", // Adjust this for production
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
-    
+
 }));
 
 app.use('/', routes);
 const server = http.createServer(app);
-        const io = new Server(server, {
-            cors: {
-                origin: "https://chat-app-silk-one.vercel.app", // Ensure this matches your client
-                methods: ["GET", "POST", "PUT", "DELETE"],
-                credentials: true
-            }
-        });
+const io = new Server(server, {
+    cors: {
+        origin: "https://chat-app-silk-one.vercel.app", // Ensure this matches your client
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true
+    }
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('Connected to database');
-
+        fs.mkdir(path.join(__dirname, '../uploads/profiles/'), { recursive: true });
         handlerChat(io);
 
         // Start listening for incoming requests

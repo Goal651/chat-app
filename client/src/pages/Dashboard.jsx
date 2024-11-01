@@ -54,7 +54,7 @@ export default function Dashboard({ isMobile }) {
                 } else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
-                }
+                }else if(response.status === 404) navigate("/login")
                 else if (response.ok) setUserInfo(data.user)
             } catch (error) { navigate("/error"); }
         }
