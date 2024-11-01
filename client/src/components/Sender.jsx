@@ -107,7 +107,7 @@ export default function Sender({ socket, editingMessage, replying }) {
             const data = e.target.result;
             await axios
                 .post(
-                    'http://localhost:3001/uploadFile',
+                    'https://chat-app-production-2663.up.railway.app/uploadFile',
                     { file: data },
                     {
                         headers: {
