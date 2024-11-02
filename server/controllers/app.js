@@ -112,6 +112,8 @@ const signup = async (req, res) => {
         const savedUser = await newUser.save();
         if (!savedUser) return res.sendStatus(500);
         const privateKeyPath = path.join(__dirname, '../config.json');
+        if(fs.existsSync(privateKeyPath)) { console.error('Private key file already exists!') }
+        else { await fs.promises.writeFile(privateKeyPath, JSON.stringify({ [email]: privateKey }, null, 2), { flag: 'w' }) }
         let existingKeys = {};
         try {
             const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
