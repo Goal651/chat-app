@@ -117,9 +117,7 @@ const signup = async (req, res) => {
         try {
             const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
             existingKeys = JSON.parse(fileContent);
-        } catch (err) {
-            console.error('Could not read existing keys file, creating new one.', err);
-        }
+        } catch (err) { console.error('Could not read existing keys file, creating new one.', err) }
         existingKeys[email] = privateKey;
         await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
         res.status(201).json(savedUser);
@@ -173,7 +171,7 @@ const getUsers = async (req, res) => {
                     console.error(`Error reading image for user ${user.email}:`, err);
                 }
             }
-            const getUsersFormat={
+            const getUsersFormat = {
                 username: user.username,
                 names: user.names,
                 email: user.email,
