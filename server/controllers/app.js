@@ -98,13 +98,10 @@ const signup = async (req, res) => {
     try {
         const { email, password, names, username } = req.body;
         const existingUser = await User.findOne({ email });
-        
         if (existingUser) return res.sendStatus(400);
         const { publicKey, privateKey } = await generateKeyPair();
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
-        let image = '';
-        if (req.file) image = req.file.path;
         const newUser = new User({
             email,
             password: hash,

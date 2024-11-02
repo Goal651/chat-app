@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, index: true, match: /.+\@.+\..+/ },
     password: { type: String, required: true, minlength: 6 },
-    image: String,
+    image: { type: String, default: '' },
     username: { type: String, required: true, unique: true, index: true },
     names: String,
     lastActiveTime: { type: Date, default: Date.now },
@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
 const groupSchema = mongoose.Schema({
     name: { type: String, required: true, unique: true },
     admin: { type: String, required: true },
-    image: String,
+    image: { type: String, default: '' },
     members: [{ email: String, role: { type: String, default: '' } }],
     aesKey: String,
     iv: String,
@@ -41,11 +41,9 @@ const messageSchema = mongoose.Schema({
         reactor: String,
     }],
     replyingTo: {
-        messageId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Message',
-            default: null
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Message',
+        default: null
     },
     type: { type: String, required: true },
     time: { type: String, required: true },
@@ -61,11 +59,9 @@ const groupMessageSchema = mongoose.Schema({
         timestamp: { type: Date, default: Date.now }
     }],
     replyingTo: {
-        messageId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'GMessage',
-            default: null
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GMessage',
+        default: null
     },
     type: { type: String, required: true },
     time: { type: String, required: true },
