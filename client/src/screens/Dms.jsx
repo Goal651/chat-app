@@ -98,7 +98,10 @@ export default function DMArea({ socket, isMobile, theme }) {
                     headers: { 'accessToken': `${accessToken}` },
                 });
                 const data = await response.json();
-                if (response.ok) setInfo(data.user);
+                if (response.ok) {
+                    setInfo(data.user)
+                    sessionStorage.setItem(`friend-${friend}`, JSON.stringify(data.user))
+                }
                 else if (response.status === 401) Cookies.set("accessToken", data.newToken);
                 else if (response.status === 403) {
                     Cookies.remove('accessToken')
@@ -254,24 +257,27 @@ export default function DMArea({ socket, isMobile, theme }) {
     }, [socket, friend, friend_name, peerConnection]);
 
     useEffect(() => {
+        const cachedData = sessionStorage.getItem(`${friend}Messages`)
         if (!friend_name) return;
         const fetchMessages = async () => {
             try {
-                const response = await fetch(`https://chat-app-production-2663.up.railway.app/message?receiver=${friend}`, {
-                    headers: { 'accessToken': `${accessToken}` },
-                });
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/message?receiver=${friend}`, { headers: { 'accessToken': `${accessToken}` }, });
                 const data = await response.json();
                 if (response.status === 401) Cookies.set("accessToken", data.newToken);
                 else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate('/login')
-                } else if (response.ok) setHistory(data.messages);
-                setLoading(false);
+                } else if (response.ok) {
+                    setHistory(data.messages)
+                    sessionStorage.setItem(`${friend}Messages`, JSON.stringify(data.messages));
+                }
             } catch (error) {
                 console.error("Error fetching messages:", error);
-            }
+            } finally { setLoading(false) }
         };
-        fetchMessages();
+        if (cachedData) setHistory(JSON.parse(cachedData))
+        else fetchMessages();
+    setLoading(false)
     }, [friend, friend_name, navigate, accessToken]);
 
     const navigateBackward = () => {

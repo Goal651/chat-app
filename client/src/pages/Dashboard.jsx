@@ -56,7 +56,10 @@ export default function Dashboard({ isMobile }) {
                     Cookies.remove('accessToken')
                     navigate("/login")
                 } else if (response.status === 404) navigate("/login")
-                else if (response.ok) setUserInfo(data.user)
+                else if (response.ok) {
+                    setUserInfo(data.user)
+                    sessionStorage.setItem('chatUser', JSON.stringify(data.user))
+                }
             } catch (error) { navigate("/error"); }
         }
         fetchUserDetails()
@@ -80,13 +83,13 @@ export default function Dashboard({ isMobile }) {
                 } else if (friendsResponse.status === 403 && groupsResponse.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
-                }
-                else {
+                } else {
                     setFriends(sortByLatestMessage((await friendsResponse.json()).users));
                     setGroups(sortByLatestMessage((await groupsResponse.json()).groups));
+                    sessionStorage.setItem('friends', JSON.stringify(sortByLatestMessage((await friendsResponse.json()).users)))
+                    sessionStorage.setItem('groups', JSON.stringify(sortByLatestMessage((await groupsResponse.json()).groups)))
                 }
             } catch (error) { console.error("Error fetching data:", error) }
-            finally { setLoading(false) }
         };
         fetchInitialData();
     }, [accessToken, navigate]);
@@ -170,17 +173,18 @@ export default function Dashboard({ isMobile }) {
         fetchUserDetails();
     }, []);
 
+
     useEffect(() => {
+        if (!localStorage.getItem('selectedGroup')) return;
         const fetchGroup = async () => {
-            if (!localStorage.getItem('selectedGroup')) return;
-            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
+            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, { headers: { 'accessToken': `${accessToken}` } });
             const data = await result.json();
             if (result.ok) {
                 if (data.group == null) {
                     localStorage.removeItem('selectedGroup')
                     navigate('/group')
                 }
-                else sessionStorage.setItem(`group_${data.group.name}`,JSON.stringify(data.group))
+                else sessionStorage.setItem(`group_${data.group.name}`, JSON.stringify(data.group))
             } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
             else if (result.status == 403) {
                 Cookies.remove('accessToken')
@@ -188,7 +192,32 @@ export default function Dashboard({ isMobile }) {
             } else navigate('/error');
         };
         fetchGroup();
-    }, [group_name, accessToken, navigate]);
+    }, []);
+
+    useEffect(() => {
+        if (!friends || !groups || !onlineUsers || !notifications) return;
+        setLoading(false);
+    }, [groups, friends, onlineUsers, notifications])
+
+
+    useEffect(() => {
+        if (!friend) return;
+        const fetchMessages = async () => {
+            try {
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/message?receiver=${friend}`, { headers: { 'accessToken': `${accessToken}` }, });
+                const data = await response.json();
+                if (response.status === 401) Cookies.set("accessToken", data.newToken)
+                else if (response.status === 403) {
+                    Cookies.remove('accessToken')
+                    navigate('/login')
+                } else if (response.ok) sessionStorage.setItem(`${friend}Messages`,JSON.stringify(data.messages));
+            } catch (error) {
+                console.error("Error fetching messages:", error);
+            } finally { setLoading(false) }
+        };
+        fetchMessages();
+    }, []);
+
 
 
 
