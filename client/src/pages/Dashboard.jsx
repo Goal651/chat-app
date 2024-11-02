@@ -40,14 +40,17 @@ export default function Dashboard({ isMobile }) {
     const friend = localStorage.getItem('selectedFriend')
 
     useEffect(() => {
-        if (!accessToken) navigate("/login");
+        if (!accessToken) return navigate("/login");
     }, [navigate, accessToken]);
 
     useEffect(() => {
+        if (!accessToken) return
         const fetchUserDetails = async () => {
-            if (!accessToken) return
+
             try {
-                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUserProfile`, { headers: { accessToken: `${accessToken}` }, });
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUserProfile`, {
+                    headers: { accessToken: `${accessToken}` },
+                });
                 const data = await response.json();
                 if (response.status === 401) {
                     Cookies.set("accessToken", data);
@@ -66,6 +69,7 @@ export default function Dashboard({ isMobile }) {
     }, [accessToken, reloadProfile, navigate]);
 
     useEffect(() => {
+        if (!accessToken) return
         const fetchInitialData = async () => {
             try {
                 const [friendsResponse, groupsResponse] = await Promise.all([
@@ -157,6 +161,7 @@ export default function Dashboard({ isMobile }) {
 
     useEffect(() => {
         if (!friend) return;
+        if (!accessToken) return
         const fetchUserDetails = async () => {
             try {
                 const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
@@ -168,10 +173,11 @@ export default function Dashboard({ isMobile }) {
                 else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate("/login")
-                } else navigate('/error')
+                } else if (response.status === 404) localStorage.removeItem('selectedFriend')
+                else navigate('/error')
             } catch (error) {
                 console.error("Error fetching user details:", error);
-            } finally { setLoading(false) }
+            }
         };
         fetchUserDetails();
     }, []);
@@ -179,6 +185,7 @@ export default function Dashboard({ isMobile }) {
 
     useEffect(() => {
         if (!localStorage.getItem('selectedGroup')) return;
+        if (!accessToken) return
         const fetchGroup = async () => {
             try {
                 const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, { headers: { 'accessToken': `${accessToken}` } });
@@ -196,7 +203,7 @@ export default function Dashboard({ isMobile }) {
                 } else navigate('/error');
             } catch (err) {
                 navigate('/error')
-            } finally { setLoading(false) }
+            }
         };
         fetchGroup();
     }, []);
@@ -204,6 +211,7 @@ export default function Dashboard({ isMobile }) {
 
     useEffect(() => {
         if (!friend) return;
+        if (!accessToken) return
         const fetchMessages = async () => {
             try {
                 const response = await fetch(`https://chat-app-production-2663.up.railway.app/message?receiver=${friend}`, { headers: { 'accessToken': `${accessToken}` }, });
@@ -215,7 +223,7 @@ export default function Dashboard({ isMobile }) {
                 } else if (response.ok) sessionStorage.setItem(`${friend}Messages`, JSON.stringify(data.messages));
             } catch (error) {
                 console.error("Error fetching messages:", error);
-            } finally { setLoading(false) }
+            }
         };
         fetchMessages();
     }, []);
@@ -225,6 +233,7 @@ export default function Dashboard({ isMobile }) {
 
 
     const updateAllData = async () => {
+        if (!accessToken) return
         await updateFriends();
         await updateGroups();
     };
@@ -254,7 +263,10 @@ export default function Dashboard({ isMobile }) {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
-            if (response.ok) setGroups(sortByLatestMessage(data.groups));
+            if (response.ok) {
+                setGroups(sortByLatestMessage(data.groups));
+                sessionStorage.setItem('groups', JSON.stringify(sortByLatestMessage(data.groups)))
+            }
             else if (response.status === 401) Cookies.set("accessToken", data.newToken);
             else if (response.status === 403) {
                 Cookies.remove('accessToken')
@@ -298,9 +310,8 @@ export default function Dashboard({ isMobile }) {
         );
 
     const handleDataFromChild = () => setReloadProfile(!reloadProfile);
-    const handleDataFromGroupContent = (data) => {
-        setShowingGroupInfo(data)
-    }
+    const handleDataFromGroupContent = data => setShowingGroupInfo(data)
+
 
     const renderContent = () => {
         if (loading) {
@@ -356,9 +367,11 @@ export default function Dashboard({ isMobile }) {
                     dataFromGroupContent={handleDataFromGroupContent}
                 />
             ),
-            "create-group": <CreateGroup
-                isMobile={isMobile}
-                theme={theme} />,
+            "create-group": (
+                <CreateGroup
+                    isMobile={isMobile}
+                    theme={theme} />
+            ),
             chat: (
                 <ChatContent
                     friends={friends}

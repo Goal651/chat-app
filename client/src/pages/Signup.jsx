@@ -5,11 +5,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from "react";
 
 export default function SignUp({ isMobile }) {
-    const [formData, setFormData] = useState({ names: "", username: "", email: "", password: "", re_password: "" });
+    const [formData, setFormData] = useState({});
     const [match, setMatch] = useState(false);
     const fileInputRef = useRef(null);
     const [emailFound, setEmailFound] = useState(false)
     const [isToBeSubmitted, setIsToBeSubmitted] = useState(false)
+    const [loading, setLoading] = useState(false)
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -51,17 +52,20 @@ export default function SignUp({ isMobile }) {
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (validator()) return
+        setLoading(true)
         try {
-            const formDataToSend = new FormData()
-            formDataToSend.append('names', formData.names)
-            formDataToSend.append('username', formData.username)
-            formDataToSend.append('email', formData.email)
-            formDataToSend.append('password', formData.password)
-            const response = await fetch("https://chat-app-production-2663.up.railway.app/signup", { method: "POST", body: formDataToSend });
+            const response = await fetch("https://chat-app-production-2663.up.railway.app/signup", {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: "POST",
+                body: JSON.stringify(formData)
+            });
             if (response.ok) navigate('/login')
             else if (response.status === 400) setEmailFound(true);
             else if (response.status === 500) navigate('/error')
         } catch (error) { navigate('/error') }
+    finally { setLoading(false) }
     }
 
     return (

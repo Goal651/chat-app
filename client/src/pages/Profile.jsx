@@ -27,12 +27,11 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
         const croppedCanvas = cropperRef.current.cropper.getCroppedCanvas();
         const blob = await new Promise((resolve) => croppedCanvas.toBlob(resolve));
 
-        // Convert Blob to base64
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             const base64data = reader.result.split(",")[1];
-            const chunkSize = 100 * 1024; // 100KB chunks
+            const chunkSize = 50 * 1024; // 100KB chunks
             const totalChunks = Math.ceil(base64data.length / chunkSize);
             const fileName = "profile_image.png"; // Add a name here or use a dynamic one
 
@@ -73,7 +72,6 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                     await uploadChunk(currentChunk + 1);
                 } catch (err) {
                     console.error(`Error uploading chunk ${currentChunk}:`, err);
-                    // Optionally add retry logic here
                 }
             };
 

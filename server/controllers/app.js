@@ -210,8 +210,8 @@ const getUser = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const email = req.user;
-        const image = req.file.path;
-        const updatedUser = await User.updateOne({ email }, { image });
+        const image = req.body;
+        const updatedUser = await User.updateOne({ email }, { image:image.imageUrl });
         if (!updatedUser) return res.sendStatus(400);
         res.status(201).json({});
     } catch (err) { res.sendStatus(500) }

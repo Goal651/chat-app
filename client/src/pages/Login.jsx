@@ -1,17 +1,16 @@
 /* eslint-disable react/prop-types */
-/* eslint-disable no-unused-vars */
 import { Link, useNavigate } from 'react-router-dom';
-import React, { useState, useEffect } from "react";
+import { ClipLoader } from 'react-spinners'
+import { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
 
 
-
-export default function Login  ({ isMobile })  {
+export default function Login({ isMobile }) {
   const navigate = useNavigate();
   const [wrongEmail, setWrongEmail] = useState(false);
   const [wrongPass, setWrongPass] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" })
-
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const accessToken = Cookies.get('accessToken')
@@ -40,12 +39,13 @@ export default function Login  ({ isMobile })  {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true)
     try {
       const response = await fetch("https://chat-app-production-2663.up.railway.app/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) })
       if (response.status === 200) {
         const data = await response.json();
-        Cookies.set('accessToken', data.accessToken, { expires: 999 });
-        Cookies.set('user', data.email, { expires: 999 });
+        Cookies.set('accessToken', data.accessToken);
+        Cookies.set('user', data.email,);
         navigate("/chat");
       } else if (response.status === 401) {
         document.getElementById('password').focus();
@@ -57,14 +57,13 @@ export default function Login  ({ isMobile })  {
         setWrongEmail(true);
       } else navigate('/error')
     } catch (error) { navigate('/error') }
+    finally { setLoading(false) }
   };
 
   return (
     <div className="flex h-screen max-w-screen overflow-hidden">
-      {isMobile ? (null) : (<div className='w-2/4'>
-        < img src="/welcome.jpg" alt="welcome" />
-      </div>
-      )}
+      {!isMobile && (<div className='w-2/4'> < img src="/welcome.jpg" alt="welcome" /> </div>)}
+
       <div className={`form ${isMobile ? 'w-4/5 justify-evenly' : 'w-1/3 justify-center h-full overflow-hidden'} `}>
         <form onSubmit={handleSubmit} className='flex flex-col h-1/2 max-w-min justify-evenly m-4' autoComplete='off'>
           <h1 className='gradient bg-clip-text text-transparent font-bold text-3xl'>Log In</h1>
@@ -84,7 +83,20 @@ export default function Login  ({ isMobile })  {
             <input type="password" className="grow" id='password' name="password" value={formData.password} onChange={handleChange} />
           </label>
           {wrongPass && <div className='font-serif text-red-500 relative bottom-3'>Incorrect Password</div>}
-          <button type="submit" id="login" className='btn btn-info w-1/2 text-white'>Login</button>
+          {loading ? <div
+            className='btn btn-info'
+          >
+            <ClipLoader
+              color='white'
+            />
+          </div> :
+            <button
+              type="submit"
+              id="login"
+              className='btn btn-info text-white'
+            >Login
+            </button>
+          }
         </form>
         <Link to="/signup" className="link text-green-500 link-hover">Create New Account</Link>
       </div>

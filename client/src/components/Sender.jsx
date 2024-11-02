@@ -95,8 +95,7 @@ export default function Sender({ socket, editingMessage, replying }) {
         if (!fileMessage) return;
         const chunkSize = 50 * 1024;
         let fileName = fileMessage.name;
-        if (!fileMessage.name)
-            fileName = `${fileMessage.size + (friend?.split('.')[0] || group_name)}.mp3`;
+        if (!fileMessage.name) fileName = `${fileMessage.size + (friend?.split('.')[0] || group_name)}.mp3`;
         const totalChunks = Math.ceil(fileMessage.size / chunkSize);
         const reader = new FileReader();
         const from = currentChunk * chunkSize;
