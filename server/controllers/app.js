@@ -336,9 +336,7 @@ const updateGroup = async (req, res) => {
 
 const readImage = async (imagePath) => {
     try {
-        console.log(uploadsDir)
-        const fullPath = path.join(uploadsDir, imagePath);
-        const imageBuffer = await fs.promises.readFile(fullPath);
+        const imageBuffer = await fs.promises.readFile(imagePath);
         return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
     } catch (err) {
         console.error('Error reading image:', err);
