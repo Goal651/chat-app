@@ -89,7 +89,10 @@ export default function Dashboard({ isMobile }) {
                     sessionStorage.setItem('friends', JSON.stringify(sortByLatestMessage((await friendsResponse.json()).users)))
                     sessionStorage.setItem('groups', JSON.stringify(sortByLatestMessage((await groupsResponse.json()).groups)))
                 }
-            } catch (error) { console.error("Error fetching data:", error) }
+            } catch (error) {
+                console.error("Error fetching data:", error)
+            } finally { setLoading(false) }
+
         };
         fetchInitialData();
     }, [accessToken, navigate]);
@@ -168,7 +171,7 @@ export default function Dashboard({ isMobile }) {
                 } else navigate('/error')
             } catch (error) {
                 console.error("Error fetching user details:", error);
-            }
+            } finally { setLoading(false) }
         };
         fetchUserDetails();
     }, []);
@@ -177,27 +180,26 @@ export default function Dashboard({ isMobile }) {
     useEffect(() => {
         if (!localStorage.getItem('selectedGroup')) return;
         const fetchGroup = async () => {
-            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, { headers: { 'accessToken': `${accessToken}` } });
-            const data = await result.json();
-            if (result.ok) {
-                if (data.group == null) {
-                    localStorage.removeItem('selectedGroup')
-                    navigate('/group')
-                }
-                else sessionStorage.setItem(`group_${data.group.name}`, JSON.stringify(data.group))
-            } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
-            else if (result.status == 403) {
-                Cookies.remove('accessToken')
-                navigate("/login")
-            } else navigate('/error');
+            try {
+                const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, { headers: { 'accessToken': `${accessToken}` } });
+                const data = await result.json();
+                if (result.ok) {
+                    if (data.group == null) {
+                        localStorage.removeItem('selectedGroup')
+                        navigate('/group')
+                    }
+                    else sessionStorage.setItem(`group_${data.group.name}`, JSON.stringify(data.group))
+                } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
+                else if (result.status == 403) {
+                    Cookies.remove('accessToken')
+                    navigate("/login")
+                } else navigate('/error');
+            } catch (err) {
+                navigate('/error')
+            } finally { setLoading(false) }
         };
         fetchGroup();
     }, []);
-
-    useEffect(() => {
-        if (!friends || !groups || !onlineUsers || !notifications) return;
-        setLoading(false);
-    }, [groups, friends, onlineUsers, notifications])
 
 
     useEffect(() => {
@@ -210,7 +212,7 @@ export default function Dashboard({ isMobile }) {
                 else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate('/login')
-                } else if (response.ok) sessionStorage.setItem(`${friend}Messages`,JSON.stringify(data.messages));
+                } else if (response.ok) sessionStorage.setItem(`${friend}Messages`, JSON.stringify(data.messages));
             } catch (error) {
                 console.error("Error fetching messages:", error);
             } finally { setLoading(false) }
@@ -233,8 +235,10 @@ export default function Dashboard({ isMobile }) {
                 headers: { accessToken: Cookies.get("accessToken") },
             });
             const data = await response.json();
-            if (response.ok) setFriends(sortByLatestMessage(data.users));
-            else if (response.status === 401) Cookies.set("accessToken", data.newToken);
+            if (response.ok) {
+                setFriends(sortByLatestMessage(data.users))
+                sessionStorage.setItem('friends', JSON.stringify(sortByLatestMessage(data.users)))
+            } else if (response.status === 401) Cookies.set("accessToken", data.newToken);
             else if (response.status === 403) {
                 Cookies.remove('accessToken')
                 navigate("/login")

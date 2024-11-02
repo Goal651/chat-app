@@ -175,7 +175,15 @@ const getUsers = async (req, res) => {
                     console.error(`Error reading image for user ${user.email}:`, err);
                 }
             }
-            return { ...user.toObject(), imageData, latestMessage: latestMessage ? { ...latestMessage._doc, message: decryptedMessage } : null };
+            const getUsersFormat={
+                username: user.username,
+                names: user.names,
+                email: user.email,
+                image: user.image,
+                latestMessage: latestMessage ? { ...latestMessage._doc, message: decryptedMessage } : null,
+                imageData
+            }
+            return getUsersFormat;
         }))
         res.status(200).json({ users: usersWithDetails });
     } catch (err) {
@@ -385,6 +393,37 @@ const fileUpload = async (req, res) => {
     res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
 };
 
+const uploadProfileImage = async (req, res) => {
+    try {
+        const { name, totalchunks, currentchunk } = req.headers;
+        const filename = decodeURIComponent(name);
+        const { file } = req.body;
+        fs.mkdir(path.join(__dirname, '../uploads/profiles/'), { recursive: true });
+        const firstChunk = parseInt(currentchunk) === 0;
+        const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
+        const ext = filename.split('.').pop();
+        const data = file.split(',')[1];
+        const buffer = Buffer.from(data, 'base64');
+        const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
+        const tmpFilepath = path.join(__dirname, '../uploads/profiles/', tmpFilename);
+        if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
+        fs.appendFileSync(tmpFilepath, buffer);
+        if (lastChunk) {
+            const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
+            const finalFilepath = path.join(__dirname, '../uploads/profiles/', finalFileName);
+            fs.renameSync(tmpFilepath, finalFilepath);
+            const fileUrl = `https://chat-app-production-2663.up.railway.app/uploads/profiles/${finalFileName}`;
+            console.log(fileUrl)
+            return res.status(200).json({ finalFileName: finalFilepath });
+        }
+        res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
+    } catch (err) {
+        console.error('Error uploading profile image:', err);
+        res.sendStatus(500);
+    }
+}
+
+
 
 const groupDetails = async (group) => {
     const gms = await GMessage.find({ group: group })
@@ -415,5 +454,6 @@ module.exports = {
     updateUser,
     updateGroup,
     addMember,
-    fileUpload
+    fileUpload,
+    uploadProfileImage
 };

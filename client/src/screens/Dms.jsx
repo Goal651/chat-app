@@ -277,7 +277,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         };
         if (cachedData) setHistory(JSON.parse(cachedData))
         else fetchMessages();
-    setLoading(false)
+        setLoading(false)
     }, [friend, friend_name, navigate, accessToken]);
 
     const navigateBackward = () => {

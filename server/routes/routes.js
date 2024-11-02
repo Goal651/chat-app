@@ -15,7 +15,8 @@ const {
     updateGroup,
     getUserProfile,
     addMember,
-    fileUpload
+    fileUpload,
+    uploadProfileImage
 } = require('../controllers/app')
 
 
@@ -35,14 +36,14 @@ const refreshToken = (data) => {
 
 const checkUser = async (req, res, next) => {
     const accessToken = req.headers['accesstoken'];
-    if (!accessToken) return res.sendStatus(401);
+    if (!accessToken) return res.status(401).json({ message: 'Unauthorized' });
     const decodedToken = jwt.decode(accessToken);
     jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
         if (err && err.name === 'TokenExpiredError') {
             const newAccessToken = refreshToken(decodedToken.email)
             return res.status(401).json({ newToken: newAccessToken })
         }
-        if (err) return res.sendStatus(403)
+        if (err) return res.status(403).json({ message: 'Forbidden' })
         req.user = user.email;
         req.id = user.id;
         next();
@@ -53,9 +54,7 @@ const checkUser = async (req, res, next) => {
 
 //Authentication
 router.post('/login', login)
-router.get('/', (req, res) => {
-    res.sendStatus(200)
-})
+
 
 //creation of groups and users
 router.post('/signup', upload.single('image'), signup)
@@ -74,12 +73,18 @@ router.get('/message', checkUser, getMessage)
 router.delete('/deleteMessage/:id', checkUser, deleteMessage)
 
 //updating user,groups and messages
-router.put('/editUserProfile', checkUser, upload.single('image'), updateUser)
+router.put('/editUserProfile', checkUser, updateUser)
+router.post('/uploadProfileImage',checkUser,uploadProfileImage)
 router.put('/updateGroupProfile/:group', checkUser, upload.single('image'), updateGroup)
 router.post('/addMember', checkUser, addMember)
 
 //file uploads
 router.post('/uploadFile', checkUser, fileUpload)
+
+//default routes
+router.get('*',(req,res)=>res.send('<h1>This is chat app server</h1>'))
+router.post('*',(req,res)=>res.send('<h1>This is chat app server</h1>'))
+
 
 
 module.exports = router;
