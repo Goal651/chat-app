@@ -11,47 +11,109 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
     const [profile, setProfile] = useState(null);
     const [imagePreview, setImagePreview] = useState("");
     const [editing, setEditing] = useState(false);
-    const [showFullImage, setShowFullImage] = useState(false)
-    const cropperRef = useRef(null); 
+    const [showFullImage, setShowFullImage] = useState(false);
+    const cropperRef = useRef(null);
 
-    useEffect(() => { if (!accessToken) navigate("/login") }, [navigate, accessToken]);
+    useEffect(() => {
+        if (!accessToken) navigate("/login");
+    }, [navigate, accessToken]);
 
     const sendDataToDashboard = () => dataFromProfile(true);
 
-    const handleEdit = async () => {
-        if (cropperRef.current) {
-            const croppedCanvas = cropperRef.current.cropper.getCroppedCanvas();
-            croppedCanvas.toBlob(async (blob) => {
-                const formDataToSend = new FormData();
-                formDataToSend.append("image", blob); 
-                try {
-                    const response = await fetch("https://chat-app-production-2663.up.railway.app/editUserProfile", {
-                        headers: { accessToken: `${accessToken}` },
-                        method: "PUT",
-                        body: formDataToSend,
-                    });
-                    const newAccessToken = await response.json();
-                    if (response.status === 401) {
-                        Cookies.set("accessToken", newAccessToken);
-                        window.location.reload();
-                    } else if (response.status === 403) {
-                        navigate("/login");
-                    } else if (response.ok) {
-                        setEditing(false);
-                        sendDataToDashboard();
-                    }
-                } catch (err) {
-                    navigate("/error");
+    // Step 1: Handle image cropping and uploading
+    const handleImageUpload = async () => {
+        if (!cropperRef.current) return;
+
+        const croppedCanvas = cropperRef.current.cropper.getCroppedCanvas();
+        const blob = await new Promise((resolve) => croppedCanvas.toBlob(resolve));
+
+        // Convert Blob to base64
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async () => {
+            const base64data = reader.result.split(",")[1];
+            const chunkSize = 100 * 1024; // 100KB chunks
+            const totalChunks = Math.ceil(base64data.length / chunkSize);
+            const fileName = "profile_image.png"; // Add a name here or use a dynamic one
+
+            // Recursive function to upload each chunk
+            const uploadChunk = async (currentChunk) => {
+                if (currentChunk >= totalChunks) {
+                    console.log("All chunks uploaded successfully.");
+                    return;
                 }
+
+                const start = currentChunk * chunkSize;
+                const end = start + chunkSize;
+                const chunk = base64data.substring(start, end);
+
+                try {
+                    const response = await fetch("https://chat-app-production-2663.up.railway.app/uploadProfileImage", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            accessToken,
+                            name: encodeURIComponent(fileName),
+                            totalchunks: totalChunks,
+                            currentchunk: currentChunk,
+                        },
+                        body: JSON.stringify({ file: `data:image/png;base64,${chunk}` }),
+                    });
+
+                    if (!response.ok) throw new Error(`Failed to upload chunk ${currentChunk}`);
+
+                    const result = await response.json();
+
+                    // If it's the last chunk, update the user profile
+                    if (currentChunk === totalChunks - 1) {
+                        await updateUserProfile(result.finalFileName);
+                    }
+
+                    // Recursively call the next chunk
+                    await uploadChunk(currentChunk + 1);
+                } catch (err) {
+                    console.error(`Error uploading chunk ${currentChunk}:`, err);
+                    // Optionally add retry logic here
+                }
+            };
+
+            // Start uploading with the first chunk
+            await uploadChunk(0);
+        };
+    };
+
+    
+    // Step 2: Update user profile with the uploaded image URL
+    const updateUserProfile = async (imageUrl) => {
+        try {
+            const response = await fetch("https://chat-app-production-2663.up.railway.app/editUserProfile", {
+                headers: { accessToken, "Content-Type": "application/json" },
+                method: "PUT",
+                body: JSON.stringify({ imageUrl }),
             });
+            if (response.status === 401) {
+                const newAccessToken = await response.json();
+                Cookies.set("accessToken", newAccessToken);
+                window.location.reload();
+            } else if (response.status === 403) {
+                navigate("/login");
+            } else if (response.ok) {
+                setEditing(false);
+                sendDataToDashboard();
+            }
+        } catch (err) {
+            console.error("Profile update error:", err);
+            navigate("/error");
         }
     };
 
     const handleChange = (e) => {
-        setEditing(true);
         const file = e.target.files[0];
-        setProfile(file);
-        setImagePreview(URL.createObjectURL(file)); // Create image preview
+        if (file) {
+            setEditing(true);
+            setProfile(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
     };
 
     const navigateBackward = () => {
@@ -59,31 +121,20 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
         navigate("/");
     };
 
-    const handleImageClick = () => {
-        setShowFullImage(true); // Show the full-size image when clicked
-    };
-
-    const closeFullImageModal = () => {
-        setShowFullImage(false); // Close the modal when clicking outside the image or the close button
-    };
-
     return (
-        <div className={`h-full flex flex-col bg-gray-100 text-gray-900 rounded-xl`}>
+        <div className="h-full flex flex-col bg-gray-100 text-gray-900 rounded-xl">
             {isMobile && (
                 <button onClick={navigateBackward} className="btn btn-outline btn-primary my-4 ml-4">
                     ← Back
                 </button>
             )}
             {userInfo ? (
-                <div className="flex flex-col items-center p-10 mx-auto w-full  md:w-1/3 rounded-lg shadow-lg bg-base-100">
-                    <div className="cursor-pointer flex flex-col items-center">
-                        <div className="avatar mb-4" onClick={handleImageClick}> {/* Add click handler */}
+                <div className="flex flex-col items-center p-10 mx-auto w-full md:w-1/3 rounded-lg shadow-lg bg-base-100">
+                    <div className="cursor-pointer flex flex-col items-center" onClick={() => setShowFullImage(true)}>
+                        <div className="avatar mb-4">
                             <div className="w-32 h-32 rounded-full border-4 border-primary">
                                 {userInfo.imageData ? (
-                                    <img
-                                        src={userInfo.imageData}
-                                        alt="Fetched Image"
-                                        className="rounded-full" />
+                                    <img src={userInfo.imageData} alt="Profile" className="rounded-full" />
                                 ) : (
                                     <div className="flex justify-center items-center h-full">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" viewBox="0 0 24 24">
@@ -93,10 +144,10 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                                 )}
                             </div>
                         </div>
-
-                    </div> <div className="text-2xl font-semibold mt-4">{userInfo.names}</div>
-                    <label htmlFor="profile" className="text-primary">Edit Profile Image</label>
-                    <input id="profile" name="profile" type="file" className="hidden" onChange={handleChange} />
+                        <div className="text-2xl font-semibold mt-4">{userInfo.names}</div>
+                    </div>
+                    <label htmlFor="profile" className="text-primary cursor-pointer mt-2">Edit Profile Image</label>
+                    <input id="profile" type="file" className="hidden" onChange={handleChange} />
                 </div>
             ) : (
                 <div className="flex justify-center items-center min-h-screen">
@@ -105,21 +156,21 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
             )}
 
             {editing && (
-                <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex flex-col justify-center items-center z-50 overflow-auto">
+                <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50">
                     <div className="relative w-full md:w-3/4 lg:w-1/2 bg-base-100 p-6 rounded-lg shadow-xl">
-                        <div className="flex justify-center overflow-auto max-h-[400px] max-w-full"> {/* Make it scrollable */}
+                        <div className="flex justify-center overflow-auto max-h-[400px] max-w-full">
                             {imagePreview && (
                                 <Cropper
                                     src={imagePreview}
                                     style={{ height: 400, width: "100%" }}
-                                    aspectRatio={1} // Maintain 1:1 aspect ratio
-                                    viewMode={1} // Restrict to the crop box
-                                    autoCropArea={1} // Automatically crop the whole image
+                                    aspectRatio={1}
+                                    viewMode={1}
+                                    autoCropArea={1}
                                     guides={false}
                                     background={false}
-                                    scalable={false} // Disable resizing of image
-                                    zoomable={false} // Disable zooming
-                                    dragMode="none" // Disable drag-and-drop within the crop box
+                                    scalable={false}
+                                    zoomable={false}
+                                    dragMode="none"
                                     ref={cropperRef}
                                     className="rounded-lg"
                                 />
@@ -129,7 +180,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                             <button onClick={() => setEditing(false)} className="btn btn-outline btn-error">
                                 Cancel
                             </button>
-                            <button onClick={handleEdit} className="btn btn-primary">
+                            <button onClick={handleImageUpload} className="btn btn-primary">
                                 Save
                             </button>
                         </div>
@@ -138,9 +189,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
             )}
 
             {showFullImage && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center border-4 border-red-600"
-                    onClick={closeFullImageModal}>
+                <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
                     <div className="relative">
                         <img
                             src={userInfo.imageData}
@@ -148,7 +197,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                             className="max-h-screen max-w-screen rounded-lg"
                             onClick={(e) => e.stopPropagation()}
                         />
-                        <button className="absolute top-2 right-2 btn btn-sm btn-circle btn-error" onClick={closeFullImageModal}>
+                        <button className="absolute top-2 right-2 btn btn-sm btn-circle btn-error" onClick={() => setShowFullImage(false)}>
                             ✕
                         </button>
                     </div>
