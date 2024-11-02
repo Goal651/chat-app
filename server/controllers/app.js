@@ -112,7 +112,7 @@ const signup = async (req, res) => {
         const savedUser = await newUser.save();
         if (!savedUser) return res.sendStatus(500);
         const privateKeyPath = path.join(__dirname, '../config.json');
-        if(fs.existsSync(privateKeyPath)) { console.error('Private key file already exists!') }
+        if (fs.existsSync(privateKeyPath)) { console.error('Private key file already exists!') }
         else { await fs.promises.writeFile(privateKeyPath, JSON.stringify({ [email]: privateKey }, null, 2), { flag: 'w' }) }
         let existingKeys = {};
         try {
@@ -121,7 +121,7 @@ const signup = async (req, res) => {
         } catch (err) { console.error('Could not read existing keys file, creating new one.', err) }
         existingKeys[email] = privateKey;
         await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
-        res.status(201).json({message:'account created'});
+        res.status(201).json({ message: 'account created' });
     } catch (err) {
         res.sendStatus(500);
         console.error(err);
@@ -213,7 +213,7 @@ const updateUser = async (req, res) => {
     try {
         const email = req.user;
         const image = req.body;
-        const updatedUser = await User.updateOne({ email }, { image:image.imageUrl });
+        const updatedUser = await User.updateOne({ email }, { image: image.imageUrl });
         if (!updatedUser) return res.sendStatus(400);
         res.status(201).json({});
     } catch (err) { res.sendStatus(500) }
@@ -336,6 +336,7 @@ const updateGroup = async (req, res) => {
 
 const readImage = async (imagePath) => {
     try {
+        console.log(uploadsDir)
         const fullPath = path.join(uploadsDir, imagePath);
         const imageBuffer = await fs.promises.readFile(fullPath);
         return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
