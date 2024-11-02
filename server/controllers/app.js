@@ -3,7 +3,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Group, GMessage, Message } = require('../models/models');
-const uploadsDir = path.join(__dirname, '../');
+const uploadsDir = path.join(__dirname, '/');
 const crypto = require('crypto');
 const md5 = require('md5')
 const AES_KEY_LENGTH = 32;
@@ -121,7 +121,7 @@ const signup = async (req, res) => {
         } catch (err) { console.error('Could not read existing keys file, creating new one.', err) }
         existingKeys[email] = privateKey;
         await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
-        res.status(201).json(savedUser);
+        res.status(201).json({message:'account created'});
     } catch (err) {
         res.sendStatus(500);
         console.error(err);
