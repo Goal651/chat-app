@@ -105,7 +105,6 @@ const signup = async (req, res) => {
         const newUser = new User({
             email,
             password: hash,
-            image,
             username,
             names,
             publicKey
