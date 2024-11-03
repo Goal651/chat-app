@@ -92,7 +92,6 @@ const getMessage = async (req, res) => {
       .find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] })
       .populate('replyingTo.messageId')
     if (messages.length === 0) return res.status(200).json({ messages: [] })
-
     const messageWithDetails = await Promise.all(messages.map(async (message) => {
       const recipient = message.receiver
       const user = await User.findOne({ email: recipient });

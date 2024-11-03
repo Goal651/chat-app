@@ -67,9 +67,9 @@ export default function Dashboard({ isMobile }) {
         }
         fetchUserDetails()
     }, [accessToken, reloadProfile, navigate]);
-
     useEffect(() => {
-        if (!accessToken) return
+        if (!accessToken) return;
+
         const fetchInitialData = async () => {
             try {
                 const [friendsResponse, groupsResponse] = await Promise.all([
@@ -81,27 +81,40 @@ export default function Dashboard({ isMobile }) {
                     }),
                 ]);
 
-                if (friendsResponse.status === 401 && groupsResponse.status === 401) {
+                if (friendsResponse.status === 401 || groupsResponse.status === 401) {
                     const newToken = await friendsResponse.json();
                     Cookies.set("accessToken", newToken.newToken);
-                } else if (friendsResponse.status === 403 && groupsResponse.status === 403) {
-                    Cookies.remove('accessToken')
-                    navigate("/login")
+                } else if (friendsResponse.status === 403 || groupsResponse.status === 403) {
+                    Cookies.remove('accessToken');
+                    navigate("/login");
                 } else {
-                    setFriends(sortByLatestMessage((await friendsResponse.json()).users));
-                    setGroups(sortByLatestMessage((await groupsResponse.json()).groups));
-                    sessionStorage.setItem('friends', JSON.stringify(sortByLatestMessage((await friendsResponse.json()).users)))
-                    sessionStorage.setItem('groups', JSON.stringify(sortByLatestMessage((await groupsResponse.json()).groups)))
+                    const friendsData = await friendsResponse.json();
+                    const groupsData = await groupsResponse.json();
+
+                    const sortedFriends = sortByLatestMessage(friendsData.users);
+                    const sortedGroups = sortByLatestMessage(groupsData.groups);
+
+                    setFriends(sortedFriends);
+                    setGroups(sortedGroups);
+
+                    const cleanFriends = friendsData.users.map(user => ({ ...user, imageData: null }));
+                    const cleanGroups = groupsData.groups.map(group => ({ ...group, imageData: null }));
+
+                    const friendSession = sortByLatestMessage(cleanFriends)
+                    const groupSession = sortByLatestMessage(cleanGroups)
+
+                    sessionStorage.setItem('friends', JSON.stringify(friendSession));
+                    sessionStorage.setItem('groups', JSON.stringify(groupSession));
                 }
             } catch (error) {
-                console.error("Error fetching data:", error)
-            } finally { setLoading(false) }
-
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
+            }
         };
+
         fetchInitialData();
     }, [accessToken, navigate]);
-
-
 
 
     useEffect(() => {
@@ -168,7 +181,10 @@ export default function Dashboard({ isMobile }) {
                     headers: { 'accessToken': `${accessToken}` },
                 });
                 const data = await response.json();
-                if (response.ok) sessionStorage.setItem(`friend_${data.user.email}`, JSON.stringify(data.user));
+                if (response.ok) {
+                    const cleanUser = { ...data.user, imageData: null }
+                    sessionStorage.setItem(`friend_${data.user.email}`, JSON.stringify(cleanUser))
+                }
                 else if (response.status === 401) Cookies.set("accessToken", data.newToken);
                 else if (response.status === 403) {
                     Cookies.remove('accessToken')
@@ -188,14 +204,19 @@ export default function Dashboard({ isMobile }) {
         if (!accessToken) return
         const fetchGroup = async () => {
             try {
-                const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, { headers: { 'accessToken': `${accessToken}` } });
+                const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, {
+                    headers: { 'accessToken': `${accessToken}` }
+                });
                 const data = await result.json();
                 if (result.ok) {
                     if (data.group == null) {
                         localStorage.removeItem('selectedGroup')
                         navigate('/group')
                     }
-                    else sessionStorage.setItem(`group_${data.group.name}`, JSON.stringify(data.group))
+                    else {
+                        const cleanGroup = { ...data.group, imageData: null }
+                        sessionStorage.setItem(`group_${data.group.name}`, JSON.stringify(cleanGroup))
+                    }
                 } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
                 else if (result.status == 403) {
                     Cookies.remove('accessToken')
@@ -220,7 +241,12 @@ export default function Dashboard({ isMobile }) {
                 else if (response.status === 403) {
                     Cookies.remove('accessToken')
                     navigate('/login')
-                } else if (response.ok) sessionStorage.setItem(`${friend}Messages`, JSON.stringify(data.messages));
+                } else if (response.ok) {
+                    const cleanMessages = data.messages.map((message) => {
+                        return { ...message, file: null }
+                    })
+                    sessionStorage.setItem(`${friend}Messages`, JSON.stringify(cleanMessages))
+                }
             } catch (error) {
                 console.error("Error fetching messages:", error);
             }

@@ -99,7 +99,8 @@ export default function DMArea({ socket, isMobile, theme }) {
                 const data = await response.json();
                 if (response.ok) {
                     setInfo(data.user)
-                    sessionStorage.setItem(`friend-${friend}`, JSON.stringify(data.user))
+                    const cleanUser = { ...data.user, imageData: null }
+                    sessionStorage.setItem(`friend-${friend}`, JSON.stringify(cleanUser))
                 }
                 else if (response.status === 401) Cookies.set("accessToken", data.newToken);
                 else if (response.status === 403) {
@@ -266,7 +267,10 @@ export default function DMArea({ socket, isMobile, theme }) {
                     navigate('/login')
                 } else if (response.ok) {
                     setHistory(data.messages)
-                    sessionStorage.setItem(`${friend}Messages`, JSON.stringify(data.messages));
+                    const cleanMessage = data.messages.map((message) => {
+                        return { ...message, file: null }
+                    })
+                    sessionStorage.setItem(`${friend}Messages`, JSON.stringify(cleanMessage));
                 }
             } catch (error) {
                 console.error("Error fetching messages:", error);
