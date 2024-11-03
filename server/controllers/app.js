@@ -165,6 +165,7 @@ const getUsers = async (req, res) => {
                 } catch (err) { throw err }
             }
             const getUsersFormat = {
+                id:user._id,
                 username: user.username,
                 names: user.names,
                 email: user.email,
@@ -188,6 +189,7 @@ const getUserProfile = async (req, res) => {
         if (!user) return res.status(404).json({ user: null })
         const imageData = user.image ? await readImage(user.image) : null
         const userObject = {
+            id:user._id,
             username: user.username,
             names: user.names,
             email: user.email,
@@ -205,6 +207,7 @@ const getUser = async (req, res) => {
         if (!user) return res.status(404).json({ user: null });
         const imageData = user.image ? await readImage(user.image) : null;
         const userObject = {
+            id:user._id,
             username: user.username,
             names: user.names,
             email: user.email,
@@ -280,6 +283,7 @@ const getGroups = async (req, res) => {
             if (group.image) imageData = await readImage(group.image);
 
             const groupObject = {
+                id: group._id,
                 name: group.name,
                 members: group.members,
                 image: group.image,
@@ -306,6 +310,7 @@ const getGroup = async (req, res) => {
             const user = await User.findOne({ email: member.email });
             if (!user) return null
             const userObject = {
+                id: user._id,
                 username: user.username,
                 names: user.names,
                 email: user.email,
@@ -323,6 +328,7 @@ const getGroup = async (req, res) => {
         const groupImageData = group.image ? await readImage(group.image) : null;
 
         const groupObject = {
+            id: group._id,
             name: group.name,
             members: memberImages,
             image: group.image,

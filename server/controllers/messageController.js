@@ -3,13 +3,12 @@ const path = require('path');
 const crypto = require('crypto');
 const { Message, GMessage, User, Group } = require('../models/models');
 
-
 const decryptPrivateKey = (encryptedPrivateKey) => {
   try {
     const keyObject = crypto.createPrivateKey({
       key: encryptedPrivateKey,
       format: 'pem',
-      passphrase: process.env.KEY_PASSPHRASE
+      passphrase: process.env.KEY_PASSPHRASE,
     });
     return keyObject.export({ type: 'pkcs1', format: 'pem' });
   } catch (err) {
@@ -18,242 +17,190 @@ const decryptPrivateKey = (encryptedPrivateKey) => {
   }
 };
 
-const decryptGroupMessage = (data) => {
+const decryptData = (data, aesKey, iv) => {
   try {
-    const ivBuffer = Buffer.from(data.iv, 'hex')
-    const aesKeyBuffer = Buffer.from(data.privateKey, 'hex')
-    const encryptedMessage = Buffer.from(data.message, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
-    let decryptedMessage = decipher.update(encryptedMessage, undefined, 'utf-8')
-    decryptedMessage += decipher.final('utf-8')
-    return decryptedMessage
-  } catch (err) { console.error(err) }
-}
-
-const decryptGroupPrivateKey = (data) => {
-  const ivBuffer = Buffer.from(data.iv, 'hex')
-  const aesKeyBuffer = Buffer.from(data.aesKey, 'hex')
-  const encryptedPrivateKeyBuffer = Buffer.from(data.encryptedPrivateKey, 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
-  let decryptedPrivateKey = decipher.update(encryptedPrivateKeyBuffer, undefined, 'utf8')
-  decryptedPrivateKey += decipher.final('utf-8')
-  return decryptedPrivateKey
-}
-
-const decryptMessage = async (privateKey, encryptedMessage) => {
-  if (!privateKey || !encryptedMessage) return null;
-  try {
-    const decryptedData = crypto.privateDecrypt(
-      {
-        key: privateKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
-      },
-      Buffer.from(encryptedMessage, 'base64')
-    )
-    return decryptedData.toString('utf-8');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(aesKey, 'hex'), Buffer.from(iv, 'hex'));
+    let decrypted = decipher.update(Buffer.from(data, 'hex'), 'hex', 'utf-8');
+    decrypted += decipher.final('utf-8');
+    return decrypted;
   } catch (err) {
-    console.error('Error decrypting message:', err);
-    throw err;
+    console.error('Error decrypting data:', err);
+    return null;
+  }
+};
+
+const getFileData = async (filePath, mimeType) => {
+  try {
+    const data = await fs.readFile(filePath);
+    return `data:${mimeType};base64,${data.toString('base64')}`;
+  } catch (err) {
+    console.error(`Error reading file ${filePath}:`, err);
+    return null;
   }
 };
 
 const getPrivateKeyFromConfig = async (email) => {
   try {
-    if (!email) return null;
     const configPath = path.join(__dirname, '../config.json');
     const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
-    return config[`${email}`];
-  } catch (error) {
-    console.error('Error reading private key from config:', error);
-    throw error;
+    return config[email] || null;
+  } catch (err) {
+    console.error('Error reading private key from config:', err);
+    throw err;
   }
 };
 
-const readFile = async (filePath) => {
+const decryptMessageContent = async (message, privateKey) => {
   try {
-    if (!filePath) return null;
-    const data = await fs.readFile(filePath);
-    if (!data) return null;
-    const fileData = data.toString('base64');
-    return fileData;
+    return crypto.privateDecrypt(
+      { key: privateKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      Buffer.from(message, 'base64')
+    ).toString('utf-8');
   } catch (err) {
-    console.error(err);
-    return null;
+    console.error('Error decrypting message content:', err);
+    return 'Error decrypting message';
   }
-}
+};
 
+const formatMessageData = async (message, privateKey) => {
+  let decryptedMessage = '';
+  let fileData = null;
+
+  switch (message.type) {
+    case 'text':
+      decryptedMessage = await decryptMessageContent(message.message, privateKey);
+      break;
+    case 'image/jpeg':
+      fileData = await getFileData(message.message, 'image/jpeg');
+      break;
+    case 'video/mp4':
+      fileData = await getFileData(message.message, 'video/mp4');
+      break;
+    case 'audio/mp3':
+      fileData = await getFileData(message.message, 'audio/mp3');
+      break;
+    default:
+      console.error('Unsupported message type:', message.type);
+  }
+
+  return { message: decryptedMessage, file: fileData };
+};
 
 const getMessage = async (req, res) => {
   try {
     const { receiver } = req.query;
     const sender = req.user;
-    if (!sender || !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });
-    const messages = await Message
-      .find({ $or: [{ sender: sender, receiver: receiver }, { sender: receiver, receiver: sender }] })
-      .populate('replyingTo.messageId')
-    if (messages.length === 0) return res.status(200).json({ messages: [] })
-    const messageWithDetails = await Promise.all(messages.map(async (message) => {
-      const recipient = message.receiver
+
+    if (!sender || !receiver) {
+      return res.status(400).json({ message: 'Sender and receiver are required' });
+    }
+
+    const messages = await Message.find({
+      $or: [
+        { sender, receiver },
+        { sender: receiver, receiver: sender },
+      ],
+    }).populate('replyingTo.messageId');
+
+    if (!messages.length) return res.status(200).json({ messages: [] });
+
+    const messageDetails = await Promise.all(messages.map(async (msg) => {
+      const recipient = msg.receiver;
       const user = await User.findOne({ email: recipient });
-      if (!user) { return { ...message._doc, message: '', image: null } }
+
+      if (!user) return { ...msg._doc, message: '', image: null };
+
       const encryptedPrivateKey = await getPrivateKeyFromConfig(recipient);
       const privateKey = decryptPrivateKey(encryptedPrivateKey);
-      if (!privateKey) return { ...message._doc, message: 'Error decrypting message', image: null };
-      let decryptedMessage = '';
-      let fileData = null;
-      if (message.type === 'text') {
-        try {
-          decryptedMessage = await decryptMessage(privateKey, message.message);
-        } catch (error) {
-          console.error(`Error decrypting message for recipient ${recipient}:`, error);
-          decryptedMessage = 'Error decrypting message';
-        }
-      }
-      else if (message.type.startsWith('image')) {
-        try {
-          const data = await readFile(message.message);
-          fileData = `data:image/jpeg;base64, ${data}`;
-        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
-      }
-      else if (message.type.startsWith('video')) {
-        try {
-          const data = await readFile(message.message);
-          fileData = `data:video/mp4;base64,${data}`;
-        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
-      }
-      else if (message.type.startsWith('audio')) {
-        try {
-          const data = await readFile(message.message);
-          fileData = `data:audio/mp3;base64,${data}`;
-        } catch (err) { console.log(`Error reading image for user ${message.sender}:`, err) }
-      }
+      if (!privateKey) return { ...msg._doc, message: 'Error decrypting message', image: null };
+
+      const { message: decryptedMessage, file: fileData } = await formatMessageData(msg, privateKey);
+
       let decryptedReplyingToMessage = null;
-      if (message.replyingTo && message.replyingTo.messageId) {
-        const replyingToMessage = await Message.findById(message.replyingTo.messageId._id);
-        const recipient = replyingToMessage.receiver
-        const user = await User.findOne({ email: recipient });
-        if (!user) return console.log("No user")
-        const encryptedPrivateKey = await getPrivateKeyFromConfig(recipient);
-        const privateKey = decryptPrivateKey(encryptedPrivateKey);
-        if (!privateKey) return console.log("No private key found")
+      if (msg.replyingTo && msg.replyingTo.messageId) {
+        const replyingToMessage = await Message.findById(msg.replyingTo.messageId._id);
         if (replyingToMessage) {
-          try {
-            let decryptedReplyingMessage = '';
-            let file = ''
-            if (replyingToMessage.type === 'text') decryptedReplyingMessage = await decryptMessage(privateKey, replyingToMessage.message);
-            else if (replyingToMessage.type.startsWith('image')) {
-              const data = await readFile(replyingToMessage.message);
-              file = `data:image/jpeg;base64,${data}`;
-            } else if (replyingToMessage.type.startsWith('video')) {
-              const data = await readFile(replyingToMessage.message);
-              file = `data:video/mp4;base64,${data}`;
-            } else if (replyingToMessage.type.startsWith('audio')) {
-              const data = await readFile(replyingToMessage.message);
-              file= `data:audio/mp3;base64,${data}`;
-            }
-            decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage, file };
-          } catch (err) {
-            console.error('Error decrypting replyingTo message:', err);
-            decryptedReplyingToMessage = 'Error decrypting replyingTo message';
-          }
+          const { message: replyingMessageContent, file: replyingFileData } = await formatMessageData(replyingToMessage, privateKey);
+          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: replyingMessageContent, file: replyingFileData };
         }
       }
 
-      return { ...message._doc, message: decryptedMessage, file: fileData, replyingMessage: decryptedReplyingToMessage ? decryptedReplyingToMessage : null };
+      return { ...msg._doc, message: decryptedMessage, file: fileData, replyingMessage: decryptedReplyingToMessage || null };
     }));
-    res.status(200).json({ messages: messageWithDetails });
+
+    res.status(200).json({ messages: messageDetails });
   } catch (error) {
+    console.error(error);
     res.sendStatus(500);
-    console.log(error);
   }
-}
+};
 
 const getGMessage = async (req, res) => {
-  const { group } = req.params;
-  if (!group) return res.sendStatus(400);
-  const groupData = await Group.findOne({ name: group });
-  if (!groupData) return res.sendStatus(404);
-  const { aesKey, iv, encryptedPrivateKey } = groupData
-  const privateKey = decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey });
-  const gmessages = await GMessage.find({ group: group });
-  if (gmessages.length === 0) return res.status(200).json({ gmessages: [] });
   try {
-    const gmsWithDetails = await Promise.all(gmessages.map(async gm => {
-      const senderUser = await User.findOne({ email: gm.sender })
-      const senderUsername = senderUser.username
-      if (!senderUser) return { ...gm._doc, senderUsername, image: null, message: '' };
-      let decryptedMessage = ''
-      let file = null;
-      if (gm.type == 'text') {
-        try {
-          decryptedMessage = decryptGroupMessage({ privateKey, iv: groupData.iv, message: gm.message });
-        } catch (error) {
-          console.error(`Error decrypting message for recipient ${recipient}:`, error);
-          decryptedMessage = 'Error decrypting message';
-        }
-      }
-      else if (gm.type.startsWith('image')) {
-        try {
-          const data = await readFile(gm.message);
-          file = `data:image/jpeg;base64, ${data}`;
-        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
-      }
-      else if (gm.type.startsWith('video')) {
-        try {
-          const data = await readFile(gm.message);
-          file = `data:video/mp4;base64,${data.toString('base64')}`;
-        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
-      }
-      else if (gm.type.startsWith('audio')) {
-        try {
-          const data = await readFile(gm.message);
-          file = `data:audio/mp3;base64,${data.toString('base64')}`;
-        } catch (err) { console.log(`Error reading image for user ${gm.sender}:`, err) }
-      }
+    const { group } = req.params;
+    const groupData = await Group.findOne({ name: group });
+
+    if (!groupData) return res.sendStatus(404);
+
+    const { aesKey, iv, encryptedPrivateKey } = groupData;
+    const privateKey = decryptData(encryptedPrivateKey, aesKey, iv);
+
+    const gmessages = await GMessage.find({ group });
+    if (!gmessages.length) return res.status(200).json({ gmessages: [] });
+
+    const gmsWithDetails = await Promise.all(gmessages.map(async (gm) => {
+      const senderUser = await User.findOne({ email: gm.sender });
+      const senderUsername = senderUser ? senderUser.username : null;
+
+      const { message: decryptedMessage, file } = await formatMessageData(gm, privateKey);
+
       let decryptedReplyingToMessage = null;
       if (gm.replyingTo && gm.replyingTo.messageId) {
         const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
         if (replyingToMessage) {
-          try {
-            const decryptedReplyingMessage = decryptGroupMessage({ privateKey, iv, message: replyingToMessage.message })
-            decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptedReplyingMessage };
-          } catch (error) {
-            console.error('Error decrypting replyingTo message:', error);
-            decryptedReplyingToMessage = 'Error decrypting replyingTo message';
-          }
+          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptData(replyingToMessage.message, aesKey, iv) };
         }
       }
-      return { ...gm._doc, senderUsername, file, message: decryptedMessage, replyingMessage: decryptedReplyingToMessage ? decryptedReplyingToMessage : null };
-    }))
+
+      return { ...gm._doc, senderUsername, file, message: decryptedMessage, replyingMessage: decryptedReplyingToMessage || null };
+    }));
+
     res.status(200).json({ gmessages: gmsWithDetails });
   } catch (error) {
+    console.error(error);
     res.sendStatus(500);
-    console.log(error);
   }
 };
 
 const deleteMessage = async (req, res) => {
   try {
-    const { id } = await req.params
-    if (!id) return res.sendStatus(400)
-    const result = await Message.findByIdAndDelete(id)
-    if (!result) return res.sendStatus(500)
-    res.status(200).json({ messageDeleted: id })
+    const { id } = req.params;
+    if (!id) return res.sendStatus(400);
+
+    const result = await Message.findByIdAndDelete(id);
+    if (!result) return res.sendStatus(500);
+
+    res.status(200).json({ messageDeleted: id });
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
   }
-  catch (err) { res.sendStatus(500) }
-}
+};
 
 const editMessage = async (req, res) => {
   try {
-    const { id, message } = await req.body
-    if (!id && !message) return res.sendStatus(400)
-    const result = await Message.updateOne({ id }, { message: message, edited: true })
-    if (!result) return res.sendStatus(500)
-    res.status(200).json({})
-  } catch (err) { console.error(err) }
-}
+    const { id, message } = req.body;
+    if (!id || !message) return res.sendStatus(400);
 
+    const result = await Message.updateOne({ _id: id }, { message, edited: true });
+    if (!result.nModified) return res.sendStatus(500);
 
+    res.status(200).json({});
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+};
 
 module.exports = {
   getMessage,
