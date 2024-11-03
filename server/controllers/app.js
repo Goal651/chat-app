@@ -212,7 +212,8 @@ const getUser = async (req, res) => {
             names: user.names,
             email: user.email,
             image: user.image,
-            imageData
+            imageData,
+            lastActiveTime: user.lastActiveTime
         }
         res.status(200).json({ user: userObject });
     } catch (err) { res.sendStatus(500) }
@@ -387,8 +388,6 @@ const addMember = async (req, res) => {
 
 const fileUpload = async (req, res) => {
     try {
-
-
         const { name, totalchunks, currentchunk } = req.headers;
         const filename = decodeURIComponent(name);
         const { file } = req.body;
