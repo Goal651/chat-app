@@ -113,9 +113,8 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                 const isOnline = onlineUsers.includes(friend.email)
                                 return (
                                     <div onClick={() => chatNow(friend)}
-                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2 
-                                            ${theme === 'dark' ? `${selectedFriend === friend.email ? 'bg-gray-800 hover:bg-gray-900' : ''} hover:bg-gray-700 ` :
-                                                `${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}`}
+                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2                                          
+                                                ${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}
                                         key={friend._id}>
                                         <div className="flex flex-row justify-between w-full mx-4">
                                             <span className="flex items-center w-full h-fit">

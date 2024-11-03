@@ -3,7 +3,6 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Group, GMessage, Message } = require('../models/models');
-const uploadsDir = path.join(__dirname);
 const crypto = require('crypto');
 const md5 = require('md5')
 const AES_KEY_LENGTH = 32;
@@ -20,7 +19,7 @@ const generateKeyPair = async () => {
                 type: 'pkcs8',
                 format: 'pem',
                 cipher: 'aes-256-cbc',
-                passphrase: process.env.KEY_PASSPHRASE // Ensure to use a secure passphrase
+                passphrase: process.env.KEY_PASSPHRASE
             }
         }, (err, publicKey, privateKey) => {
             if (err) return reject(err);
@@ -66,7 +65,6 @@ const decryptGroupPrivateKey = (data) => {
     return decryptedPrivateKey
 }
 
-// Function to decrypt messages
 const decryptMessage = async (privateKey, encryptedMessage) => {
     try {
         return crypto.privateDecrypt(
@@ -118,7 +116,7 @@ const signup = async (req, res) => {
         try {
             const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
             existingKeys = JSON.parse(fileContent);
-        } catch (err) { console.error('Could not read existing keys file, creating new one.', err) }
+        } catch (err) { throw err }
         existingKeys[email] = privateKey;
         await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
         res.status(201).json({ message: 'account created' });
@@ -148,9 +146,10 @@ const getUsers = async (req, res) => {
         const email = req.user;
         const users = await User.find({ email: { $ne: email } });
         const usersWithDetails = await Promise.all(users.map(async (user) => {
-            let latestMessage = await Message.findOne({
-                $or: [{ sender: user.email, receiver: email }, { sender: email, receiver: user.email }]
-            }).sort({ timestamp: -1 }).exec();
+            let latestMessage = await Message
+                .findOne({ $or: [{ sender: user.email, receiver: email }, { sender: email, receiver: user.email }] })
+                .sort({ timestamp: -1 }).exec();
+            let imageData = '';
             let decryptedMessage = ''
             if (latestMessage && latestMessage.type === 'text') {
                 const encryptedPrivateKey = await getPrivateKeyFromConfig(latestMessage.receiver)
@@ -158,19 +157,12 @@ const getUsers = async (req, res) => {
                 if (!privateKey) return
                 try {
                     decryptedMessage = await decryptMessage(privateKey, latestMessage.message);
-                } catch (error) {
-                    console.error(`Error decrypting message for recipient ${email}:`, error);
-                    decryptedMessage = 'Error decrypting message';
-                }
+                } catch (error) { throw error }
             }
-            let imageData = "";
             if (user.image) {
                 try {
-                    const imagePath = await readImage(user.image);
-                    imageData = imagePath;
-                } catch (err) {
-                    console.error(`Error reading image for user ${user.email}:`, err);
-                }
+                    imageData = await readImage(user.image);
+                } catch (err) { throw err }
             }
             const getUsersFormat = {
                 username: user.username,
@@ -195,7 +187,14 @@ const getUserProfile = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ user: null })
         const imageData = user.image ? await readImage(user.image) : null
-        res.status(200).json({ user: { ...user.toObject(), imageData } })
+        const userObject = {
+            username: user.username,
+            names: user.names,
+            email: user.email,
+            image: user.image,
+            imageData
+        }
+        res.status(200).json({ user: userObject })
     } catch (err) { res.send(500) }
 };
 
@@ -205,7 +204,14 @@ const getUser = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ user: null });
         const imageData = user.image ? await readImage(user.image) : null;
-        res.status(200).json({ user: { ...user.toObject(), imageData } });
+        const userObject = {
+            username: user.username,
+            names: user.names,
+            email: user.email,
+            image: user.image,
+            imageData
+        }
+        res.status(200).json({ user: userObject });
     } catch (err) { res.sendStatus(500) }
 };
 
@@ -215,7 +221,7 @@ const updateUser = async (req, res) => {
         const image = req.body;
         const updatedUser = await User.updateOne({ email }, { image: image.imageUrl });
         if (!updatedUser) return res.sendStatus(400);
-        res.status(201).json({});
+        res.status(201).json({ message: 'user updated' });
     } catch (err) { res.sendStatus(500) }
 };
 
@@ -223,18 +229,17 @@ const updateUser = async (req, res) => {
 
 const createGroup = async (req, res) => {
     try {
+        let image = '';
         const { name } = req.body;
         const admin = req.user;
         const existingGroup = await Group.findOne({ name });
-        if (existingGroup) return res.sendStatus(400);
+        if (existingGroup) return res.status(400).json({ message: 'Group already exists' });
         const aesKey = crypto.randomBytes(AES_KEY_LENGTH);
-        const privateKey = crypto.randomBytes(32).toString('hex'); // Example private key generation
+        const privateKey = crypto.randomBytes(32).toString('hex');
         const iv = crypto.randomBytes(16);
         const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
         let encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex');
         encryptedPrivateKey += cipher.final('hex');
-        let image = '';
-        if (req.file) image = req.file.path;
         const newGroup = new Group({
             name,
             admin,
@@ -245,16 +250,13 @@ const createGroup = async (req, res) => {
             encryptedPrivateKey
         });
         const savedGroup = await newGroup.save();
-        if (!savedGroup) return res.sendStatus(500);
+        if (!savedGroup) return res.status(500).json({ message: 'Failed to create group' });
         await User.updateOne({ email: admin }, { $push: { groups: name } });
         res.status(201).json(savedGroup);
     } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
+        res.status(500).json({ message: 'Server error' + err });
     }
 };
-
-
 
 const getGroups = async (req, res) => {
     try {
@@ -263,7 +265,7 @@ const getGroups = async (req, res) => {
         if (!groups) return res.sendStatus(404)
         const groupsWithImages = await Promise.all(groups.map(async (group) => {
             const { aesKey, iv, encryptedPrivateKey } = group
-            let lMessage = ''
+            let lastMessage = ''
             const privateKey = decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey })
             if (!privateKey) return null
             const latestMessage = await GMessage.findOne({ group: group.name }).sort({ timestamp: -1 }).exec();
@@ -271,17 +273,25 @@ const getGroups = async (req, res) => {
                 let message = ''
                 if (latestMessage.type == 'text') message = decryptGroupMessage({ privateKey, iv, message: latestMessage.message })
                 else message = 'sent file'
-                lMessage = { ...latestMessage._doc, message }
+                lastMessage = { ...latestMessage._doc, message }
             }
             const details = await groupDetails(group.name)
             let imageData = null
             if (group.image) imageData = await readImage(group.image);
-            return { ...group.toObject(), imageData, latestMessage: lMessage, details };
+
+            const groupObject = {
+                name: group.name,
+                members: group.members,
+                image: group.image,
+                imageData,
+                latestMessage: lastMessage,
+                details
+            }
+            return groupObject
         }));
         res.status(200).json({ groups: groupsWithImages });
     } catch (err) {
-        res.sendStatus(500)
-        console.log(err)
+        res.status(500).json({ message: 'Server error' + err });
     }
 };
 
@@ -290,12 +300,18 @@ const getGroup = async (req, res) => {
         const { name } = req.params;
         const details = await groupDetails(name)
         const group = await Group.findOne({ name });
-        if (!group) return res.status(404).json({ group: null });
-        if (!group.members.some(user => user.email === req.user)) return res.status(200).json({ group: null });
+        if (!group) return res.status(404).json({ message: 'Group not found' });
+        if (!group.members.some(user => user.email === req.user)) return res.status(400).json({ message: 'You are not a member of this group' });
         const members = await Promise.all(group.members.map(async (member) => {
             const user = await User.findOne({ email: member.email });
             if (!user) return null
-            return { ...user.toObject(), role: member.role };
+            const userObject = {
+                username: user.username,
+                names: user.names,
+                email: user.email,
+                image: user.image
+            }
+            return userObject
         }));
 
         const memberImages = await Promise.all(members.map(async (user) => {
@@ -306,18 +322,18 @@ const getGroup = async (req, res) => {
 
         const groupImageData = group.image ? await readImage(group.image) : null;
 
-        res.status(200).json({
-            group: {
-                ...group.toObject(),
-                imageData: groupImageData,
-                members: memberImages,
-                details
-            }
-        });
+        const groupObject = {
+            name: group.name,
+            members: memberImages,
+            image: group.image,
+            imageData: groupImageData,
+            latestMessage: null,
+            details
+        }
+        res.status(200).json({ group: groupObject, members: memberImages });
 
     } catch (err) {
-        console.error('Error fetching group data:', err);
-        res.sendStatus(500);
+        res.status(500).json({ message: 'Server error' + err });
     }
 };
 
@@ -359,34 +375,39 @@ const addMember = async (req, res) => {
         await user.save();
         res.status(200).json({ message: 'Member added successfully' })
     } catch (err) {
-        console.error('Error adding member:', err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' + err });
     }
 };
 
 const fileUpload = async (req, res) => {
-    const { name, totalchunks, currentchunk } = req.headers;
-    const filename = decodeURIComponent(name);
-    const { file } = req.body;
-    await fs.promises.mkdir(path.join(__dirname, '../uploads/messages/'), { recursive: true });
-    const firstChunk = parseInt(currentchunk) === 0;
-    const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
-    const ext = filename.split('.').pop();
-    const data = file.split(',')[1];
-    const buffer = Buffer.from(data, 'base64');
-    const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
-    const tmpFilepath = path.join(__dirname, '../uploads/messages/', tmpFilename);
-    if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
-    fs.appendFileSync(tmpFilepath, buffer);
-    if (lastChunk) {
-        const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
-        const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
-        fs.renameSync(tmpFilepath, finalFilepath);
-        const fileUrl = `https://chat-app-production-2663.up.railway.app/uploads/messages/${finalFileName}`;
-        console.log(fileUrl)
-        return res.status(200).json({ finalFileName: finalFilepath });
+    try {
+
+
+        const { name, totalchunks, currentchunk } = req.headers;
+        const filename = decodeURIComponent(name);
+        const { file } = req.body;
+        await fs.promises.mkdir(path.join(__dirname, '../uploads/messages/'), { recursive: true });
+        const firstChunk = parseInt(currentchunk) === 0;
+        const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
+        const ext = filename.split('.').pop();
+        const data = file.split(',')[1];
+        const buffer = Buffer.from(data, 'base64');
+        const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
+        const tmpFilepath = path.join(__dirname, '../uploads/messages/', tmpFilename);
+        if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
+        fs.appendFileSync(tmpFilepath, buffer);
+        if (lastChunk) {
+            const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
+            const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
+            fs.renameSync(tmpFilepath, finalFilepath);
+            const fileUrl = `https://chat-app-production-2663.up.railway.app/uploads/messages/${finalFileName}`;
+            return res.status(200).json({ finalFileName: finalFilepath });
+        }
+        res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
     }
-    res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
+    catch (err) {
+        res.status(500).json({ message: 'Server error' + err });
+    }
 };
 
 const uploadProfileImage = async (req, res) => {
@@ -414,24 +435,26 @@ const uploadProfileImage = async (req, res) => {
         }
         res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
     } catch (err) {
-        console.error('Error uploading profile image:', err);
-        res.sendStatus(500);
+        res.status(500).json({ message: 'Server error' + err });
     }
 }
 
 
 
 const groupDetails = async (group) => {
-    const gms = await GMessage.find({ group: group })
-    let images = 0
-    let videos = 0
-    let audios = 0
-    await Promise.all(gms.map(async (gm) => {
-        if (gm.type.startsWith('image')) images += 1
-        else if (gm.type.startsWith('video')) videos += 1
-        else if (gm.type.startsWith('audio')) audios += 1
-    }))
-    return { images, videos, audios }
+    try {
+        const gms = await GMessage.find({ group: group })
+        let images = 0
+        let videos = 0
+        let audios = 0
+        await Promise.all(gms.map(async (gm) => {
+            if (gm.type.startsWith('image')) images += 1
+            else if (gm.type.startsWith('video')) videos += 1
+            else if (gm.type.startsWith('audio')) audios += 1
+        }))
+        return { images, videos, audios }
+    }
+    catch (err) { return { images: 0, videos: 0, audios: 0 } }
 }
 
 
