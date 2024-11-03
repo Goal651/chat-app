@@ -12,9 +12,9 @@ export default function DMArea({ socket, isMobile, theme }) {
     const { friend_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
     const [lastMessage, setLastMessage] = useState("");
-    const [history, setHistory] = useState([]);
+    const [history, setHistory] = useState(sessionStorage.getItem(`${friend}Message`) ? JSON.parse(sessionStorage.getItem(`${friend}Message`)) : []);
     const [beingTyped, setBeingTyped] = useState(false);
-    const [info, setInfo] = useState([]);
+    const [info, setInfo] = useState(sessionStorage.getItem(`friend-${friend}`) ? JSON.parse(sessionStorage.getItem(`friend-${friend}`)) : null);
     const [loading, setLoading] = useState(true);
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
@@ -29,7 +29,7 @@ export default function DMArea({ socket, isMobile, theme }) {
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
-    const messagesEndRef = useRef(null);
+
 
     const ICE_SERVERS = {
         iceServers: [
@@ -91,7 +91,6 @@ export default function DMArea({ socket, isMobile, theme }) {
 
     useEffect(() => {
         if (!friend_name) return;
-        const cachedData = sessionStorage.getItem(`friend-${friend}`)
         const fetchUserDetails = async () => {
             try {
                 const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
@@ -111,8 +110,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                 console.error("Error fetching user details:", error);
             }
         };
-        if (cachedData) setInfo(JSON.parse(cachedData))
-        else fetchUserDetails();
+        fetchUserDetails();
     }, [friend, friend_name, navigate, accessToken]);
 
 
@@ -257,7 +255,6 @@ export default function DMArea({ socket, isMobile, theme }) {
     }, [socket, friend, friend_name, peerConnection]);
 
     useEffect(() => {
-        const cachedData = sessionStorage.getItem(`${friend}Messages`)
         if (!friend_name) return;
         const fetchMessages = async () => {
             try {
@@ -275,9 +272,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                 console.error("Error fetching messages:", error);
             } finally { setLoading(false) }
         };
-        if (cachedData) setHistory(JSON.parse(cachedData))
-        else fetchMessages();
-        setLoading(false)
+        fetchMessages();
     }, [friend, friend_name, navigate, accessToken]);
 
     const navigateBackward = () => {

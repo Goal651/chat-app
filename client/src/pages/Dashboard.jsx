@@ -25,7 +25,7 @@ const useSocket = (url) => {
 export default function Dashboard({ isMobile }) {
     const navigate = useNavigate();
     const { friend_name, group_name, type } = useParams();
-    const [friends, setFriends] = useState([]);
+    const [friends, setFriends] = useState(sessionStorage.getItem('friends') ? JSON.parse(sessionStorage.getItem('friends')) : []);
     const [groups, setGroups] = useState([]);
     const [notifications, setNotifications] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
