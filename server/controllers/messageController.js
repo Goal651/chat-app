@@ -41,7 +41,7 @@ const getFileData = async (filePath, mimeType) => {
 
 const getPrivateKey = async (email) => {
   try {
-    const user = await User.findOne({ email }).select(privateKey)
+    const user = await User.findOne({ email }).select('privateKey')
     return user.privateKey
   } catch (err) {
     console.error('Error reading private key from config:', err);
