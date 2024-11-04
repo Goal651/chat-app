@@ -39,11 +39,10 @@ const getFileData = async (filePath, mimeType) => {
   }
 };
 
-const getPrivateKeyFromConfig = async (email) => {
+const getPrivateKey = async (email) => {
   try {
-    const configPath = path.join(__dirname, '../config.json');
-    const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
-    return config[email] || null;
+    const user = await User.findOne({ email }).select(privateKey)
+    return user.privateKey
   } catch (err) {
     console.error('Error reading private key from config:', err);
     throw err;
@@ -110,7 +109,7 @@ const getMessage = async (req, res) => {
 
       if (!user) return { ...msg._doc, message: '', image: null };
 
-      const encryptedPrivateKey = await getPrivateKeyFromConfig(recipient);
+      const encryptedPrivateKey = await getPrivateKey(recipient);
       const privateKey = decryptPrivateKey(encryptedPrivateKey);
       if (!privateKey) return { ...msg._doc, message: 'Error decrypting message', image: null };
 
@@ -191,10 +190,8 @@ const editMessage = async (req, res) => {
   try {
     const { id, message } = req.body;
     if (!id || !message) return res.sendStatus(400);
-
     const result = await Message.updateOne({ _id: id }, { message, edited: true });
     if (!result.nModified) return res.sendStatus(500);
-
     res.status(200).json({});
   } catch (err) {
     console.error(err);
