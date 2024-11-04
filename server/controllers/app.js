@@ -241,8 +241,7 @@ const updateUser = async (req, res) => {
 
 const createGroup = async (req, res) => {
     try {
-        let image = '';
-        const { name } = req.body;
+        const { name, image } = req.body;
         const admin = req.user;
         const existingGroup = await Group.findOne({ name });
         if (existingGroup) return res.status(400).json({ message: 'Group already exists' });

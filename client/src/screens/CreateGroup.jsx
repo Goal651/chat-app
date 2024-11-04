@@ -11,7 +11,7 @@ export default function CreateGroup({ isMobile }) {
     const accessToken = Cookies.get('accessToken')
     const [group, setGroup] = useState('')
     const [imagePreview, setImagePreview] = useState('')
-    const [image, setImage] = useState(null)
+    const [image, setImage] = useState({})
     const fileInputRef = useRef(null);
     const [filePath, setFilePath] = useState('')
     const [uploadProgress, setUploadProgress] = useState(0);
