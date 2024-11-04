@@ -19,7 +19,7 @@ export default function Details({ onlineUsers, reloadProfile }) {
         if (!group_name) return
         const fetchGroupDetails = async () => {
             try {
-                const response = await fetch(`http://localhost:3001/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
+                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
                 if (response.status === 403) navigate('/login')
                 const data = await response.json()
                 setGroupInfo(data.group)

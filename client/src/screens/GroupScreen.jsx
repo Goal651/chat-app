@@ -42,14 +42,14 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     useEffect(() => {
         const fetchGroup = async () => {
             if (!group_name || !accessToken) return;
-            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
+            const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, {
+                headers: { 'accessToken': `${accessToken}` }
+            });
             const data = await result.json();
             if (result.ok) {
-                if (data.group == null) {
-                    localStorage.removeItem('selectedGroup')
-                    navigate('/group')
-                }
-                else setGroup(data.group)
+                setGroup(data.group)
+                const cleanGroup ={...data.group,imageData:null}
+                sessionStorage.setItem(`group-${data.group.name}`,JSON.stringify(cleanGroup))
             } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
             else if (result.status == 403) {
                 Cookies.remove('accessToken')
@@ -57,7 +57,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             } else navigate('/error');
         };
         fetchGroup();
-    }, [group_name, accessToken, navigate]);
+    }, [group_name]);
 
 
     useEffect(() => {
@@ -68,7 +68,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 user: user,
             });
         }
-    }, [history, socket, group_name, user]);
+    }, [history]);
 
     const handleScrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
@@ -76,7 +76,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
             setScrollToBottom(false);
         }
     }, []);
-
 
     useEffect(() => {
         handleScrollToBottom();
@@ -285,7 +284,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         };
 
         fetchMessages();
-    }, [group_name, accessToken, navigate]);
+    }, [navigate]);
 
 
     const sendDataToParent = () => {

@@ -26,7 +26,7 @@ export default function Dashboard({ isMobile }) {
     const navigate = useNavigate();
     const { friend_name, group_name, type } = useParams();
     const [friends, setFriends] = useState(sessionStorage.getItem('friends') ? JSON.parse(sessionStorage.getItem('friends')) : []);
-    const [groups, setGroups] = useState([]);
+    const [groups, setGroups] = useState(sessionStorage.getItem('groups') ? JSON.parse(sessionStorage.getItem('groups')):[]);
     const [notifications, setNotifications] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [userInfo, setUserInfo] = useState([])
@@ -67,6 +67,8 @@ export default function Dashboard({ isMobile }) {
         }
         fetchUserDetails()
     }, [accessToken, reloadProfile, navigate]);
+
+
     useEffect(() => {
         if (!accessToken) return;
 
@@ -171,7 +173,6 @@ export default function Dashboard({ isMobile }) {
         };
     }, []);
 
-
     useEffect(() => {
         if (!friend) return;
         if (!accessToken) return
@@ -183,7 +184,7 @@ export default function Dashboard({ isMobile }) {
                 const data = await response.json();
                 if (response.ok) {
                     const cleanUser = { ...data.user, imageData: null }
-                    sessionStorage.setItem(`friend_${data.user.email}`, JSON.stringify(cleanUser))
+                    sessionStorage.setItem(`friend-${data.user.email}`, JSON.stringify(cleanUser))
                 }
                 else if (response.status === 401) Cookies.set("accessToken", data.newToken);
                 else if (response.status === 403) {
@@ -215,7 +216,7 @@ export default function Dashboard({ isMobile }) {
                     }
                     else {
                         const cleanGroup = { ...data.group, imageData: null }
-                        sessionStorage.setItem(`group_${data.group.name}`, JSON.stringify(cleanGroup))
+                        sessionStorage.setItem(`group-${data.group.name}`, JSON.stringify(cleanGroup))
                     }
                 } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
                 else if (result.status == 403) {

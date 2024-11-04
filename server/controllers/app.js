@@ -335,13 +335,14 @@ const getGroup = async (req, res) => {
         const groupObject = {
             id: group._id,
             name: group.name,
+            admin:group.admin,
             members: memberImages,
             image: group.image,
             imageData: groupImageData,
             latestMessage: null,
             details
         }
-        res.status(200).json({ group: groupObject, members: memberImages });
+        res.status(200).json({ group: groupObject});
     } catch (err) {
         res.status(500).json({ message: 'Server error' + err });
     }

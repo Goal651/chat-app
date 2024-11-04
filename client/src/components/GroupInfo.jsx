@@ -20,7 +20,7 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
 
     const fetchGroupDetails = async (name) => {
         try {
-            const response = await fetch(`https://chat-app-leqa.onrender.com/getGroup/${name}`, {
+            const response = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${name}`, {
                 headers: { 'accessToken': accessToken }
             });
             const data = await response.json()
@@ -40,7 +40,7 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
     };
 
     const addMember = async (groupName, memberEmail) => {
-        const response = await fetch('http://localhost:3001/addMember', {
+        const response = await fetch('https://chat-app-production-2663.up.railway.app/addMember', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
             const formDataToSend = new FormData();
             formDataToSend.append("image", file);
             if (!file) return
-            const response = await fetch(`http://localhost:3001/updateGroupProfile/${group_name}`, {
+            const response = await fetch(`https://chat-app-production-2663.up.railway.app/updateGroupProfile/${group_name}`, {
                 headers: { 'accessToken': `${accessToken}` },
                 body: formDataToSend,
                 method: 'PUT'
