@@ -14,7 +14,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
     const [history, setHistory] = useState([])
     const [typingMembers, setTypingMembers] = useState([])
     const [typing, setTyping] = useState(false)
-    const [group, setGroup] = useState({})
+    const [group, setGroup] = useState(sessionStorage.getItem(`group_${group_name}`) ? JSON.parse(sessionStorage.getItem(`group_${group_name}`)) : {})
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
     const [peerConnection, setPeerConnection] = useState(null);
@@ -40,7 +40,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
         ],
     };
     useEffect(() => {
-        const cachedData = sessionStorage.getItem(`group_${group_name}`)
         const fetchGroup = async () => {
             if (!group_name || !accessToken) return;
             const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${group_name}`, { headers: { 'accessToken': `${accessToken}` } });
@@ -57,9 +56,7 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                 navigate("/login")
             } else navigate('/error');
         };
-
-        if (cachedData) setGroup(JSON.parse(cachedData))
-        else fetchGroup();
+        fetchGroup();
     }, [group_name, accessToken, navigate]);
 
 

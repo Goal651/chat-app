@@ -115,8 +115,6 @@ export default function DMArea({ socket, isMobile, theme }) {
     }, [friend, friend_name, navigate, accessToken]);
 
 
-
-
     useEffect(() => {
         if (!socket) return;
         const handleReceiveMessage = async ({ newMessage }) => {
@@ -267,9 +265,7 @@ export default function DMArea({ socket, isMobile, theme }) {
                     navigate('/login')
                 } else if (response.ok) {
                     setHistory(data.messages)
-                    const cleanMessage = data.messages.map((message) => {
-                        return { ...message, file: null }
-                    })
+                    const cleanMessage = data.messages.map((message) => { return { ...message, file: null } })
                     sessionStorage.setItem(`${friend}Messages`, JSON.stringify(cleanMessage));
                 }
             } catch (error) {

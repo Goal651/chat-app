@@ -18,7 +18,7 @@ const readFile = async (filePath) => {
     try {
         const data = await fs.readFile(filePath);
         const fileData = data.toString('base64');
-        return fileData;
+        return fileData; 
     } catch (err) {
         console.error(err);
         return null;
@@ -213,7 +213,7 @@ const handlerChat = async (io) => {
                     group: message.group,
                     type: message.type,
                     time: message.time,
-                    replyingTo: { messageId: id }
+                    replyingTo:id
                 });
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return null;
@@ -297,7 +297,7 @@ const handlerChat = async (io) => {
                 const newMessage = new Message({
                     sender: socket.user,
                     message: encryptedMessage,
-                    replyingTo: { messageId: id },
+                    replyingTo: id,
                     type: "text",
                     receiver,
                     time: formatTime(),

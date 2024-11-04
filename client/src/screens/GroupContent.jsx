@@ -41,7 +41,7 @@ export default function GroupContent({ groups, socket, friends, isMobile, theme,
 
         return filteredGroups.map(group => (
             <div
-                key={group._id}
+                key={group.id}
                 onClick={() => chatNow(group)}
                 className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer 
                     ${theme === 'dark' ?
