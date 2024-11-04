@@ -93,6 +93,7 @@ export default function CreateGroup({ isMobile }) {
                 navigate("/login")
             } else console.log("Something went wrong");
         } catch (error) { navigate('/error') }
+        finally { setIsSendingFile(false) }
     };
 
 

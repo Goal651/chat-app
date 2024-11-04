@@ -45,7 +45,7 @@ const generateGroupKeys = () => {
         const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
         let encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex');
         encryptedPrivateKey += cipher.final('hex');
-        return encryptedPrivateKey
+        return { encryptedPrivateKey, aesKey, iv }
     } catch (err) { throw err }
 }
 
@@ -245,7 +245,7 @@ const createGroup = async (req, res) => {
         const admin = req.user;
         const existingGroup = await Group.findOne({ name });
         if (existingGroup) return res.status(400).json({ message: 'Group already exists' });
-        const encryptedPrivateKey = generateGroupKeys()
+        const { aesKey, encryptedPrivateKey, iv } = generateGroupKeys()
         const newGroup = new Group({
             name,
             admin,
