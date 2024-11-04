@@ -320,7 +320,8 @@ const getGroup = async (req, res) => {
                 username: user.username,
                 names: user.names,
                 email: user.email,
-                image: user.image
+                image: user.image,
+                role:member.role,
             }
         }));
 
