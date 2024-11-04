@@ -27,6 +27,27 @@ const generateKeyPair = async () => {
         });
     });
 }
+const readImage = async (imagePath) => {
+    try {
+        const imageBuffer = await fs.promises.readFile(imagePath);
+        return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
+    } catch (err) {
+        console.error('Error reading image:', err);
+        return null;
+    }
+};
+
+const generateGroupKeys = () => {
+    try {
+        const aesKey = crypto.randomBytes(AES_KEY_LENGTH);
+        const privateKey = crypto.randomBytes(32).toString('hex');
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
+        let encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex');
+        encryptedPrivateKey += cipher.final('hex');
+        return encryptedPrivateKey
+    } catch (err) { throw err }
+}
 
 const decryptPrivateKey = async (encryptedPrivateKey) => {
     try {
@@ -80,13 +101,11 @@ const decryptMessage = async (privateKey, encryptedMessage) => {
     }
 };
 
-const getPrivateKeyFromConfig = async (email) => {
+const getPrivateKey = async (email) => {
     try {
-        const configPath = path.join(__dirname, '../config.json');
-        const config = JSON.parse(await fs.promises.readFile(configPath, 'utf8'));
-        return config[`${email}`];
+        const user = await User.findOne({ email: email }).select('privateKey')
+        return user.privateKey;
     } catch (error) {
-        console.error('Error reading private key from config:', error);
         throw error;
     }
 };
@@ -105,20 +124,11 @@ const signup = async (req, res) => {
             password: hash,
             username,
             names,
-            publicKey
+            publicKey,
+            privateKey
         });
         const savedUser = await newUser.save();
         if (!savedUser) return res.sendStatus(500);
-        const privateKeyPath = path.join(__dirname, '../config.json');
-        if (fs.existsSync(privateKeyPath)) { console.error('Private key file already exists!') }
-        else { await fs.promises.writeFile(privateKeyPath, JSON.stringify({ [email]: privateKey }, null, 2), { flag: 'w' }) }
-        let existingKeys = {};
-        try {
-            const fileContent = await fs.promises.readFile(privateKeyPath, 'utf8');
-            existingKeys = JSON.parse(fileContent);
-        } catch (err) { throw err }
-        existingKeys[email] = privateKey;
-        await fs.promises.writeFile(privateKeyPath, JSON.stringify(existingKeys, null, 2), { flag: 'w' });
         res.status(201).json({ message: 'account created' });
     } catch (err) {
         res.sendStatus(500);
@@ -129,7 +139,7 @@ const signup = async (req, res) => {
 // User Login
 const login = async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.body.email });
+        const user = await User.findOne({ email: req.body.email }).select('id email password');
         if (!user) return res.sendStatus(404);
         const validated = bcrypt.compareSync(req.body.password, user.password);
         if (!validated) return res.sendStatus(401);
@@ -140,56 +150,56 @@ const login = async (req, res) => {
         res.sendStatus(500);
     }
 }
-
 const getUsers = async (req, res) => {
     try {
         const email = req.user;
-        const users = await User.find({ email: { $ne: email } });
+        const users = await User.find({ email: { $ne: email } }).select('email username names image privateKey'); // Projection to reduce fields
+        const privateKeyMap = {};
+
         const usersWithDetails = await Promise.all(users.map(async (user) => {
-            let latestMessage = await Message
+            const latestMessage = await Message
                 .findOne({ $or: [{ sender: user.email, receiver: email }, { sender: email, receiver: user.email }] })
-                .sort({ timestamp: -1 }).exec();
-            let imageData = '';
-            let decryptedMessage = ''
+                .sort({ timestamp: -1 })
+                .lean()
+                .exec();
+
+            let decryptedMessage = '';
+
             if (latestMessage && latestMessage.type === 'text') {
-                const encryptedPrivateKey = await getPrivateKeyFromConfig(latestMessage.receiver)
-                const privateKey = await decryptPrivateKey(encryptedPrivateKey, 'your-passphrase')
-                if (!privateKey) return
-                try {
-                    decryptedMessage = await decryptMessage(privateKey, latestMessage.message);
-                } catch (error) { throw error }
+                if (!privateKeyMap[latestMessage.receiver]) {
+                    const encryptedPrivateKey = await getPrivateKey(latestMessage.receiver);
+                    privateKeyMap[latestMessage.receiver] = await decryptPrivateKey(encryptedPrivateKey);
+                }
+                decryptedMessage = await decryptMessage(privateKeyMap[latestMessage.receiver], latestMessage.message);
             }
-            if (user.image) {
-                try {
-                    imageData = await readImage(user.image);
-                } catch (err) { throw err }
-            }
-            const getUsersFormat = {
-                id:user._id,
+
+            const imageData = user.image ? await readImage(user.image) : null;
+
+            return {
+                id: user._id,
                 username: user.username,
                 names: user.names,
                 email: user.email,
                 image: user.image,
-                latestMessage: latestMessage ? { ...latestMessage._doc, message: decryptedMessage } : null,
+                latestMessage: latestMessage ? { ...latestMessage, message: decryptedMessage } : null,
                 imageData
-            }
-            return getUsersFormat;
-        }))
+            };
+        }));
         res.status(200).json({ users: usersWithDetails });
     } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
+        res.status(500).json({ message: 'Server error ' + err });
     }
 };
+
 
 const getUserProfile = async (req, res) => {
     try {
         const email = req.user;
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ user: null })
+        if (!user) return res.status(404).json({ message: 'user not found' })
         const imageData = user.image ? await readImage(user.image) : null
         const userObject = {
-            id:user._id,
+            id: user._id,
             username: user.username,
             names: user.names,
             email: user.email,
@@ -197,17 +207,17 @@ const getUserProfile = async (req, res) => {
             imageData
         }
         res.status(200).json({ user: userObject })
-    } catch (err) { res.send(500) }
+    } catch (err) { res.status(500).json({ message: 'Server error ' + err }) }
 };
 
 const getUser = async (req, res) => {
     try {
         const { email } = req.params;
-        const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ user: null });
+        const user = await User.findOne({ email }).select('_id username names email image lastActiveTime');
+        if (!user) return res.status(404).json({ message: 'user not found' });
         const imageData = user.image ? await readImage(user.image) : null;
         const userObject = {
-            id:user._id,
+            id: user._id,
             username: user.username,
             names: user.names,
             email: user.email,
@@ -216,7 +226,7 @@ const getUser = async (req, res) => {
             lastActiveTime: user.lastActiveTime
         }
         res.status(200).json({ user: userObject });
-    } catch (err) { res.sendStatus(500) }
+    } catch (err) { res.status(500).json({ message: 'Server error' + err }) }
 };
 
 const updateUser = async (req, res) => {
@@ -226,10 +236,8 @@ const updateUser = async (req, res) => {
         const updatedUser = await User.updateOne({ email }, { image: image.imageUrl });
         if (!updatedUser) return res.sendStatus(400);
         res.status(201).json({ message: 'user updated' });
-    } catch (err) { res.sendStatus(500) }
+    } catch (err) { res.status(500).json({ message: 'server error ', err }) }
 };
-
-
 
 const createGroup = async (req, res) => {
     try {
@@ -238,12 +246,7 @@ const createGroup = async (req, res) => {
         const admin = req.user;
         const existingGroup = await Group.findOne({ name });
         if (existingGroup) return res.status(400).json({ message: 'Group already exists' });
-        const aesKey = crypto.randomBytes(AES_KEY_LENGTH);
-        const privateKey = crypto.randomBytes(32).toString('hex');
-        const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
-        let encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex');
-        encryptedPrivateKey += cipher.final('hex');
+        const encryptedPrivateKey = generateGroupKeys()
         const newGroup = new Group({
             name,
             admin,
@@ -256,7 +259,7 @@ const createGroup = async (req, res) => {
         const savedGroup = await newGroup.save();
         if (!savedGroup) return res.status(500).json({ message: 'Failed to create group' });
         await User.updateOne({ email: admin }, { $push: { groups: name } });
-        res.status(201).json(savedGroup);
+        res.status(201).json({ message: 'Group created' });
     } catch (err) {
         res.status(500).json({ message: 'Server error' + err });
     }
@@ -266,13 +269,18 @@ const getGroups = async (req, res) => {
     try {
         const userEmail = req.user;
         const groups = await Group.find({ "members.email": userEmail });
-        if (!groups) return res.sendStatus(404)
+        if (!groups) return res.status(404).json({ message: 'group not found' })
         const groupsWithImages = await Promise.all(groups.map(async (group) => {
             const { aesKey, iv, encryptedPrivateKey } = group
             let lastMessage = ''
+            let imageData = null
             const privateKey = decryptGroupPrivateKey({ aesKey, iv, encryptedPrivateKey })
-            if (!privateKey) return null
-            const latestMessage = await GMessage.findOne({ group: group.name }).sort({ timestamp: -1 }).exec();
+            if (!privateKey) return
+            const latestMessage = await GMessage
+                .findOne({ group: group.name })
+                .sort({ timestamp: -1 })
+                .exec();
+
             if (latestMessage) {
                 let message = ''
                 if (latestMessage.type == 'text') message = decryptGroupMessage({ privateKey, iv, message: latestMessage.message })
@@ -280,10 +288,9 @@ const getGroups = async (req, res) => {
                 lastMessage = { ...latestMessage._doc, message }
             }
             const details = await groupDetails(group.name)
-            let imageData = null
             if (group.image) imageData = await readImage(group.image);
 
-            const groupObject = {
+            return {
                 id: group._id,
                 name: group.name,
                 members: group.members,
@@ -292,7 +299,6 @@ const getGroups = async (req, res) => {
                 latestMessage: lastMessage,
                 details
             }
-            return groupObject
         }));
         res.status(200).json({ groups: groupsWithImages });
     } catch (err) {
@@ -303,21 +309,20 @@ const getGroups = async (req, res) => {
 const getGroup = async (req, res) => {
     try {
         const { name } = req.params;
-        const details = await groupDetails(name)
         const group = await Group.findOne({ name });
         if (!group) return res.status(404).json({ message: 'Group not found' });
         if (!group.members.some(user => user.email === req.user)) return res.status(400).json({ message: 'You are not a member of this group' });
+        const details = await groupDetails(name)
         const members = await Promise.all(group.members.map(async (member) => {
             const user = await User.findOne({ email: member.email });
             if (!user) return null
-            const userObject = {
+            return {
                 id: user._id,
                 username: user.username,
                 names: user.names,
                 email: user.email,
                 image: user.image
             }
-            return userObject
         }));
 
         const memberImages = await Promise.all(members.map(async (user) => {
@@ -338,34 +343,24 @@ const getGroup = async (req, res) => {
             details
         }
         res.status(200).json({ group: groupObject, members: memberImages });
-
     } catch (err) {
         res.status(500).json({ message: 'Server error' + err });
     }
 };
 
 const updateGroup = async (req, res) => {
-
     try {
         const { group } = req.params
         const filePath = req.file.path
-        const result = await Group.updateOne({ name: group }, { image: filePath })
-        if (!result) res.sendStatus(500)
+        const isGroupThere = await Group.findOne({ name: group })
+        if (!isGroupThere) return res.status(404).json({ message: 'Group not found' })
+        await Group.updateOne({ name: group }, { image: filePath })
         res.status(200).json({ message: 'group updated' })
     } catch (err) {
-        console.error(err)
+        res.status(500).json({ message: 'server error', err })
     }
 }
 
-const readImage = async (imagePath) => {
-    try {
-        const imageBuffer = await fs.promises.readFile(imagePath);
-        return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
-    } catch (err) {
-        console.error('Error reading image:', err);
-        return null;
-    }
-};
 
 const addMember = async (req, res) => {
     try {
@@ -388,24 +383,23 @@ const addMember = async (req, res) => {
 
 const fileUpload = async (req, res) => {
     try {
-        const { name, totalchunks, currentchunk } = req.headers;
+        const { name, totalchunks, currentchunk, type } = req.headers;
         const filename = decodeURIComponent(name);
         const { file } = req.body;
-        await fs.promises.mkdir(path.join(__dirname, '../uploads/messages/'), { recursive: true });
+        await fs.promises.mkdir(path.join(__dirname, `../uploads/${type}/`), { recursive: true });
         const firstChunk = parseInt(currentchunk) === 0;
         const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
         const ext = filename.split('.').pop();
         const data = file.split(',')[1];
         const buffer = Buffer.from(data, 'base64');
         const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
-        const tmpFilepath = path.join(__dirname, '../uploads/messages/', tmpFilename);
+        const tmpFilepath = path.join(__dirname, `../uploads/${type}/`, tmpFilename);
         if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
         fs.appendFileSync(tmpFilepath, buffer);
         if (lastChunk) {
             const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
-            const finalFilepath = path.join(__dirname, '../uploads/messages/', finalFileName);
+            const finalFilepath = path.join(__dirname, `../uploads/${type}/`, finalFileName);
             fs.renameSync(tmpFilepath, finalFilepath);
-            const fileUrl = `https://chat-app-production-2663.up.railway.app/uploads/messages/${finalFileName}`;
             return res.status(200).json({ finalFileName: finalFilepath });
         }
         res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
@@ -415,34 +409,6 @@ const fileUpload = async (req, res) => {
     }
 };
 
-const uploadProfileImage = async (req, res) => {
-    try {
-        const { name, totalchunks, currentchunk } = req.headers;
-        const filename = decodeURIComponent(name);
-        const { file } = req.body;
-        await fs.promises.mkdir(path.join(__dirname, '../uploads/profiles/'), { recursive: true });
-        const firstChunk = parseInt(currentchunk) === 0;
-        const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
-        const ext = filename.split('.').pop();
-        const data = file.split(',')[1];
-        const buffer = Buffer.from(data, 'base64');
-        const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
-        const tmpFilepath = path.join(__dirname, '../uploads/profiles/', tmpFilename);
-        if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
-        fs.appendFileSync(tmpFilepath, buffer);
-        if (lastChunk) {
-            const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
-            const finalFilepath = path.join(__dirname, '../uploads/profiles/', finalFileName);
-            fs.renameSync(tmpFilepath, finalFilepath);
-            const fileUrl = `https://chat-app-production-2663.up.railway.app/uploads/profiles/${finalFileName}`;
-            console.log(fileUrl)
-            return res.status(200).json({ finalFileName: finalFilepath });
-        }
-        res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' + err });
-    }
-}
 
 
 
@@ -479,5 +445,4 @@ module.exports = {
     updateGroup,
     addMember,
     fileUpload,
-    uploadProfileImage
 };

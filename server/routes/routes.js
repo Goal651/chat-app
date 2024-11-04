@@ -16,18 +16,8 @@ const {
     getUserProfile,
     addMember,
     fileUpload,
-    uploadProfileImage
 } = require('../controllers/app')
 
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads/profiles/'),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now();
-        cb(null, uniqueSuffix + file.originalname)
-    }
-})
-const upload = multer({ storage: storage })
 
 const refreshToken = (data) => {
     const newAccessToken = jwt.sign({ email: data }, process.env.JWT_SECRET, { expiresIn: '1h' })
@@ -40,8 +30,8 @@ const checkUser = async (req, res, next) => {
     const decodedToken = jwt.decode(accessToken);
     jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
         if (err && err.name === 'TokenExpiredError') {
-            const newAccessToken = refreshToken(decodedToken.email)
-            return res.status(401).json({ newToken: newAccessToken })
+            const newToken = refreshToken(decodedToken.email)
+            return res.status(401).json({ newToken })
         }
         if (err) return res.status(403).json({ message: 'Forbidden' })
         req.user = user.email;
@@ -55,10 +45,9 @@ const checkUser = async (req, res, next) => {
 //Authentication
 router.post('/login', login)
 
-
 //creation of groups and users
-router.post('/signup', upload.single('image'), signup)
-router.post('/create-group', checkUser, upload.single('photo'), createGroup)
+router.post('/signup', signup)
+router.post('/create-group', checkUser, createGroup)
 
 //getting users and groups
 router.get('/getUserProfile', checkUser, getUserProfile);
@@ -74,16 +63,15 @@ router.delete('/deleteMessage/:id', checkUser, deleteMessage)
 
 //updating user,groups and messages
 router.put('/editUserProfile', checkUser, updateUser)
-router.post('/uploadProfileImage',checkUser,uploadProfileImage)
-router.put('/updateGroupProfile/:group', checkUser, upload.single('image'), updateGroup)
+router.put('/updateGroupProfile/:group', checkUser, updateGroup)
 router.post('/addMember', checkUser, addMember)
 
 //file uploads
 router.post('/uploadFile', checkUser, fileUpload)
 
 //default routes
-router.get('*',(req,res)=>res.send('<h1>This is chat app server</h1>'))
-router.post('*',(req,res)=>res.send('<h1>This is chat app server</h1>'))
+router.get('*', (req, res) => res.send('<h1>This is chat app server</h1>'))
+router.post('*', (req, res) => res.send('<h1>This is chat app server</h1>'))
 
 
 

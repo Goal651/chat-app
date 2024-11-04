@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
     lastActiveTime: { type: Date, default: Date.now },
     groups: [{ type: String, required: true }],
     unreads: [{ sender: String, message: String, timestamp: Date }],
-    publicKey: String
+    publicKey: String,
+    privateKey:String
 });
 
 const groupSchema = mongoose.Schema({
