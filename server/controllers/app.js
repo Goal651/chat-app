@@ -384,22 +384,22 @@ const addMember = async (req, res) => {
 
 const fileUpload = async (req, res) => {
     try {
-        const { name, totalchunks, currentchunk, typeFolder } = req.headers;
+        const { name, totalchunks, currentchunk, typefolder } = req.headers;
         const filename = decodeURIComponent(name);
         const { file } = req.body;
-        await fs.promises.mkdir(path.join(__dirname, `../uploads/${typeFolder}/`), { recursive: true });
+        await fs.promises.mkdir(path.join(__dirname, `../uploads/${typefolder}/`), { recursive: true });
         const firstChunk = parseInt(currentchunk) === 0;
         const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
         const ext = filename.split('.').pop();
         const data = file.split(',')[1];
         const buffer = Buffer.from(data, 'base64');
         const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
-        const tmpFilepath = path.join(__dirname, `../uploads/${typeFolder}/`, tmpFilename);
+        const tmpFilepath = path.join(__dirname, `../uploads/${typefolder}/`, tmpFilename);
         if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
         fs.appendFileSync(tmpFilepath, buffer);
         if (lastChunk) {
             const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
-            const finalFilepath = path.join(__dirname, `../uploads/${typeFolder}/`, finalFileName);
+            const finalFilepath = path.join(__dirname, `../uploads/${typefolder}/`, finalFileName);
             fs.renameSync(tmpFilepath, finalFilepath);
             return res.status(200).json({ finalFileName: finalFilepath });
         }
