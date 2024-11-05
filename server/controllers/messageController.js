@@ -29,6 +29,19 @@ const decryptData = (data, aesKey, iv) => {
   }
 };
 
+const decryptGroupMessage = (data) => {
+  try {
+    if (!data) return
+    const ivBuffer = Buffer.from(data.iv, 'hex')
+    const aesKeyBuffer = Buffer.from(data.privateKey, 'hex')
+    const encryptedMessage = Buffer.from(data.message, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, ivBuffer)
+    let decryptedMessage = decipher.update(encryptedMessage, undefined, 'utf-8')
+    decryptedMessage += decipher.final('utf-8')
+    return decryptedMessage
+  } catch (err) { console.error(err) }
+}
+
 const getFileData = async (filePath, mimeType) => {
   try {
     const data = await fs.readFile(filePath);
@@ -68,6 +81,30 @@ const formatMessageData = async (message, privateKey) => {
   switch (message.type) {
     case 'text':
       decryptedMessage = await decryptMessageContent(message.message, privateKey);
+      break;
+    case 'image/jpeg':
+      fileData = await getFileData(message.message, 'image/jpeg');
+      break;
+    case 'video/mp4':
+      fileData = await getFileData(message.message, 'video/mp4');
+      break;
+    case 'audio/mp3':
+      fileData = await getFileData(message.message, 'audio/mp3');
+      break;
+    default:
+      console.error('Unsupported message type:', message.type);
+  }
+
+  return { message: decryptedMessage, file: fileData };
+};
+
+const formatGroupMessageData = async ({ message, privateKey, privateKey, iv, aesKey }) => {
+  let decryptedMessage = '';
+  let fileData = null;
+
+  switch (message.type) {
+    case 'text':
+      decryptedMessage = decryptGroupMessage({ message: message.message, privateKey, iv, aesKey });
       break;
     case 'image/jpeg':
       fileData = await getFileData(message.message, 'image/jpeg');
@@ -151,13 +188,13 @@ const getGMessage = async (req, res) => {
       const senderUser = await User.findOne({ email: gm.sender });
       const senderUsername = senderUser ? senderUser.username : null;
 
-      const { message: decryptedMessage, file } = await formatMessageData(gm, privateKey);
+      const { message: decryptedMessage, file } = await formatGroupMessageData({ message: gm, privateKey ,iv});
 
       let decryptedReplyingToMessage = null;
       if (gm.replyingTo && gm.replyingTo.messageId) {
         const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
         if (replyingToMessage) {
-          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptData(replyingToMessage.message, aesKey, iv) };
+          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptGroupMessage({message:replyingToMessage.message, privateKey, iv}) };
         }
       }
 

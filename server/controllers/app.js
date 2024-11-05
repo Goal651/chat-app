@@ -61,7 +61,7 @@ const decryptPrivateKey = async (encryptedPrivateKey) => {
         console.error('Error decrypting private key:', err);
         throw err;
     }
-};
+}; 
 
 const decryptGroupMessage = (data) => {
     try {
