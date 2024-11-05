@@ -91,7 +91,7 @@ const handlerChat = async (io) => {
 
         socket.on('send_group_message', async ({ message }) => {
             try {
-                const { aesKey, iv, encryptedPrivateKey } = await Group.findOne({ name: message.group })
+                const { aesKey, iv, encryptedPrivateKey } = await Group.findOne({ name: message.group }).select('aesKey iv encryptedPrivateKey');
                 const privateKey = decryptPrivateKey({ iv, aesKey, encryptedPrivateKey })
                 const encryptedMessage = encryptGroupMessage({ iv, privateKey, message: message.message })
                 const newMessage = new GMessage({
@@ -102,7 +102,7 @@ const handlerChat = async (io) => {
                     time: message.time
                 });
                 const savedMessage = await newMessage.save();
-                if (!savedMessage) return null;
+                if (!savedMessage) return socket.emit('group_message_error', 'Error saving group message');
                 const senderSocketId = userSockets.get(socket.user);
                 socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message } });
                 io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message } });

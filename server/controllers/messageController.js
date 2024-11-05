@@ -20,7 +20,7 @@ const decryptPrivateKey = (encryptedPrivateKey) => {
 const decryptData = ({ data, aesKey, iv }) => {
   try {
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(aesKey, 'hex'), Buffer.from(iv, 'hex'));
-    let decrypted = decipher.update(Buffer.from(data, 'hex'), 'hex', 'utf-8');
+    let decrypted = decipher.update(Buffer.from(data, 'hex'), undefined, 'utf-8');
     decrypted += decipher.final('utf-8');
     return decrypted;
   } catch (err) {
@@ -50,7 +50,6 @@ const getPrivateKey = async (email) => {
 };
 
 const decryptMessageContent = async ({ message, privateKey }) => {
-  console.log(message, privateKey)
   try {
     return crypto.privateDecrypt(
       { key: privateKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
