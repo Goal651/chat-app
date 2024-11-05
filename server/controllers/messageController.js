@@ -17,7 +17,7 @@ const decryptPrivateKey = (encryptedPrivateKey) => {
   }
 };
 
-const decryptData = (data, aesKey, iv) => {
+const decryptData = ({ data, aesKey, iv }) => {
   try {
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(aesKey, 'hex'), Buffer.from(iv, 'hex'));
     let decrypted = decipher.update(Buffer.from(data, 'hex'), 'hex', 'utf-8');
@@ -49,7 +49,8 @@ const getPrivateKey = async (email) => {
   }
 };
 
-const decryptMessageContent = async (message, privateKey) => {
+const decryptMessageContent = async ({ message, privateKey }) => {
+  console.log(message, privateKey)
   try {
     return crypto.privateDecrypt(
       { key: privateKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
@@ -67,7 +68,7 @@ const formatMessageData = async (message, privateKey) => {
 
   switch (message.type) {
     case 'text':
-      decryptedMessage = await decryptMessageContent(message.message, privateKey);
+      decryptedMessage = await decryptMessageContent({ message: message.message, privateKey });
       break;
     case 'image/jpeg':
       fileData = await getFileData(message.message, 'image/jpeg');
@@ -90,9 +91,7 @@ const getMessage = async (req, res) => {
     const { receiver } = req.query;
     const sender = req.user;
 
-    if (!sender || !receiver) {
-      return res.status(400).json({ message: 'Sender and receiver are required' });
-    }
+    if (!sender || !receiver) return res.status(400).json({ message: 'Sender and receiver are required' });
 
     const messages = await Message.find({
       $or: [
@@ -137,12 +136,12 @@ const getMessage = async (req, res) => {
 const getGMessage = async (req, res) => {
   try {
     const { group } = req.params;
-    const groupData = await Group.findOne({ name: group });
+    const groupData = await Group.findOne({ name: group }).select('aesKey iv encryptedPrivateKey');
 
     if (!groupData) return res.sendStatus(404);
 
     const { aesKey, iv, encryptedPrivateKey } = groupData;
-    const privateKey = decryptData(encryptedPrivateKey, aesKey, iv);
+    const privateKey = decryptData({ data: encryptedPrivateKey, aesKey, iv });
 
     const gmessages = await GMessage.find({ group });
     if (!gmessages.length) return res.status(200).json({ gmessages: [] });
@@ -157,7 +156,7 @@ const getGMessage = async (req, res) => {
       if (gm.replyingTo && gm.replyingTo.messageId) {
         const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
         if (replyingToMessage) {
-          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptData(replyingToMessage.message, aesKey, iv) };
+          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptData({ data: replyingToMessage.message, aesKey, iv }) };
         }
       }
 
