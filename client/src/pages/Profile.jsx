@@ -37,10 +37,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
 
             // Recursive function to upload each chunk
             const uploadChunk = async (currentChunk) => {
-                if (currentChunk >= totalChunks) {
-                    console.log("All chunks uploaded successfully.");
-                    return;
-                }
+                if (currentChunk >= totalChunks) return;
 
                 const start = currentChunk * chunkSize;
                 const end = start + chunkSize;
@@ -55,15 +52,13 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                             name: encodeURIComponent(fileName),
                             totalchunks: totalChunks,
                             currentchunk: currentChunk,
-                            typeFolder:'profiles'
+                            typeFolder: 'profiles'
                         },
                         body: JSON.stringify({ file: `data:image/png;base64,${chunk}` }),
                     });
 
                     if (!response.ok) throw new Error(`Failed to upload chunk ${currentChunk}`);
-
                     const result = await response.json();
-
                     // If it's the last chunk, update the user profile
                     if (currentChunk === totalChunks - 1) {
                         await updateUserProfile(result.finalFileName);
@@ -81,7 +76,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
         };
     };
 
-    
+
     // Step 2: Update user profile with the uploaded image URL
     const updateUserProfile = async (imageUrl) => {
         try {
