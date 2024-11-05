@@ -98,7 +98,7 @@ const formatMessageData = async (message, privateKey) => {
   return { message: decryptedMessage, file: fileData };
 };
 
-const formatGroupMessageData = async ({ message, privateKey, privateKey, iv, aesKey }) => {
+const formatGroupMessageData = async ({ message,  privateKey, iv, aesKey }) => {
   let decryptedMessage = '';
   let fileData = null;
 
