@@ -394,12 +394,12 @@ const fileUpload = async (req, res) => {
         const data = file.split(',')[1];
         const buffer = Buffer.from(data, 'base64');
         const tmpFilename = 'tmp_' + md5(filename) + '.' + ext;
-        const tmpFilepath = path.join(__dirname, `../uploads/${type}/`, tmpFilename);
+        const tmpFilepath = path.join(__dirname, `../uploads/${typeFolder}/`, tmpFilename);
         if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
         fs.appendFileSync(tmpFilepath, buffer);
         if (lastChunk) {
             const finalFileName = md5(Date.now().toString().slice(0, 6) + req.id).slice(0, 6) + filename;
-            const finalFilepath = path.join(__dirname, `../uploads/${type}/`, finalFileName);
+            const finalFilepath = path.join(__dirname, `../uploads/${typeFolder}/`, finalFileName);
             fs.renameSync(tmpFilepath, finalFilepath);
             return res.status(200).json({ finalFileName: finalFilepath });
         }
