@@ -79,11 +79,11 @@ const formatMessageData = async (message, privateKey) => {
 
   if (message.type === 'text') {
     decryptedMessage = await decryptMessageContent(message.message, privateKey);
-  } else if (message.type.startsWith('image/jpeg')) {
+  } else if (message.type.startsWith('image')) {
     fileData = await getFileData(message.message, 'image/jpeg');
-  } else if (message.type.startsWith('video/mp4')) {
+  } else if (message.type.startsWith('video')) {
     fileData = await getFileData(message.message, 'video/mp4');
-  } else if (message.type.startsWith('audio/mp3')) {
+  } else if (message.type.startsWith('audio')) {
     fileData = await getFileData(message.message, 'audio/mp3');
   } else {
     console.error('Unsupported message type:', message.type);
@@ -98,11 +98,11 @@ const formatGroupMessageData = async ({ message, privateKey, iv, aesKey }) => {
 
   if (message.type === 'text') {
     decryptedMessage = decryptGroupMessage({ message: message.message, privateKey, iv, aesKey });
-  } else if (message.type.startsWith('image/jpeg')) {
+  } else if (message.type.startsWith('image')) {
     fileData = await getFileData(message.message, 'image/jpeg');
-  } else if (message.type.startsWith('video/mp4')) {
+  } else if (message.type.startsWith('video')) {
     fileData = await getFileData(message.message, 'video/mp4');
-  } else if (message.type.startsWith('audio/mp3')) {
+  } else if (message.type.startsWith('audio')) {
     fileData = await getFileData(message.message, 'audio/mp3');
   } else {
     console.error('Unsupported message type:', message.type);
