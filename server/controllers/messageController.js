@@ -17,7 +17,7 @@ const decryptPrivateKey = (encryptedPrivateKey) => {
   }
 };
 
-const decryptData = ({ data, aesKey, iv }) => {
+const decryptGroupPrivateKey = ({ data, aesKey, iv }) => {
   try {
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(aesKey, 'hex'), Buffer.from(iv, 'hex'));
     let decrypted = decipher.update(Buffer.from(data, 'hex'), undefined, 'utf-8');
@@ -28,6 +28,19 @@ const decryptData = ({ data, aesKey, iv }) => {
     return null;
   }
 };
+
+const decryptGroupMessage = ({ data, aesKey, iv }) => {
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(aesKey, 'hex'), Buffer.from(iv, 'hex'));
+    let decrypted = decipher.update(Buffer.from(data, 'hex'), 'hex', 'utf-8');
+    decrypted += decipher.final('utf-8');
+    return decrypted;
+  } catch (err) {
+    console.error('Error decrypting data:', err);
+    return null;
+  }
+};
+
 
 const getFileData = async (filePath, mimeType) => {
   try {
@@ -61,13 +74,14 @@ const decryptMessageContent = async ({ message, privateKey }) => {
   }
 };
 
-const formatMessageData = async (message, privateKey) => {
+const formatMessageData = async ({ message, privateKey, type,...rest }) => {
   let decryptedMessage = '';
   let fileData = null;
 
   switch (message.type) {
     case 'text':
-      decryptedMessage = await decryptMessageContent({ message: message.message, privateKey });
+      if (type == 'users') decryptedMessage = await decryptMessageContent({ message: message.message, privateKey });
+      else if(type=='groups') decryptedMessage=decryptGroupMessage({data:message,...rest.aesKey,...rest.iv})
       break;
     case 'image/jpeg':
       fileData = await getFileData(message.message, 'image/jpeg');
@@ -111,13 +125,13 @@ const getMessage = async (req, res) => {
       const privateKey = decryptPrivateKey(encryptedPrivateKey);
       if (!privateKey) return { ...msg._doc, message: 'Error decrypting message', image: null };
 
-      const { message: decryptedMessage, file: fileData } = await formatMessageData(msg, privateKey);
+      const { message: decryptedMessage, file: fileData } = await formatMessageData({ msg, privateKey, type: 'users' });
 
       let decryptedReplyingToMessage = null;
       if (msg.replyingTo && msg.replyingTo.messageId) {
         const replyingToMessage = await Message.findById(msg.replyingTo.messageId._id);
         if (replyingToMessage) {
-          const { message: replyingMessageContent, file: replyingFileData } = await formatMessageData(replyingToMessage, privateKey);
+          const { message: replyingMessageContent, file: replyingFileData } = await formatMessageData({ message: replyingToMessage, privateKey, type: 'users' });
           decryptedReplyingToMessage = { ...replyingToMessage._doc, message: replyingMessageContent, file: replyingFileData };
         }
       }
@@ -140,7 +154,7 @@ const getGMessage = async (req, res) => {
     if (!groupData) return res.sendStatus(404);
 
     const { aesKey, iv, encryptedPrivateKey } = groupData;
-    const privateKey = decryptData({ data: encryptedPrivateKey, aesKey, iv });
+    const privateKey = decryptGroupPrivateKey({ data: encryptedPrivateKey, aesKey, iv });
 
     const gmessages = await GMessage.find({ group });
     if (!gmessages.length) return res.status(200).json({ gmessages: [] });
@@ -149,13 +163,13 @@ const getGMessage = async (req, res) => {
       const senderUser = await User.findOne({ email: gm.sender });
       const senderUsername = senderUser ? senderUser.username : null;
 
-      const { message: decryptedMessage, file } = await formatMessageData(gm, privateKey);
+      const { message: decryptedMessage, file } = await formatMessageData({ message: gm, privateKey, iv, aesKey, type: 'group' });
 
       let decryptedReplyingToMessage = null;
       if (gm.replyingTo && gm.replyingTo.messageId) {
         const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
         if (replyingToMessage) {
-          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptData({ data: replyingToMessage.message, aesKey, iv }) };
+          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptGroupMessage({ data: replyingToMessage.message, aesKey, iv }) };
         }
       }
 
