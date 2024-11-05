@@ -73,50 +73,39 @@ const decryptMessageContent = async (message, privateKey) => {
     return 'Error decrypting message';
   }
 };
-
 const formatMessageData = async (message, privateKey) => {
   let decryptedMessage = '';
   let fileData = null;
 
-  switch (message.type) {
-    case message.type.startsWith('text'):
-      decryptedMessage = await decryptMessageContent(message.message, privateKey);
-      break;
-    case message.type.startsWith('image/jpeg'):
-      fileData = await getFileData(message.message, 'image/jpeg');
-      break;
-    case message.type.startsWith('video/mp4'):
-      fileData = await getFileData(message.message, 'video/mp4');
-      break;
-    case message.type.startsWith('audio/mp3'):
-      fileData = await getFileData(message.message, 'audio/mp3');
-      break;
-    default:
-      console.error('Unsupported message type:', message.type);
+  if (message.type === 'text') {
+    decryptedMessage = await decryptMessageContent(message.message, privateKey);
+  } else if (message.type.startsWith('image/jpeg')) {
+    fileData = await getFileData(message.message, 'image/jpeg');
+  } else if (message.type.startsWith('video/mp4')) {
+    fileData = await getFileData(message.message, 'video/mp4');
+  } else if (message.type.startsWith('audio/mp3')) {
+    fileData = await getFileData(message.message, 'audio/mp3');
+  } else {
+    console.error('Unsupported message type:', message.type);
   }
 
   return { message: decryptedMessage, file: fileData };
 };
 
-const formatGroupMessageData = async ({ message,  privateKey, iv, aesKey }) => {
+const formatGroupMessageData = async ({ message, privateKey, iv, aesKey }) => {
   let decryptedMessage = '';
   let fileData = null;
 
-  switch (message.type) {
-    case'text':
-      decryptedMessage = decryptGroupMessage({ message: message.message, privateKey, iv, aesKey });
-      break;
-    case message.type.startsWith('image/jpeg'):
-      fileData = await getFileData(message.message, 'image/jpeg');
-      break;
-    case message.type.startsWith('video/mp4'):
-      fileData = await getFileData(message.message, 'video/mp4');
-      break;
-    case message.type.startsWith('audio/mp3'):
-      fileData = await getFileData(message.message, 'audio/mp3');
-      break;
-    default:
-      console.error('Unsupported message type:', message.type);
+  if (message.type === 'text') {
+    decryptedMessage = decryptGroupMessage({ message: message.message, privateKey, iv, aesKey });
+  } else if (message.type.startsWith('image/jpeg')) {
+    fileData = await getFileData(message.message, 'image/jpeg');
+  } else if (message.type.startsWith('video/mp4')) {
+    fileData = await getFileData(message.message, 'video/mp4');
+  } else if (message.type.startsWith('audio/mp3')) {
+    fileData = await getFileData(message.message, 'audio/mp3');
+  } else {
+    console.error('Unsupported message type:', message.type);
   }
 
   return { message: decryptedMessage, file: fileData };
@@ -188,13 +177,13 @@ const getGMessage = async (req, res) => {
       const senderUser = await User.findOne({ email: gm.sender });
       const senderUsername = senderUser ? senderUser.username : null;
 
-      const { message: decryptedMessage, file } = await formatGroupMessageData({ message: gm, privateKey ,iv});
+      const { message: decryptedMessage, file } = await formatGroupMessageData({ message: gm, privateKey, iv });
 
       let decryptedReplyingToMessage = null;
       if (gm.replyingTo && gm.replyingTo.messageId) {
         const replyingToMessage = await GMessage.findById(gm.replyingTo.messageId._id);
         if (replyingToMessage) {
-          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptGroupMessage({message:replyingToMessage.message, privateKey, iv}) };
+          decryptedReplyingToMessage = { ...replyingToMessage._doc, message: decryptGroupMessage({ message: replyingToMessage.message, privateKey, iv }) };
         }
       }
 
