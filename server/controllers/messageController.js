@@ -74,14 +74,14 @@ const decryptMessageContent = async ({ message, privateKey }) => {
   }
 };
 
-const formatMessageData = async ({ message, privateKey, type,...rest }) => {
+const formatMessageData = async ({ message, privateKey, type, aesKey, iv }) => {
   let decryptedMessage = '';
   let fileData = null;
 
   switch (message.type) {
     case 'text':
       if (type == 'users') decryptedMessage = await decryptMessageContent({ message: message.message, privateKey });
-      else if(type=='groups') decryptedMessage=decryptGroupMessage({data:message,...rest.aesKey,...rest.iv})
+      else if (type == 'groups') decryptedMessage = decryptGroupMessage({ data: message, aesKey, iv })
       break;
     case 'image/jpeg':
       fileData = await getFileData(message.message, 'image/jpeg');
@@ -163,7 +163,7 @@ const getGMessage = async (req, res) => {
       const senderUser = await User.findOne({ email: gm.sender });
       const senderUsername = senderUser ? senderUser.username : null;
 
-      const { message: decryptedMessage, file } = await formatMessageData({ message: gm, privateKey, iv, aesKey, type: 'group' });
+      const { message: decryptedMessage, file } = await formatMessageData({ message: gm, privateKey, iv, aesKey, type: 'groups' });
 
       let decryptedReplyingToMessage = null;
       if (gm.replyingTo && gm.replyingTo.messageId) {
