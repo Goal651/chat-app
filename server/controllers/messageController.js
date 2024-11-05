@@ -79,16 +79,16 @@ const formatMessageData = async (message, privateKey) => {
   let fileData = null;
 
   switch (message.type) {
-    case 'text':
+    case message.type.startsWith('text'):
       decryptedMessage = await decryptMessageContent(message.message, privateKey);
       break;
-    case 'image/jpeg':
+    case message.type.startsWith('image/jpeg'):
       fileData = await getFileData(message.message, 'image/jpeg');
       break;
-    case 'video/mp4':
+    case message.type.startsWith('video/mp4'):
       fileData = await getFileData(message.message, 'video/mp4');
       break;
-    case 'audio/mp3':
+    case message.type.startsWith('audio/mp3'):
       fileData = await getFileData(message.message, 'audio/mp3');
       break;
     default:
@@ -103,16 +103,16 @@ const formatGroupMessageData = async ({ message,  privateKey, iv, aesKey }) => {
   let fileData = null;
 
   switch (message.type) {
-    case 'text':
+    case'text':
       decryptedMessage = decryptGroupMessage({ message: message.message, privateKey, iv, aesKey });
       break;
-    case 'image/jpeg':
+    case message.type.startsWith('image/jpeg'):
       fileData = await getFileData(message.message, 'image/jpeg');
       break;
-    case 'video/mp4':
+    case message.type.startsWith('video/mp4'):
       fileData = await getFileData(message.message, 'video/mp4');
       break;
-    case 'audio/mp3':
+    case message.type.startsWith('audio/mp3'):
       fileData = await getFileData(message.message, 'audio/mp3');
       break;
     default:
