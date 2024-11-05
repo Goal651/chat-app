@@ -47,7 +47,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                 const chunk = base64data.substring(start, end);
 
                 try {
-                    const response = await fetch("https://chat-app-production-2663.up.railway.app/uploadProfileImage", {
+                    const response = await fetch("https://chat-app-production-2663.up.railway.app/uploadFile", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
