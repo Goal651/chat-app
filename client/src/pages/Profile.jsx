@@ -55,6 +55,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                             name: encodeURIComponent(fileName),
                             totalchunks: totalChunks,
                             currentchunk: currentChunk,
+                            typeFolder:'profiles'
                         },
                         body: JSON.stringify({ file: `data:image/png;base64,${chunk}` }),
                     });

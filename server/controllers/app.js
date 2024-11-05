@@ -384,10 +384,10 @@ const addMember = async (req, res) => {
 
 const fileUpload = async (req, res) => {
     try {
-        const { name, totalchunks, currentchunk, type } = req.headers;
+        const { name, totalchunks, currentchunk, typeFolder } = req.headers;
         const filename = decodeURIComponent(name);
         const { file } = req.body;
-        await fs.promises.mkdir(path.join(__dirname, `../uploads/${type}/`), { recursive: true });
+        await fs.promises.mkdir(path.join(__dirname, `../uploads/${typeFolder}/`), { recursive: true });
         const firstChunk = parseInt(currentchunk) === 0;
         const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
         const ext = filename.split('.').pop();
