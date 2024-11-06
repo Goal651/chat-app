@@ -26,12 +26,11 @@ export default function Dashboard({ isMobile }) {
     const navigate = useNavigate();
     const { friend_name, group_name, type } = useParams();
     const [friends, setFriends] = useState(sessionStorage.getItem('friends') ? JSON.parse(sessionStorage.getItem('friends')) : []);
-    const [groups, setGroups] = useState(sessionStorage.getItem('groups') ? JSON.parse(sessionStorage.getItem('groups')):[]);
+    const [groups, setGroups] = useState(sessionStorage.getItem('groups') ? JSON.parse(sessionStorage.getItem('groups')) : []);
     const [notifications, setNotifications] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
-    const [userInfo, setUserInfo] = useState([])
+    const [userInfo, setUserInfo] = useState({})
     const [loading, setLoading] = useState(true);
-    const [reloadProfile, setReloadProfile] = useState(false);
     const accessToken = Cookies.get("accessToken");
     const socket = useSocket("https://chat-app-production-2663.up.railway.app/");
     const theme = localStorage.getItem("theme");
@@ -40,7 +39,13 @@ export default function Dashboard({ isMobile }) {
     const friend = localStorage.getItem('selectedFriend')
 
     useEffect(() => {
-        if (!accessToken) return navigate("/login");
+        if (!accessToken) {
+            Cookies.remove("accessToken");
+            Cookies.remove("user");
+            localStorage.removeItem('selectedFriend')
+            localStorage.removeItem('selectedGroup')
+            navigate("/login");
+        }
     }, [navigate, accessToken]);
 
     useEffect(() => {
@@ -66,7 +71,7 @@ export default function Dashboard({ isMobile }) {
             } catch (error) { navigate("/error"); }
         }
         fetchUserDetails()
-    }, [accessToken, reloadProfile, navigate]);
+    }, [accessToken, navigate]);
 
 
     useEffect(() => {
@@ -336,7 +341,10 @@ export default function Dashboard({ isMobile }) {
                 new Date(a.latestMessage?.timestamp || 0)
         );
 
-    const handleDataFromChild = () => setReloadProfile(!reloadProfile);
+    const handleDataFromChild = (image) => {
+        setUserInfo(prev => ({ ...prev, imageData: image }))
+        console.log(userInfo)
+    }
     const handleDataFromGroupContent = data => setShowingGroupInfo(data)
 
 

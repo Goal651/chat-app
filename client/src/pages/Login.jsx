@@ -1,105 +1,128 @@
 /* eslint-disable react/prop-types */
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipLoader } from 'react-spinners'
+import { ClipLoader } from 'react-spinners';
 import { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
-
 
 export default function Login({ isMobile }) {
   const navigate = useNavigate();
   const [wrongEmail, setWrongEmail] = useState(false);
   const [wrongPass, setWrongPass] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "" })
-  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const accessToken = Cookies.get('accessToken');
 
   useEffect(() => {
-    const accessToken = Cookies.get('accessToken')
-    if (accessToken) navigate('/')
-  }, [navigate])
+    if (accessToken) return;
+    Cookies.remove("accessToken");
+    Cookies.remove("user");
+    localStorage.removeItem('selectedFriend');
+    localStorage.removeItem('selectedGroup');
+  }, []);
+
+  useEffect(() => {
+    if (accessToken) navigate('/');
+  }, [navigate]);
 
   const shake = (element) => {
-    const duration = 200
-    const distance = 20
-    const startTime = Date.now()
+    const duration = 200;
+    const distance = 20;
+    const startTime = Date.now();
     const updatePosition = () => {
-      const elapsedTime = Date.now() - startTime
-      const progress = elapsedTime / duration
-      const offset = distance * Math.sin(progress * Math.PI * 2)
-      element.style.transform = `translateX(${offset}px)`
-      if (elapsedTime < duration) requestAnimationFrame(updatePosition)
-      else element.style.transform = 'translateX(0)'
-    }
-    updatePosition()
+      const elapsedTime = Date.now() - startTime;
+      const progress = elapsedTime / duration;
+      const offset = distance * Math.sin(progress * Math.PI * 2);
+      element.style.transform = `translateX(${offset}px)`;
+      if (elapsedTime < duration) requestAnimationFrame(updatePosition);
+      else element.style.transform = 'translateX(0)';
+    };
+    updatePosition();
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-  }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await fetch("https://chat-app-production-2663.up.railway.app/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) })
+      const response = await fetch("https://chat-app-production-2663.up.railway.app/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
       if (response.status === 200) {
         const data = await response.json();
         Cookies.set('accessToken', data.accessToken);
-        Cookies.set('user', data.email,);
+        Cookies.set('user', data.email);
         navigate("/chat");
       } else if (response.status === 401) {
         document.getElementById('password').focus();
-        setWrongPass(true)
-        shake(document.getElementById('pass'))
+        setWrongPass(true);
+        shake(document.getElementById('pass'));
         setWrongEmail(false);
       } else if (response.status === 404) {
         document.getElementById('email').focus();
         setWrongEmail(true);
-      } else navigate('/error')
-    } catch (error) { navigate('/error') }
-    finally { setLoading(false) }
+        setWrongPass(false);
+      } else navigate('/error');
+    } catch (error) {
+      navigate('/error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex h-screen max-w-screen overflow-hidden">
-      {!isMobile && (<div className='w-2/4'> < img src="/welcome.jpg" alt="welcome" /> </div>)}
-
-      <div className={`form ${isMobile ? 'w-4/5 justify-evenly' : 'w-1/3 justify-center h-full overflow-hidden'} `}>
-        <form onSubmit={handleSubmit} className='flex flex-col h-1/2 max-w-min justify-evenly m-4' autoComplete='off'>
-          <h1 className='gradient bg-clip-text text-transparent font-bold text-3xl'>Log In</h1>
-          {wrongEmail && <div className='text-red-500'>Invalid email or password</div>}
-          <label className="input input-bordered flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4 opacity-70">
-              <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z" />
-              <path d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z" />
-            </svg>
-            <input type="text" className="grow" placeholder="Email" id='email' name="email" value={formData.email} onChange={handleChange} />
-          </label>
-          <label className="input input-bordered flex items-center gap-2" id='pass'>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4 opacity-70">
-              <path fillRule="evenodd" d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
-                clipRule="evenodd" />
-            </svg>
-            <input type="password" className="grow" id='password' name="password" value={formData.password} onChange={handleChange} />
-          </label>
-          {wrongPass && <div className='font-serif text-red-500 relative bottom-3'>Incorrect Password</div>}
-          {loading ? <div
-            className='btn btn-info'
-          >
-            <ClipLoader
-              color='white'
+    <div className="flex h-screen max-w-screen overflow-hidden bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
+      {!isMobile && (
+        <div className="w-2/4 hidden lg:flex justify-center items-center bg-gray-200">
+          <img src="/welcome.jpg" alt="welcome" className="h-full object-cover opacity-75" />
+        </div>
+      )}
+      <div className={`form ${isMobile ? 'w-4/5 mx-auto' : 'w-1/3 p-8 mx-auto'} flex flex-col items-center`}>
+        <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4" autoComplete="off">
+          <h1 className="text-4xl font-bold text-center gradient bg-clip-text text-transparent">Log In</h1>
+          {wrongEmail && <div className="text-red-500 text-center">Invalid email address</div>}
+          <label className="relative input input-bordered flex items-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg p-2">
+            <input 
+              type="email" 
+              placeholder="Email" 
+              id="email" 
+              name="email" 
+              value={formData.email} 
+              onChange={handleChange} 
+              className="flex-1 bg-transparent outline-none" 
             />
-          </div> :
-            <button
-              type="submit"
-              id="login"
-              className='btn btn-info text-white'
-            >Login
+          </label>
+          <label className="relative input input-bordered flex items-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg p-2" id="pass">
+            <input 
+              type="password" 
+              placeholder="Password" 
+              id="password" 
+              name="password" 
+              value={formData.password} 
+              onChange={handleChange} 
+              className="flex-1 bg-transparent outline-none" 
+            />
+          </label>
+          {wrongPass && <div className="text-red-500 text-center">Incorrect Password</div>}
+          {loading ? (
+            <div className="btn btn-primary btn-lg w-full flex justify-center items-center">
+              <ClipLoader color="white" />
+            </div>
+          ) : (
+            <button type="submit" className="btn btn-primary btn-lg w-full text-white">
+              Login
             </button>
-          }
+          )}
         </form>
-        <Link to="/signup" className="link text-green-500 link-hover">Create New Account</Link>
+        <Link to="/signup" className="text-center mt-4 text-blue-500 hover:underline">
+          Create New Account
+        </Link>
       </div>
-    </div >
+    </div>
   );
 }

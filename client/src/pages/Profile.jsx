@@ -13,35 +13,43 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
     const [editing, setEditing] = useState(false);
     const [showFullImage, setShowFullImage] = useState(false);
     const cropperRef = useRef(null);
+    const [progress, setProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+    const [croppedImage, setCroppedImage] = useState(null)
 
     useEffect(() => {
         if (!accessToken) navigate("/login");
     }, [navigate, accessToken]);
 
-    const sendDataToDashboard = () => dataFromProfile(true);
+    const sendDataToDashboard = () => {
+        if (!croppedImage) return
+        dataFromProfile(croppedImage)
+    };
 
     // Step 1: Handle image cropping and uploading
     const handleImageUpload = async () => {
         if (!cropperRef.current) return;
-
+        setIsUploading(true)
         const croppedCanvas = cropperRef.current.cropper.getCroppedCanvas();
         const blob = await new Promise((resolve) => croppedCanvas.toBlob(resolve));
 
         const reader = new FileReader();
         reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-            const base64data = reader.result.split(",")[1];
-            const chunkSize = 50 * 1024; // 100KB chunks
-            const totalChunks = Math.ceil(base64data.length / chunkSize);
-            const fileName = "profile_image.png"; // Add a name here or use a dynamic one
 
-            // Recursive function to upload each chunk
+        reader.onloadend = async () => {
+            setCroppedImage(reader.result)
+            const base64data = reader.result.split(",")[1];
+            const chunkSize = 50 * 1024;
+            const totalChunks = Math.ceil(base64data.length / chunkSize);
+            const fileName = `${localStorage.getItem("user")}_profile_image.png`;
+
             const uploadChunk = async (currentChunk) => {
                 if (currentChunk >= totalChunks) return;
-
                 const start = currentChunk * chunkSize;
                 const end = start + chunkSize;
                 const chunk = base64data.substring(start, end);
+                const fileUploadingProgress = Math.round((currentChunk / totalChunks) * 100);
+                setProgress(fileUploadingProgress);
 
                 try {
                     const response = await fetch("https://chat-app-production-2663.up.railway.app/uploadFile", {
@@ -59,25 +67,18 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
 
                     if (!response.ok) throw new Error(`Failed to upload chunk ${currentChunk}`);
                     const result = await response.json();
-                    // If it's the last chunk, update the user profile
-                    if (currentChunk === totalChunks - 1) {
-                        await updateUserProfile(result.finalFileName);
-                    }
-
-                    // Recursively call the next chunk
+                    if (currentChunk === totalChunks - 1) await updateUserProfile(result.finalFileName);
                     await uploadChunk(currentChunk + 1);
                 } catch (err) {
                     console.error(`Error uploading chunk ${currentChunk}:`, err);
                 }
             };
 
-            // Start uploading with the first chunk
             await uploadChunk(0);
         };
     };
 
 
-    // Step 2: Update user profile with the uploaded image URL
     const updateUserProfile = async (imageUrl) => {
         try {
             const response = await fetch("https://chat-app-production-2663.up.railway.app/editUserProfile", {
@@ -98,7 +99,7 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
         } catch (err) {
             console.error("Profile update error:", err);
             navigate("/error");
-        }
+        } finally { setIsUploading(false) }
     };
 
     const handleChange = (e) => {
@@ -174,29 +175,43 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                             <button onClick={() => setEditing(false)} className="btn btn-outline btn-error">
                                 Cancel
                             </button>
-                            <button onClick={handleImageUpload} className="btn btn-primary">
-                                Save
-                            </button>
+                            {isUploading ? (
+                                <div
+                                    className="btn btn-primary"
+                                >
+                                    {progress}%
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleImageUpload}
+                                    className="btn btn-primary"
+                                >
+                                    Save
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
-            {showFullImage && (
-                <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
-                    <div className="relative">
-                        <img
-                            src={userInfo.imageData}
-                            alt="Full Size Image"
-                            className="max-h-screen max-w-screen rounded-lg"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                        <button className="absolute top-2 right-2 btn btn-sm btn-circle btn-error" onClick={() => setShowFullImage(false)}>
-                            ✕
-                        </button>
+            {
+                showFullImage && (
+                    <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
+                        <div className="relative">
+                            <img
+                                src={userInfo.imageData}
+                                alt="Full Size Image"
+                                className="max-h-screen max-w-screen rounded-lg"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                            <button className="absolute top-2 right-2 btn btn-sm btn-circle btn-error" onClick={() => setShowFullImage(false)}>
+                                ✕
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
