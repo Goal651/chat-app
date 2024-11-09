@@ -44,7 +44,7 @@ export default function DMArea({ socket, isMobile, theme }) {
             names: '',
             email: '',
             image: '',
-            imageData:null,
+            imageData: null,
             lastActiveTime: ''
         })
         setHistory([])
@@ -185,52 +185,6 @@ export default function DMArea({ socket, isMobile, theme }) {
             })
         }
 
-        const handleCallOffer = async ({ offer, sender, type }) => {
-            if (sender !== friend) return;
-            setCallType(type);
-            setIsCalling(true);
-
-            const pc = createPeerConnection(sender);
-            setPeerConnection(pc);
-
-            try {
-                if (type === 'video') {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    setLocalStream(stream);
-                    localVideoRef.current.srcObject = stream;
-                    stream.getTracks().forEach(track => pc.addTrack(track, stream));
-                } else {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    setLocalStream(stream);
-                    stream.getTracks().forEach(track => pc.addTrack(track, stream));
-                }
-
-                await pc.setRemoteDescription(new RTCSessionDescription(offer));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-
-                socket.emit('call-answer', { answer, sender });
-            } catch (error) {
-                console.error("Error handling call offer:", error);
-            }
-        };
-
-        const handleCallAnswer = async ({ answer }) => {
-            try {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            } catch (error) {
-                console.error("Error setting remote description from answer:", error);
-            }
-        };
-
-        const handleICECandidate = ({ candidate }) => {
-            try {
-                peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (error) {
-                console.error("Error adding received ICE candidate:", error);
-            }
-        };
-
         const handleOnlineUsers = (data) => {
             setOnlineUsers(data)
         }
@@ -305,6 +259,8 @@ export default function DMArea({ socket, isMobile, theme }) {
         setReplying(message)
     }
 
+    // Inside the DMArea component
+
     // WebRTC Functions
     const createPeerConnection = (peerId) => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -325,56 +281,90 @@ export default function DMArea({ socket, isMobile, theme }) {
         };
 
         pc.onconnectionstatechange = () => {
-            if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-                endCall();
+            if (pc.connectionState === 'disconnected') {
+                // Clean up when disconnected
+                setRemoteStream(null);
             }
         };
 
         return pc;
     };
 
-    const startCall = async (type) => {
-        setCallType(type);
-        setIsCalling(true);
-
-        const pc = createPeerConnection(friend);
+    const startCall = async (peerId, callType) => {
+        const pc = createPeerConnection(peerId);
         setPeerConnection(pc);
 
         try {
             let stream;
-            if (type === 'video') {
+            if (callType === 'video') {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 localVideoRef.current.srcObject = stream;
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
             } else {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
             }
-            setLocalStream(stream);
-            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            socket.emit('call-offer', { offer, receiver: friend, type, });
+
+            socket.emit('call-offer', {
+                offer,
+                sender: localStorage.getItem('user_id'), // Assuming user_id is stored in localStorage
+                receiver: peerId,
+                type: callType
+            });
+
         } catch (error) {
             console.error("Error starting call:", error);
-            endCall();
         }
     };
 
-    const endCall = () => {
-        if (peerConnection) {
-            peerConnection.close();
-            setPeerConnection(null);
+    const answerCall = async (offer) => {
+        try {
+            const pc = createPeerConnection(friend);
+            setPeerConnection(pc);
+
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            socket.emit('call-answer', {
+                answer,
+                sender: localStorage.getItem('user_id'), // Assuming user_id is stored in localStorage
+                receiver: friend
+            });
+        } catch (error) {
+            console.error("Error answering call:", error);
         }
-        if (localStream) {
-            localStream.getTracks().forEach((track) => track.stop());
-            setLocalStream(null);
-        }
-        if (remoteStream) {
-            remoteStream.getTracks().forEach((track) => track.stop());
-            setRemoteStream(null);
-        }
-        setIsCalling(false);
-        setCallType(null);
     };
+
+    const handleICECandidate = ({ candidate }) => {
+        if (peerConnection) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+                .catch(error => console.error("Error adding ICE candidate:", error));
+        }
+    };
+
+    // Receive offer to handle in the component
+    const handleCallOffer = ({ offer, sender, type }) => {
+        if (sender !== friend) return;
+        setCallType(type);
+        setIsCalling(true);
+
+        // Initiate call response
+        answerCall(offer);
+    };
+
+    const handleCallAnswer = async ({ answer }) => {
+        if (!peerConnection) return;
+        try {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        } catch (error) {
+            console.error("Error setting remote description from answer:", error);
+        }
+    };
+
 
     if (!friend_name) return null
     if (loading) return <div className="loading loading-spinner"></div>

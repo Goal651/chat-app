@@ -18,7 +18,7 @@ const readFile = async (filePath) => {
     try {
         const data = await fs.readFile(filePath);
         const fileData = data.toString('base64');
-        return fileData; 
+        return fileData;
     } catch (err) {
         console.error(err);
         return null;
@@ -104,8 +104,8 @@ const handlerChat = async (io) => {
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('group_message_error', 'Error saving group message');
                 const senderSocketId = userSockets.get(socket.user);
-                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message } ,messageType:'group'});
-                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message } ,messageType:'group'});
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message }, messageType: 'group' });
+                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message }, messageType: 'group' });
             } catch (error) {
                 console.error('Error sending group message:', error);
             }
@@ -129,7 +129,7 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message,messageType:'dm' } });
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message, messageType: 'dm' } });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
                 io.to(senderSocketId).emit("message_sent", { newMessage: { ...newMessage._doc, message } });
             } catch (error) {
@@ -213,12 +213,12 @@ const handlerChat = async (io) => {
                     group: message.group,
                     type: message.type,
                     time: message.time,
-                    replyingTo:id
+                    replyingTo: id
                 });
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
-                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message,replyingMessage: replying } });
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message, replyingMessage: replying } });
                 io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message, replyingMessage: replying } });
             } catch (error) {
                 console.error('Error sending group message:', error);
@@ -381,57 +381,66 @@ const handlerChat = async (io) => {
         })
 
 
-        socket.on('call-offer', ({ offer, receiver }) => {
-            try {
-                const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) {
-                    io.to(receiverSocketId).emit('call-offer', { offer, sender: socket.user });
-                } else {
-                    socket.emit('call_error', 'User not online');
-                }
-            } catch (error) {
-                console.error('Error handling call offer:', error);
-                socket.emit('call_error', 'Unable to send call offer');
+
+        // Reject a video call
+        socket.on('reject_video_call', (data) => {
+            const { callerId, receiverId } = data;
+            const callerSocketId = userSockets.get(callerId);
+
+            if (callerSocketId) {
+                // Notify the caller that the receiver rejected the call
+                io.to(callerSocketId).emit('video_call_rejected', { receiverId });
+            } else {
+                // Handle case where caller is not available
+                socket.emit('error', 'Caller is not available');
             }
         });
 
-        socket.on('answer_call', ({ answer, sender }) => {
-            try {
-                const callerSocketId = userSockets.get(sender);
-                if (callerSocketId) {
-                    io.to(callerSocketId).emit('call-answer', { answer, receiver: socket.user });
-                } else {
-                    socket.emit('call_error', 'Caller not available');
-                }
-            } catch (error) {
-                console.error('Error handling call answer:', error);
-                socket.emit('call_error', 'Unable to send call answer');
+        // End the video call
+        socket.on('end_video_call', (data) => {
+            const { callerId, receiverId } = data;
+            const receiverSocketId = userSockets.get(receiverId);
+            const callerSocketId = userSockets.get(callerId);
+
+            // Notify both users that the call has ended
+            if (callerSocketId) {
+                io.to(callerSocketId).emit('video_call_ended', { receiverId });
+            }
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit('video_call_ended', { callerId });
             }
         });
 
-        socket.on('ice-candidate', ({ candidate, to }) => {
-            try {
-                const targetSocketId = userSockets.get(to);
-                if (targetSocketId) {
-                    io.to(targetSocketId).emit('ice-candidate', { candidate, from: socket.user });
-                } else {
-                    socket.emit('call_error', 'Target user not available for ICE candidate');
-                }
-            } catch (error) {
-                console.error('Error handling ICE candidate:', error);
-                socket.emit('call_error', 'Unable to send ICE candidate');
+        // Handle ICE Candidate exchange (for WebRTC signaling)
+        socket.on('send_ice_candidate', (data) => {
+            const { targetId, candidate } = data;
+            const targetSocketId = userSockets.get(targetId);
+
+            if (targetSocketId) {
+                // Forward ICE candidate to the target user
+                io.to(targetSocketId).emit('receive_ice_candidate', { candidate });
             }
         });
 
-        socket.on('end_call', ({ to }) => {
-            try {
-                const targetSocketId = userSockets.get(to);
-                if (targetSocketId) {
-                    io.to(targetSocketId).emit('call_ended', { from: socket.user });
-                }
-            } catch (error) {
-                console.error('Error handling call end:', error);
-                socket.emit('call_error', 'Unable to end call');
+        // Handle answer for WebRTC connection
+        socket.on('send_answer', (data) => {
+            const { targetId, answer } = data;
+            const targetSocketId = userSockets.get(targetId);
+
+            if (targetSocketId) {
+                // Forward the answer to the target user
+                io.to(targetSocketId).emit('receive_answer', { answer });
+            }
+        });
+
+        // Handle WebRTC offer
+        socket.on('send_offer', (data) => {
+            const { targetId, offer } = data;
+            const targetSocketId = userSockets.get(targetId);
+
+            if (targetSocketId) {
+                // Forward the offer to the target user
+                io.to(targetSocketId).emit('receive_offer', { offer });
             }
         });
 
