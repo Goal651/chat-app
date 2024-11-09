@@ -115,7 +115,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                             type: fileMessage.type,
                             currentChunk: currentChunk,
                             totalchunks: totalChunks,
-                            typeFolder:'messages'
+                            typeFolder: 'messages'
                         },
                     }
                 )
@@ -125,7 +125,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                     setUploadProgress(progress);
                     if (isLastChunk) {
                         setFileName(response.data.finalFileName);
-                        setUploadProgress(100); // Mark as 100% completed
+                        setUploadProgress(100);
                         setTimeRemaining(0);
                     } else readAndUploadCurrentChunk(currentChunk + 1);
                 })
@@ -181,25 +181,24 @@ export default function Sender({ socket, editingMessage, replying }) {
         [fileMessage, socket, friend]
     );
 
-    const handleChange = useCallback(
-        (e) => {
-            const { name, files, value } = e.target;
-            if (name === 'media') {
-                const file = files[0];
-                if (file) {
-                    setFilePreview(URL.createObjectURL(file));
-                    setFileMessage(file);
-                    socket.emit('typing', { receiver: friend });
-                }
-            } else {
-                socket.emit(
-                    value.trim() ? 'member_typing' : 'member_not_typing',
-                    { group: group_name }
-                );
-                setMessage(value);
-                socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
+    const handleChange = useCallback((e) => {
+        const { name, files, value } = e.target;
+        if (name === 'media') {
+            const file = files[0];
+            if (file) {
+                setFilePreview(URL.createObjectURL(file));
+                setFileMessage(file);
+                socket.emit('typing', { receiver: friend });
             }
-        },
+        } else {
+            socket.emit(
+                value.trim() ? 'member_typing' : 'member_not_typing',
+                { group: group_name }
+            );
+            setMessage(value);
+            socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
+        }
+    },
         [socket, friend, group_name]
     );
 
@@ -233,7 +232,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                 setRecordedAudio(audioBlob);
                 setFilePreview(URL.createObjectURL(audioBlob));
                 setFileMessage(audioBlob);
-                setAudioChunks([]); // Clear the chunks for the next recording
+                setAudioChunks([]); 
             };
         }
     };
@@ -334,7 +333,7 @@ export default function Sender({ socket, editingMessage, replying }) {
 
                     <ReactMediaRecorder
                         audio
-                        render={({ status, startRecording, stopRecording, mediaBlobUrl }) => (
+                        render={({ startRecording, stopRecording, mediaBlobUrl }) => (
                             <div>
                                 <button
                                     type="button"

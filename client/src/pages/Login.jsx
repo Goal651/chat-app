@@ -87,25 +87,25 @@ export default function Login({ isMobile }) {
           <h1 className="text-4xl font-bold text-center gradient bg-clip-text text-transparent">Log In</h1>
           {wrongEmail && <div className="text-red-500 text-center">Invalid email address</div>}
           <label className="relative input input-bordered flex items-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg p-2">
-            <input 
-              type="email" 
-              placeholder="Email" 
-              id="email" 
-              name="email" 
-              value={formData.email} 
-              onChange={handleChange} 
-              className="flex-1 bg-transparent outline-none" 
+            <input
+              type="email"
+              placeholder="Email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="flex-1 bg-transparent outline-none text-black"
             />
           </label>
           <label className="relative input input-bordered flex items-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg p-2" id="pass">
-            <input 
-              type="password" 
-              placeholder="Password" 
-              id="password" 
-              name="password" 
-              value={formData.password} 
-              onChange={handleChange} 
-              className="flex-1 bg-transparent outline-none" 
+            <input
+              type="password"
+              placeholder="Password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="flex-1 bg-transparent outline-none text-black"
             />
           </label>
           {wrongPass && <div className="text-red-500 text-center">Incorrect Password</div>}
@@ -114,7 +114,9 @@ export default function Login({ isMobile }) {
               <ClipLoader color="white" />
             </div>
           ) : (
-            <button type="submit" className="btn btn-primary btn-lg w-full text-white">
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg w-full text-white">
               Login
             </button>
           )}

@@ -11,16 +11,8 @@ const generateKeyPair = async () => {
     return new Promise((resolve, reject) => {
         crypto.generateKeyPair('rsa', {
             modulusLength: 2048,
-            publicKeyEncoding: {
-                type: 'spki',
-                format: 'pem'
-            },
-            privateKeyEncoding: {
-                type: 'pkcs8',
-                format: 'pem',
-                cipher: 'aes-256-cbc',
-                passphrase: process.env.KEY_PASSPHRASE
-            }
+            publicKeyEncoding: { type: 'spki', format: 'pem' },
+            privateKeyEncoding: { type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: process.env.KEY_PASSPHRASE }
         }, (err, publicKey, privateKey) => {
             if (err) return reject(err);
             resolve({ publicKey, privateKey });
@@ -61,7 +53,7 @@ const decryptPrivateKey = async (encryptedPrivateKey) => {
         console.error('Error decrypting private key:', err);
         throw err;
     }
-}; 
+};
 
 const decryptGroupMessage = (data) => {
     try {
@@ -89,10 +81,7 @@ const decryptGroupPrivateKey = (data) => {
 const decryptMessage = async (privateKey, encryptedMessage) => {
     try {
         return crypto.privateDecrypt(
-            {
-                key: privateKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
-            },
+            { key: privateKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
             Buffer.from(encryptedMessage, 'base64')
         ).toString('utf-8');
     } catch (err) {
@@ -109,6 +98,25 @@ const getPrivateKey = async (email) => {
         throw error;
     }
 };
+
+
+
+
+const groupDetails = async (group) => {
+    try {
+        const gms = await GMessage.find({ group: group })
+        let images = 0
+        let videos = 0
+        let audios = 0
+        await Promise.all(gms.map(async (gm) => {
+            if (gm.type.startsWith('image')) images += 1
+            else if (gm.type.startsWith('video')) videos += 1
+            else if (gm.type.startsWith('audio')) audios += 1
+        }))
+        return { images, videos, audios }
+    }
+    catch (err) { return { images: 0, videos: 0, audios: 0 } }
+}
 
 
 const signup = async (req, res) => {
@@ -321,7 +329,7 @@ const getGroup = async (req, res) => {
                 names: user.names,
                 email: user.email,
                 image: user.image,
-                role:member.role,
+                role: member.role,
             }
         }));
 
@@ -336,14 +344,14 @@ const getGroup = async (req, res) => {
         const groupObject = {
             id: group._id,
             name: group.name,
-            admin:group.admin,
+            admin: group.admin,
             members: memberImages,
             image: group.image,
             imageData: groupImageData,
             latestMessage: null,
             details
         }
-        res.status(200).json({ group: groupObject});
+        res.status(200).json({ group: groupObject });
     } catch (err) {
         res.status(500).json({ message: 'Server error' + err });
     }
@@ -410,24 +418,24 @@ const fileUpload = async (req, res) => {
     }
 };
 
-
-
-
-const groupDetails = async (group) => {
+const sendFileStream = async (req, res) => {
     try {
-        const gms = await GMessage.find({ group: group })
-        let images = 0
-        let videos = 0
-        let audios = 0
-        await Promise.all(gms.map(async (gm) => {
-            if (gm.type.startsWith('image')) images += 1
-            else if (gm.type.startsWith('video')) videos += 1
-            else if (gm.type.startsWith('audio')) audios += 1
-        }))
-        return { images, videos, audios }
+        const fileName = req.params.fileName;
+        if (!fileName) return res.status(404).json({ message: 'File not found' });
+        const filePath = path.join(__dirname, `../uploads/messages/${fileName}`);
+        const stat = fs.statSync(filePath);
+        const fileSize = stat.size;
+        const range = req.headers.range;
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+        }
+
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' + err });
     }
-    catch (err) { return { images: 0, videos: 0, audios: 0 } }
 }
+
+
 
 
 

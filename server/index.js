@@ -41,7 +41,6 @@ mongoose.connect(process.env.MONGO_URI)
         fs.mkdir(path.join(__dirname, './uploads/profiles/'), { recursive: true });
         handlerChat(io);
 
-        // Start listening for incoming requests
         server.listen(3001, () => {
             console.log('Server listening on port 3001');
         });

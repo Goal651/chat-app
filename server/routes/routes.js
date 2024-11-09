@@ -1,7 +1,6 @@
 const express = require('express')
 const router = express.Router();
 const { getMessage, getGMessage, deleteMessage } = require('../controllers/messageController');
-const multer = require('multer');
 const jwt = require('jsonwebtoken')
 const {
     login,
@@ -68,6 +67,9 @@ router.post('/addMember', checkUser, addMember)
 
 //file uploads
 router.post('/uploadFile', checkUser, fileUpload)
+
+//getting files
+router.get('/getFileStream',checkUser)
 
 //default routes
 router.get('*', (req, res) => res.send('<h1>This is chat app server</h1>'))
