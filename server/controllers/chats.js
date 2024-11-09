@@ -104,8 +104,8 @@ const handlerChat = async (io) => {
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('group_message_error', 'Error saving group message');
                 const senderSocketId = userSockets.get(socket.user);
-                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message } });
-                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message } });
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message } ,messageType:'group'});
+                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message } ,messageType:'group'});
             } catch (error) {
                 console.error('Error sending group message:', error);
             }
@@ -129,7 +129,7 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message } });
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message,messageType:'dm' } });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
                 io.to(senderSocketId).emit("message_sent", { newMessage: { ...newMessage._doc, message } });
             } catch (error) {

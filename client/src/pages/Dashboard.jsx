@@ -3,14 +3,14 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import Cookies from "js-cookie";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-const Settings = lazy(() => import("./Setting"))
+
+const Settings = lazy(() => import("./Setting"));
 const Navigation = lazy(() => import("../screens/Navigator"));
 const CreateGroup = lazy(() => import("../screens/CreateGroup"));
-const Details = lazy(() => import("../components/Info"));
 const Profile = lazy(() => import("./Profile"));
 const GroupContent = lazy(() => import("../screens/GroupContent"));
 const ChatContent = lazy(() => import("../screens/ChatContent"));
-const NotificationBanner = lazy(() => import("../components/Notification"))
+const NotificationBanner = lazy(() => import("../components/Notification"));
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
@@ -29,314 +29,163 @@ export default function Dashboard({ isMobile }) {
     const [groups, setGroups] = useState(sessionStorage.getItem('groups') ? JSON.parse(sessionStorage.getItem('groups')) : []);
     const [notifications, setNotifications] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
-    const [userInfo, setUserInfo] = useState({})
+    const [userInfo, setUserInfo] = useState({});
     const [loading, setLoading] = useState(true);
     const accessToken = Cookies.get("accessToken");
     const socket = useSocket("https://chat-app-production-2663.up.railway.app/");
     const theme = localStorage.getItem("theme");
-    const [showGroupInfo, setShowingGroupInfo] = useState(false)
-    const selectedFriend = localStorage.getItem('selectedFriend')
-    const friend = localStorage.getItem('selectedFriend')
+    const selectedFriend = localStorage.getItem('selectedFriend');
+    const friend = localStorage.getItem('selectedFriend');
+    const [notificationPrompt, setNotificationPrompt] = useState(false);
+
+    // Notification permission request
+    useEffect(() => {
+        if (Notification.permission === "default") setNotificationPrompt(true);
+    }, []);
+
+    const handleRequestNotificationPermission = () => {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") console.log("Notification permission granted.");
+            setNotificationPrompt(false);
+        });
+    };
 
     useEffect(() => {
         if (!accessToken) {
             Cookies.remove("accessToken");
-            Cookies.remove("user");
-            localStorage.removeItem('selectedFriend')
-            localStorage.removeItem('selectedGroup')
+            localStorage.clear();
             navigate("/login");
         }
     }, [navigate, accessToken]);
 
     useEffect(() => {
-        if (!accessToken) return
-        const fetchUserDetails = async () => {
-
-            try {
-                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUserProfile`, {
-                    headers: { accessToken: `${accessToken}` },
-                });
-                const data = await response.json();
-                if (response.status === 401) {
-                    Cookies.set("accessToken", data);
-                    window.location.reload();
-                } else if (response.status === 403) {
-                    Cookies.remove('accessToken')
-                    navigate("/login")
-                } else if (response.status === 404) navigate("/login")
-                else if (response.ok) {
-                    setUserInfo(data.user)
-                    sessionStorage.setItem('chatUser', JSON.stringify(data.user))
-                }
-            } catch (error) { navigate("/error"); }
-        }
-        fetchUserDetails()
-    }, [accessToken, navigate]);
-
-
-    useEffect(() => {
         if (!accessToken) return;
-
-        const fetchInitialData = async () => {
-            try {
-                const [friendsResponse, groupsResponse] = await Promise.all([
-                    fetch("https://chat-app-production-2663.up.railway.app/allFriends", {
-                        headers: { accessToken },
-                    }),
-                    fetch("https://chat-app-production-2663.up.railway.app/allGroups", {
-                        headers: { accessToken },
-                    }),
-                ]);
-
-                if (friendsResponse.status === 401 || groupsResponse.status === 401) {
-                    const newToken = await friendsResponse.json();
-                    Cookies.set("accessToken", newToken.newToken);
-                } else if (friendsResponse.status === 403 || groupsResponse.status === 403) {
-                    Cookies.remove('accessToken');
-                    navigate("/login");
-                } else {
-                    const friendsData = await friendsResponse.json();
-                    const groupsData = await groupsResponse.json();
-
-                    const sortedFriends = sortByLatestMessage(friendsData.users);
-                    const sortedGroups = sortByLatestMessage(groupsData.groups);
-
-                    setFriends(sortedFriends);
-                    setGroups(sortedGroups);
-
-                    const cleanFriends = friendsData.users.map(user => ({ ...user, imageData: null }));
-                    const cleanGroups = groupsData.groups.map(group => ({ ...group, imageData: null }));
-
-                    const friendSession = sortByLatestMessage(cleanFriends)
-                    const groupSession = sortByLatestMessage(cleanGroups)
-
-                    sessionStorage.setItem('friends', JSON.stringify(friendSession));
-                    sessionStorage.setItem('groups', JSON.stringify(groupSession));
-                }
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchInitialData();
-    }, [accessToken, navigate]);
-
-
-    useEffect(() => {
-        if (!socket) return;
-        const handleOnlineUsers = data => setOnlineUsers(data)
-        const handleIncomingMessage = (message) => {
-            const { newMessage } = message
-            if (!friend_name && newMessage.sender !== selectedFriend) {
-                socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender })
-            }
-            const newNotifications = {
-                from: newMessage.sender,
-                to: newMessage.receiver,
-                message: newMessage.message,
-                timestamp: newMessage.timestamp,
-                type: 'dm'
-            };
-            setNotifications(newNotifications);
-            setFriends((prevFriends) =>
-                sortByLatestMessage(
-                    prevFriends.map((friend) =>
-                        [newMessage.sender, newMessage.receiver].includes(friend.email)
-                            ? { ...friend, latestMessage: newMessage }
-                            : friend
-                    )
-                )
-            );
-        };
-        socket.emit("fetch_online_users");
-        socket.on("online_users", handleOnlineUsers);
-        socket.on("marked_as_read", updateAllData);
-        socket.on("receive_message", handleIncomingMessage);
-        socket.on("receive_group_message", handleIncomingGroupMessage);
-        socket.on("message_sent", handleMessageSent);
-        socket.on("group_message_sent", handleIncomingGroupMessage);
-
-        return () => {
-            socket.off("online_users");
-            socket.off("marked_as_read");
-            socket.off("receive_message");
-            socket.off("receive_group_message");
-            socket.off("message_sent");
-            socket.off("group_message_sent");
-        }
-    }, [socket])
-
-
-    useEffect(() => {
-        if (!friend) return;
-        if (!accessToken) return
         const fetchUserDetails = async () => {
             try {
-                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
-                    headers: { 'accessToken': `${accessToken}` },
-                });
+                const response = await fetch("https://chat-app-production-2663.up.railway.app/getUserProfile", { headers: { accessToken } });
                 const data = await response.json();
                 if (response.ok) {
-                    const cleanUser = { ...data.user, imageData: null }
-                    sessionStorage.setItem(`friend-${data.user.email}`, JSON.stringify(cleanUser))
-                }
-                else if (response.status === 401) Cookies.set("accessToken", data.newToken);
-                else if (response.status === 403) {
-                    Cookies.remove('accessToken')
-                    navigate("/login")
-                } else if (response.status === 404) localStorage.removeItem('selectedFriend')
-                else navigate('/error')
-            } catch (error) {
-                console.error("Error fetching user details:", error);
+                    setUserInfo(data.user);
+                    sessionStorage.setItem('chatUser', JSON.stringify(data.user));
+                } else if (response.status === 401) Cookies.set("accessToken", data.newToken);
+                else navigate("/login");
+            } catch {
+                navigate("/error");
             }
         };
         fetchUserDetails();
-    }, []);
-
+    }, [accessToken, navigate]);
 
     useEffect(() => {
-        if (!localStorage.getItem('selectedGroup')) return;
-        if (!accessToken) return
-        const fetchGroup = async () => {
+        if (!accessToken) return;
+        const fetchInitialData = async () => {
             try {
-                const result = await fetch(`https://chat-app-production-2663.up.railway.app/getGroup/${localStorage.getItem('selectedGroup')}`, {
-                    headers: { 'accessToken': `${accessToken}` }
-                });
-                const data = await result.json();
-                if (result.ok) {
-                    if (data.group == null) {
-                        localStorage.removeItem('selectedGroup')
-                        navigate('/group')
-                    }
-                    else {
-                        const cleanGroup = { ...data.group, imageData: null }
-                        sessionStorage.setItem(`group-${data.group.name}`, JSON.stringify(cleanGroup))
-                    }
-                } else if (result.status == 401) Cookies.set("accessToken", data.newToken);
-                else if (result.status == 403) {
-                    Cookies.remove('accessToken')
-                    navigate("/login")
-                } else navigate('/error');
-            } catch (err) {
-                navigate('/error')
+                const [friendsRes, groupsRes] = await Promise.all([
+                    fetch("https://chat-app-production-2663.up.railway.app/allFriends", { headers: { accessToken } }),
+                    fetch("https://chat-app-production-2663.up.railway.app/allGroups", { headers: { accessToken } }),
+                ]);
+
+                if (friendsRes.ok && groupsRes.ok) {
+                    const friendsData = await friendsRes.json();
+                    const groupsData = await groupsRes.json();
+                    setFriends(sortByLatestMessage(friendsData.users));
+                    setGroups(sortByLatestMessage(groupsData.groups));
+                    sessionStorage.setItem('friends', JSON.stringify(friendsData.users));
+                    sessionStorage.setItem('groups', JSON.stringify(groupsData.groups));
+                    setLoading(false);
+                } else if (friendsRes.status === 401 || groupsRes.status === 401) {
+                    Cookies.set("accessToken", (await friendsRes.json()).newToken);
+                } else navigate("/login");
+            } catch {
+                setLoading(false);
             }
         };
-        fetchGroup();
-    }, []);
+        fetchInitialData();
+    }, [accessToken, navigate]);
 
-
+    // Socket Event Listeners
     useEffect(() => {
-        if (!friend) return;
-        if (!accessToken) return
-        const fetchMessages = async () => {
-            try {
-                const response = await fetch(`https://chat-app-production-2663.up.railway.app/message?receiver=${friend}`, { headers: { 'accessToken': `${accessToken}` }, });
-                const data = await response.json();
-                if (response.status === 401) Cookies.set("accessToken", data.newToken)
-                else if (response.status === 403) {
-                    Cookies.remove('accessToken')
-                    navigate('/login')
-                } else if (response.ok) {
-                    const cleanMessages = data.messages.map((message) => {
-                        return { ...message, file: null }
-                    })
-                    sessionStorage.setItem(`${friend}Messages`, JSON.stringify(cleanMessages))
+        if (!socket) return;
+        const handleOnlineUsers = (data) => setOnlineUsers(data);
+
+        const handleIncomingMessage = (message) => {
+            const { newMessage,  messageType } = message;
+        
+            // For direct message (DM)
+            if (messageType === 'dm') {
+                // Check if the message is for the selected friend
+                if (!friend_name && newMessage.sender !== selectedFriend) {
+                    socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender });
                 }
-            } catch (error) {
-                console.error("Error fetching messages:", error);
+        
+                // Update notifications
+                setNotifications({
+                    from: newMessage.sender,
+                    to: newMessage.receiver,
+                    message: newMessage.message,
+                    timestamp: newMessage.timestamp,
+                    type: 'dm'
+                });
+        
+                // Create a new notification
+                if (Notification.permission === "granted") {
+                    const notification = new Notification(`New message from ${newMessage.sender}`, { body: newMessage.message });
+                    notification.onclick = () => {
+                        window.focus();
+                        notification.close();
+                    };
+                }
+        
+                // Update friends list with the latest message
+                setFriends(prevFriends => {
+                    const updatedFriends = prevFriends.map(friend => 
+                        [newMessage.sender, newMessage.receiver].includes(friend.email)
+                            ? { ...friend, latestMessage: newMessage }
+                            : friend
+                    );
+                    const sortedFriends = sortByLatestMessage(updatedFriends);
+        
+                    // Persist updated friends list in sessionStorage
+                    sessionStorage.setItem('friends', JSON.stringify(sortedFriends));
+        
+                    return sortedFriends;
+                });
+            }
+        
+            // For group messages
+            if (messageType === 'group') {
+                // Update groups list with the latest message for the specific group
+                setGroups(prevGroups => {
+                    const updatedGroups = prevGroups.map(group => 
+                        group.name === newMessage.groupName
+                            ? { ...group, latestMessage: newMessage }
+                            : group
+                    );
+                    const sortedGroups = sortByLatestMessage(updatedGroups);
+        
+                    // Persist updated groups list in sessionStorage
+                    sessionStorage.setItem('groups', JSON.stringify(sortedGroups));
+        
+                    return sortedGroups;
+                });
             }
         };
-        fetchMessages();
-    }, []);
+        
+        
 
+        socket.emit("fetch_online_users");
+        socket.on("online_users", handleOnlineUsers);
+        socket.on("receive_message", handleIncomingMessage);
 
+        return () => {
+            socket.off("online_users", handleOnlineUsers);
+            socket.off("receive_message", handleIncomingMessage);
+        };
+    }, [socket, friend_name, selectedFriend]);
 
-
-
-    const updateAllData = async () => {
-        if (!accessToken) return
-        await updateFriends();
-        await updateGroups();
+    const sortByLatestMessage = (data) => {
+        return data.sort((a, b) => new Date(b.latestMessage?.timestamp || 0) - new Date(a.latestMessage?.timestamp || 0));
     };
-
-    const updateFriends = async () => {
-        try {
-            const response = await fetch("https://chat-app-production-2663.up.railway.app/allFriends", {
-                headers: { accessToken: Cookies.get("accessToken") },
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setFriends(sortByLatestMessage(data.users))
-                sessionStorage.setItem('friends', JSON.stringify(sortByLatestMessage(data.users)))
-            } else if (response.status === 401) Cookies.set("accessToken", data.newToken);
-            else if (response.status === 403) {
-                Cookies.remove('accessToken')
-                navigate("/login")
-            }
-        } catch (error) {
-            console.error("Error updating friends:", error);
-        }
-    };
-
-    const updateGroups = async () => {
-        try {
-            const response = await fetch("https://chat-app-production-2663.up.railway.app/allGroups", {
-                headers: { accessToken: Cookies.get("accessToken") },
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setGroups(sortByLatestMessage(data.groups));
-                sessionStorage.setItem('groups', JSON.stringify(sortByLatestMessage(data.groups)))
-            }
-            else if (response.status === 401) Cookies.set("accessToken", data.newToken);
-            else if (response.status === 403) {
-                Cookies.remove('accessToken')
-                navigate("/login")
-            }
-        } catch (error) {
-            console.error("Error updating groups:", error);
-        }
-    };
-
-
-    const handleMessageSent = (message) => {
-        const { newMessage } = message
-        setFriends((prevFriends) => sortByLatestMessage(
-            prevFriends.map((friend) =>
-                [newMessage.sender, newMessage.receiver].includes(friend.email)
-                    ? { ...friend, latestMessage: newMessage }
-                    : friend
-            )
-        )
-        );
-    };
-
-    const handleIncomingGroupMessage = (message) => {
-        setGroups((prevGroups) =>
-            sortByLatestMessage(
-                prevGroups.map((group) =>
-                    group.name === message.group
-                        ? { ...group, latestMessage: message }
-                        : group
-                )
-            )
-        );
-    };
-
-    const sortByLatestMessage = (items) =>
-        items.sort(
-            (a, b) =>
-                new Date(b.latestMessage?.timestamp || 0) -
-                new Date(a.latestMessage?.timestamp || 0)
-        );
-
-    const handleDataFromChild = (image) => {
-        setUserInfo(prev => ({ ...prev, imageData: image }))
-        console.log(userInfo)
-    }
-    const handleDataFromGroupContent = data => setShowingGroupInfo(data)
 
 
     const renderContent = () => {
@@ -358,7 +207,6 @@ export default function Dashboard({ isMobile }) {
                     isMobile={isMobile}
                     theme={theme}
                     userInfo={userInfo}
-                    dataFromGroupContent={handleDataFromGroupContent}
                 />
             ),
             "create-group": (
@@ -377,7 +225,6 @@ export default function Dashboard({ isMobile }) {
             profile: (
                 <Profile
                     isMobile={isMobile}
-                    dataFromProfile={handleDataFromChild}
                     theme={theme}
                     userInfo={userInfo}
                 />
@@ -400,7 +247,6 @@ export default function Dashboard({ isMobile }) {
                     userInfo={userInfo}
                     onlineUsers={onlineUsers}
                     friends={friends}
-                    dataFromGroupContent={handleDataFromGroupContent}
                 />
             );
         if (friend_name)
@@ -419,6 +265,15 @@ export default function Dashboard({ isMobile }) {
         <div
             className={`flex flex-row w-full h-screen text-sm bg-black`}
         >
+            {notificationPrompt && (
+                <div className="notification-permission-prompt">
+                    <p>
+                        We `&apos` d like to send you notifications to keep you updated on new messages and alerts.
+                    </p>
+                    <button onClick={handleRequestNotificationPermission}>Allow Notifications</button>
+                    <button onClick={() => setNotificationPrompt(false)}>Not Now</button>
+                </div>
+            )}
             <NotificationBanner details={notifications} />
             <Suspense fallback={<div>Loading...</div>}>
                 <div className={`${isMobile ? `${type || friend_name || group_name ? "hidden" : ""}` : "w-1/12 h-full"}`}>
@@ -432,17 +287,6 @@ export default function Dashboard({ isMobile }) {
                     className={` rounded-3xl  ${isMobile ? "w-full " : "text-black mr-4 my-2 pl-0 w-full"}`}
                 >
                     {renderContent()}
-                </div>
-                <div
-                    id="mobile"
-                    className={`${isMobile ? "hidden" : `${showGroupInfo ? 'w-1/6 h-screen py-4 mr-4 rounded-3xl' : 'hidden'} `}`}
-                >
-                    <Details
-                        onlineUsers={onlineUsers}
-                        isMobile={isMobile}
-                        userInfo={userInfo}
-                        theme={theme}
-                    />
                 </div>
             </Suspense>
         </div>
