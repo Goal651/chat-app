@@ -253,7 +253,7 @@ const updateUser = async (req, res) => {
     try {
         const email = req.user;
         const { username, names, newEmail } = req.body;
-        const updatedUser = await User.updateOne({ email }, { username, names, newEmail });
+        const updatedUser = await User.updateOne({ email }, { username, names, email:newEmail });
         if (!updatedUser) return res.sendStatus(400);
         res.status(201).json({ message: 'user updated' });
     } catch (err) { res.status(500).json({ message: 'server error ', err }) }

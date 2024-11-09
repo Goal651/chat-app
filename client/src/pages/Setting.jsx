@@ -18,6 +18,7 @@ export default function Settings({ isMobile }) {
     useEffect(() => {
         const fetchUser = async () => {
             try {
+
                 const response = await fetch('https://chat-app-production-2663.up.railway.app/getUserProfile', {
                     headers: { accessToken: `${accessToken}` },
                 });
@@ -45,6 +46,11 @@ export default function Settings({ isMobile }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const dataToSend = {
+            name: userInputs.name,
+            username: userInputs.username,
+            newEmail: userInputs.email,
+        }
         try {
             const response = await fetch(`https://chat-app-production-2663.up.railway.app/editUser/`, {
                 headers: { 'accessToken': `${accessToken}`, 'Content-Type': 'application/json' },
@@ -53,7 +59,7 @@ export default function Settings({ isMobile }) {
             });
             if (response.ok) {
                 alert('Profile updated successfully');
-                setUser(userInputs); // Update state with the new user data
+                setUser(dataToSend); // Update state with the new user data
             } else {
                 setError('Failed to update profile');
             }
@@ -121,7 +127,7 @@ export default function Settings({ isMobile }) {
                                     <div>
                                         <label className="block font-medium">Email:</label>
                                         <input
-                                            name="newEmail"
+                                            name="email"
                                             value={userInputs.email || ''}
                                             onChange={handleChange}
                                             className="input input-bordered w-full"
