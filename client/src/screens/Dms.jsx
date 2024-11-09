@@ -36,7 +36,20 @@ export default function DMArea({ socket, isMobile, theme }) {
             { urls: "stun:stun.l.google.com:19302" },
         ],
     };
+    useEffect(() => {
+        setLoading(true)
+        setInfo({
+            id: null,
+            username: loading,
+            names: '',
+            email: '',
+            image: '',
+            imageData:null,
+            lastActiveTime: ''
+        })
+        setHistory([])
 
+    }, [friend_name])
     useEffect(() => {
         if (!socket) return
         socket.emit('fetch_online_users')
