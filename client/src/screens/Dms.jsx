@@ -185,6 +185,52 @@ export default function DMArea({ socket, isMobile, theme }) {
             })
         }
 
+        const handleCallOffer = async ({ offer, sender, type }) => {
+            if (sender !== friend) return;
+            setCallType(type);
+            setIsCalling(true);
+
+            const pc = createPeerConnection(sender);
+            setPeerConnection(pc);
+
+            try {
+                if (type === 'video') {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    setLocalStream(stream);
+                    localVideoRef.current.srcObject = stream;
+                    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                } else {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    setLocalStream(stream);
+                    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                }
+
+                await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                socket.emit('call-answer', { answer, sender });
+            } catch (error) {
+                console.error("Error handling call offer:", error);
+            }
+        };
+
+        const handleCallAnswer = async ({ answer }) => {
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            } catch (error) {
+                console.error("Error setting remote description from answer:", error);
+            }
+        };
+
+        const handleICECandidate = ({ candidate }) => {
+            try {
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (error) {
+                console.error("Error adding received ICE candidate:", error);
+            }
+        };
+
         const handleOnlineUsers = (data) => {
             setOnlineUsers(data)
         }
@@ -202,6 +248,7 @@ export default function DMArea({ socket, isMobile, theme }) {
         socket.on('call-offer', handleCallOffer);
         socket.on('call-answer', handleCallAnswer);
         socket.on('ice-candidate', handleICECandidate);
+        socket.on('call_ended', endCall)
 
         return () => {
             socket.off("receive_message", handleReceiveMessage);
@@ -259,8 +306,6 @@ export default function DMArea({ socket, isMobile, theme }) {
         setReplying(message)
     }
 
-    // Inside the DMArea component
-
     // WebRTC Functions
     const createPeerConnection = (peerId) => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -281,90 +326,56 @@ export default function DMArea({ socket, isMobile, theme }) {
         };
 
         pc.onconnectionstatechange = () => {
-            if (pc.connectionState === 'disconnected') {
-                // Clean up when disconnected
-                setRemoteStream(null);
+            if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                endCall();
             }
         };
 
         return pc;
     };
 
-    const startCall = async (peerId, callType) => {
-        const pc = createPeerConnection(peerId);
+    const startCall = async (type) => {
+        setCallType(type);
+        setIsCalling(true);
+
+        const pc = createPeerConnection(friend);
         setPeerConnection(pc);
 
         try {
             let stream;
-            if (callType === 'video') {
+            if (type === 'video') {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 localVideoRef.current.srcObject = stream;
-                stream.getTracks().forEach(track => pc.addTrack(track, stream));
             } else {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(track => pc.addTrack(track, stream));
             }
-
+            setLocalStream(stream);
+            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-
-            socket.emit('call-offer', {
-                offer,
-                sender: localStorage.getItem('user_id'), // Assuming user_id is stored in localStorage
-                receiver: peerId,
-                type: callType
-            });
-
+            socket.emit('call-offer', { offer, receiver: friend, type });
         } catch (error) {
             console.error("Error starting call:", error);
+            endCall();
         }
     };
 
-    const answerCall = async (offer) => {
-        try {
-            const pc = createPeerConnection(friend);
-            setPeerConnection(pc);
-
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-
-            socket.emit('call-answer', {
-                answer,
-                sender: localStorage.getItem('user_id'), // Assuming user_id is stored in localStorage
-                receiver: friend
-            });
-        } catch (error) {
-            console.error("Error answering call:", error);
-        }
-    };
-
-    const handleICECandidate = ({ candidate }) => {
+    const endCall = () => {
         if (peerConnection) {
-            peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-                .catch(error => console.error("Error adding ICE candidate:", error));
+            peerConnection.close();
+            setPeerConnection(null);
         }
-    };
-
-    // Receive offer to handle in the component
-    const handleCallOffer = ({ offer, sender, type }) => {
-        if (sender !== friend) return;
-        setCallType(type);
-        setIsCalling(true);
-
-        // Initiate call response
-        answerCall(offer);
-    };
-
-    const handleCallAnswer = async ({ answer }) => {
-        if (!peerConnection) return;
-        try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        } catch (error) {
-            console.error("Error setting remote description from answer:", error);
+        if (localStream) {
+            localStream.getTracks().forEach((track) => track.stop());
+            setLocalStream(null);
         }
+        if (remoteStream) {
+            remoteStream.getTracks().forEach((track) => track.stop());
+            setRemoteStream(null);
+        }
+        setIsCalling(false);
+        setCallType(null);
     };
-
 
     if (!friend_name) return null
     if (loading) return <div className="loading loading-spinner"></div>
@@ -465,14 +476,14 @@ export default function DMArea({ socket, isMobile, theme }) {
                                         autoPlay
                                         playsInline
                                         className="w-full h-64 bg-black rounded-lg"
-                                    ></video>
+                                    />
                                     <video
                                         ref={localVideoRef}
                                         autoPlay
-                                        muted
                                         playsInline
                                         className="w-32 h-32 bg-black rounded-lg"
-                                    ></video>
+                                    />
+
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center space-y-4">
@@ -485,6 +496,10 @@ export default function DMArea({ socket, isMobile, theme }) {
                                         >
                                             <path d="M6.62 10.79a15.05 15.05 0 006.58 6.58l2.2-2.2a1 1 0 011.11-.21 12.38 12.38 0 004.55 1.45 1 1 0 01.89 1v3.75a1 1 0 01-1 1A18 18 0 013 5a1 1 0 011-1h3.75a1 1 0 011 .89 12.38 12.38 0 001.45 4.55 1 1 0 01-.21 1.11l-2.2 2.2z" />
                                         </svg>
+                                        <audio
+                                            ref={remoteStream}
+                                            autoPlay
+                                        />
                                     </div>
                                     <div className="text-lg font-semibold">{info.username || friend}</div>
                                     <div className="text-gray-500">Audio Call</div>
