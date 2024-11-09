@@ -237,15 +237,28 @@ const getUser = async (req, res) => {
     } catch (err) { res.status(500).json({ message: 'Server error' + err }) }
 };
 
-const updateUser = async (req, res) => {
+const updateUserPhoto = async (req, res) => {
     try {
         const email = req.user;
         const image = req.body;
+
         const updatedUser = await User.updateOne({ email }, { image: image.imageUrl });
         if (!updatedUser) return res.sendStatus(400);
         res.status(201).json({ message: 'user updated' });
     } catch (err) { res.status(500).json({ message: 'server error ', err }) }
 };
+
+
+const updateUser = async (req, res) => {
+    try {
+        const email = req.user;
+        const { username, names, newEmail } = req.body;
+        const updatedUser = await User.updateOne({ email }, { username, names, newEmail });
+        if (!updatedUser) return res.sendStatus(400);
+        res.status(201).json({ message: 'user updated' });
+    } catch (err) { res.status(500).json({ message: 'server error ', err }) }
+}
+
 
 const createGroup = async (req, res) => {
     try {
@@ -450,6 +463,7 @@ module.exports = {
     getGroup,
     getUserProfile,
     createGroup,
+    updateUserPhoto,
     updateUser,
     updateGroup,
     addMember,

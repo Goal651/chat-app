@@ -15,6 +15,7 @@ const {
     getUserProfile,
     addMember,
     fileUpload,
+    updateUserPhoto,
 } = require('../controllers/app')
 
 
@@ -61,7 +62,9 @@ router.get('/message', checkUser, getMessage)
 router.delete('/deleteMessage/:id', checkUser, deleteMessage)
 
 //updating user,groups and messages
-router.put('/editUserProfile', checkUser, updateUser)
+router.put('/editUserProfile', checkUser, updateUserPhoto)
+router.put('/editGroupProfile/:group', checkUser, updateGroup)
+router.put('/editUser/', checkUser, updateUser)
 router.put('/updateGroupProfile/:group', checkUser, updateGroup)
 router.post('/addMember', checkUser, addMember)
 

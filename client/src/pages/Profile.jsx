@@ -73,7 +73,6 @@ export default function Profile({ dataFromProfile, isMobile, userInfo }) {
                     console.error(`Error uploading chunk ${currentChunk}:`, err);
                 }
             };
-
             await uploadChunk(0);
         };
     };

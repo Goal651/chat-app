@@ -10,9 +10,10 @@ export default function Settings({ isMobile }) {
     const [user, setUser] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const { theme, toggleTheme } = useTheme(); 
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const accessToken = Cookies.get('accessToken');
+    const [userInputs, setUserInputs] = useState({});
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -23,7 +24,10 @@ export default function Settings({ isMobile }) {
                 const data = await response.json();
                 if (response.status === 401) Cookies.set('accessToken', data);
                 else if (response.status === 403) navigate('/login');
-                else if (response.ok) setUser(data.user);
+                else if (response.ok) {
+                    setUser(data.user);
+                    setUserInputs(data.user);
+                }
             } catch (err) {
                 setError('An error occurred while fetching the user profile.');
                 console.error(err);
@@ -36,19 +40,22 @@ export default function Settings({ isMobile }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setUser((prevState) => ({ ...prevState, [name]: value }));
+        setUserInputs((prevState) => ({ ...prevState, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('https://chat-app-production-2663.up.railway.app/updateProfile', {
-                headers: { 'accessToken': `${accessToken}` },
+            const response = await fetch(`https://chat-app-production-2663.up.railway.app/editUser/`, {
+                headers: { 'accessToken': `${accessToken}`, 'Content-Type': 'application/json' },
                 method: 'PUT',
-                body: JSON.stringify(user),
+                body: JSON.stringify(userInputs),
             });
             if (response.ok) {
                 alert('Profile updated successfully');
+                setUser(userInputs); // Update state with the new user data
+            } else {
+                setError('Failed to update profile');
             }
         } catch (err) {
             setError('Failed to update profile');
@@ -57,7 +64,7 @@ export default function Settings({ isMobile }) {
     };
 
     const handleThemeChange = () => {
-        toggleTheme(); 
+        toggleTheme();
     };
 
     if (loading) return <div className="flex justify-center mt-20"><span className="loading loading-spinner"></span></div>;
@@ -95,7 +102,7 @@ export default function Settings({ isMobile }) {
                                         <label className="block font-medium">Name:</label>
                                         <input
                                             name="names"
-                                            value={user.names || ''}
+                                            value={userInputs.names || ''}
                                             onChange={handleChange}
                                             className="input input-bordered w-full"
                                             placeholder="Enter your name"
@@ -105,7 +112,7 @@ export default function Settings({ isMobile }) {
                                         <label className="block font-medium">Username:</label>
                                         <input
                                             name="username"
-                                            value={user.username || ''}
+                                            value={userInputs.username || ''}
                                             onChange={handleChange}
                                             className="input input-bordered w-full"
                                             placeholder="Enter your username"
@@ -114,8 +121,8 @@ export default function Settings({ isMobile }) {
                                     <div>
                                         <label className="block font-medium">Email:</label>
                                         <input
-                                            name="email"
-                                            value={user.email || ''}
+                                            name="newEmail"
+                                            value={userInputs.email || ''}
                                             onChange={handleChange}
                                             className="input input-bordered w-full"
                                             placeholder="Enter your email"
