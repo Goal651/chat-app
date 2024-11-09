@@ -50,6 +50,8 @@ export default function DMArea({ socket, isMobile, theme }) {
         setHistory([])
 
     }, [friend_name])
+
+    
     useEffect(() => {
         if (!socket) return
         socket.emit('fetch_online_users')
