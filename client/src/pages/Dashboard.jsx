@@ -35,7 +35,6 @@ export default function Dashboard({ isMobile }) {
     const socket = useSocket("https://chat-app-production-2663.up.railway.app/");
     const theme = localStorage.getItem("theme");
     const selectedFriend = localStorage.getItem('selectedFriend');
-    const friend = localStorage.getItem('selectedFriend');
     const [notificationPrompt, setNotificationPrompt] = useState(false);
 
     // Notification permission request
@@ -109,15 +108,15 @@ export default function Dashboard({ isMobile }) {
         const handleOnlineUsers = (data) => setOnlineUsers(data);
 
         const handleIncomingMessage = (message) => {
-            const { newMessage,  messageType } = message;
-        
+            const { newMessage, messageType } = message;
+
             // For direct message (DM)
             if (messageType === 'dm') {
                 // Check if the message is for the selected friend
                 if (!friend_name && newMessage.sender !== selectedFriend) {
                     socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender });
                 }
-        
+
                 // Update notifications
                 setNotifications({
                     from: newMessage.sender,
@@ -126,7 +125,7 @@ export default function Dashboard({ isMobile }) {
                     timestamp: newMessage.timestamp,
                     type: 'dm'
                 });
-        
+
                 // Create a new notification
                 if (Notification.permission === "granted") {
                     const notification = new Notification(`New message from ${newMessage.sender}`, { body: newMessage.message });
@@ -135,43 +134,43 @@ export default function Dashboard({ isMobile }) {
                         notification.close();
                     };
                 }
-        
+
                 // Update friends list with the latest message
                 setFriends(prevFriends => {
-                    const updatedFriends = prevFriends.map(friend => 
+                    const updatedFriends = prevFriends.map(friend =>
                         [newMessage.sender, newMessage.receiver].includes(friend.email)
                             ? { ...friend, latestMessage: newMessage }
                             : friend
                     );
                     const sortedFriends = sortByLatestMessage(updatedFriends);
-        
+
                     // Persist updated friends list in sessionStorage
                     sessionStorage.setItem('friends', JSON.stringify(sortedFriends));
-        
+
                     return sortedFriends;
                 });
             }
-        
+
             // For group messages
             if (messageType === 'group') {
                 // Update groups list with the latest message for the specific group
                 setGroups(prevGroups => {
-                    const updatedGroups = prevGroups.map(group => 
+                    const updatedGroups = prevGroups.map(group =>
                         group.name === newMessage.groupName
                             ? { ...group, latestMessage: newMessage }
                             : group
                     );
                     const sortedGroups = sortByLatestMessage(updatedGroups);
-        
+
                     // Persist updated groups list in sessionStorage
                     sessionStorage.setItem('groups', JSON.stringify(sortedGroups));
-        
+
                     return sortedGroups;
                 });
             }
         };
-        
-        
+
+
 
         socket.emit("fetch_online_users");
         socket.on("online_users", handleOnlineUsers);
@@ -266,12 +265,25 @@ export default function Dashboard({ isMobile }) {
             className={`flex flex-row w-full h-screen text-sm bg-black`}
         >
             {notificationPrompt && (
-                <div className="notification-permission-prompt">
-                    <p>
-                        We `&apos` d like to send you notifications to keep you updated on new messages and alerts.
-                    </p>
-                    <button onClick={handleRequestNotificationPermission}>Allow Notifications</button>
-                    <button onClick={() => setNotificationPrompt(false)}>Not Now</button>
+                <div
+                    role="alert"
+                    className="fixed alert z-50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        className="stroke-info h-6 w-6 shrink-0">
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Allow notification to keep up to date</span>
+                    <div>
+                        <button className="btn btn-sm" onClick={handleRequestNotificationPermission}>Allow Notifications</button>
+                        <button className="btn btn-sm" onClick={() => setNotificationPrompt(false)}>Not Now</button>
+                    </div>
                 </div>
             )}
             <NotificationBanner details={notifications} />
