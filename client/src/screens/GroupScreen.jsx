@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback, } from "react";
 import Cookies from 'js-cookie';
 import { useParams, useNavigate } from "react-router-dom";
-import UserInfo from "../components/UserInfo";
 import Messages from "../components/Message";
 import Sender from "../components/Sender";
 
@@ -547,10 +546,6 @@ export default function GroupArea({ socket, isMobile, theme, onlineUsers, dataFr
                     </div>
                 </div>
             )}
-
-            {group_name && (<div>
-                <UserInfo friends={friends} />
-            </div>)}
         </div>
     );
 }
