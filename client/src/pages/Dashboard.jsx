@@ -281,8 +281,16 @@ export default function Dashboard({ isMobile }) {
                     </svg>
                     <span>Allow notification to keep up to date</span>
                     <div>
-                        <button className="btn btn-sm" onClick={handleRequestNotificationPermission}>Allow Notifications</button>
-                        <button className="btn btn-sm" onClick={() => setNotificationPrompt(false)}>Not Now</button>
+                        <button
+                            className="btn btn-sm"
+                            onClick={handleRequestNotificationPermission}>
+                            Allow Notifications
+                        </button>
+                        <button
+                            className="btn btn-sm"
+                            onClick={() => setNotificationPrompt(false)}>
+                            Not Now
+                        </button>
                     </div>
                 </div>
             )}

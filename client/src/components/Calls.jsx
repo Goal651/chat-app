@@ -51,9 +51,6 @@ export default function Calls({ socket, type, endingCall }) {
     };
 
 
-
-
-
     const createPeerConnection = (peerId) => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
         pc.onicecandidate = (event) => {
