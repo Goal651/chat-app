@@ -20,31 +20,31 @@ export default function Navigation({ socket, isMobile, userInfo }) {
 
     return (
         <ul
-            className={`menu menu-lg rounded-box w-full h-full navigation text-sm justify-evenly bg-transparent
-            ${isMobile ? (type ? "hidden" : "block") : "flex md:flex-row"} 
-            md:space-x-4 md:justify-between`}
+            className={` w-full h-full navigation text-sm  bg-transparent 
+            ${isMobile ? (type ? "hidden" : " flex justify-between items-center px-4 space-x-4") : "menu flex justify-between menu-lg rounded-box py-10"} `}
         >
             <li
                 onClick={toChats}
-                className="hover:bg-gray-200 md:hover:bg-transparent"
+                className="min-w-24 max-w-[100%]"
             >
-                <div>
-                    <img src="/chat.svg" alt="" />
+                <div className="w-auto h-auto">
+                    <img src="/Group.svg" alt="Group Icon" className="max-w-full" />
                 </div>
             </li>
+
             <li
                 onClick={toGroups}
-                className="hover:bg-gray-200 md:hover:bg-transparent"
+                className="min-w-24 max-w-[100%]"
             >
-                <div>
+                <div className="w-auto h-auto">
                     <img src="./group.png" alt="" />
                 </div>
             </li>
             <li
                 onClick={toSetting}
-                className="hover:bg-gray-200 md:hover:bg-transparent"
+                className="min-w-24 max-w-[100%]"
             >
-                <div>
+                <div className="w-auto h-auto">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -58,11 +58,12 @@ export default function Navigation({ socket, isMobile, userInfo }) {
                     </svg>
                 </div>
             </li>
+
             <li
                 onClick={toProfile}
-                className="hover:bg-gray-200 md:hover:bg-transparent"
+                className="min-w-24 max-w-[100%]"
             >
-                <div className="avatar">
+                <div className="avatar w-auto h-auto">
                     <div className="h-16 w-16 rounded-full bg-gray-400">
                         {userInfo.imageData ? (
                             <img
@@ -89,9 +90,9 @@ export default function Navigation({ socket, isMobile, userInfo }) {
             </li>
             <li
                 onClick={logOut}
-                className="hover:bg-gray-200 md:hover:bg-transparent"
+                className=" min-w-24 max-w-[100%]"
             >
-                <div>
+                <div className="w-auto h-auto">
                     <img src="./door.png" alt="" />
                 </div>
             </li>

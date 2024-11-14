@@ -82,7 +82,7 @@ export default function Settings({ isMobile }) {
     };
 
     return (
-        <div className={`h-full bg-white rounded-xl p-6`}>
+        <div className={`h-full bg-white rounded-xl p-6 overflow-auto`}>
             {isMobile && (
                 <button
                     onClick={navigateBackward}

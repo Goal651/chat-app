@@ -30,12 +30,6 @@ label {
   width: 5rem;
 }
 
-.navigation div {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
-
 .navigation h3 {
   font-size: 1rem;
 }

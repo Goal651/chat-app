@@ -294,19 +294,28 @@ export default function Dashboard({ isMobile }) {
                     </div>
                 </div>
             )}
-            <NotificationBanner details={notifications} />
-            <Suspense fallback={<div>Loading...</div>}>
-                <div className={`${isMobile ? `${type || friend_name || group_name ? "hidden" : ""}` : "w-1/12 h-full"}`}>
-                    <Navigation
-                        socket={socket}
-                        isMobile={isMobile}
-                        theme={theme}
-                        userInfo={userInfo} />
+            <Suspense fallback={
+                <div className='h-screen w-screen left-0 top-0 fixed flex justify-center bg-slate-900'>
+                    <span className='loading loading-infinity h-screen bg-white'></span>
                 </div>
-                <div
-                    className={` rounded-3xl  ${isMobile ? "w-full " : "text-black mr-4 my-2 pl-0 w-full"}`}
+            }>
+
+                <div className='w-full h-full flex justify-evenly '
                 >
-                    {renderContent()}
+                    <div
+                        className={`${isMobile ? `${type || friend_name || group_name && "hidden"}` : "w-[7%] h-full"}`}
+                    >
+                        <Navigation
+                            socket={socket}
+                            isMobile={isMobile}
+                            theme={theme}
+                            userInfo={userInfo} />
+                    </div>
+                    <div
+                        className={` ${isMobile ? "w-full h-full  rounded-none " : "text-black mr-4 my-2  w-[93%] rounded-3xl"} `}
+                    >
+                        {renderContent()}
+                    </div>
                 </div>
             </Suspense>
         </div>
