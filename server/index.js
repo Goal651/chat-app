@@ -36,14 +36,12 @@ const io = new Server(server, {
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('Connected to database');
+    .then(async () => {
         fs.mkdir(path.join(__dirname, './uploads/profiles/'), { recursive: true });
-        handlerChat(io);
-
         server.listen(3001, () => {
             console.log('Server listening on port 3001');
         });
+        await handlerChat(io);
     })
     .catch((error) => {
         console.log('Database connection error:', error);

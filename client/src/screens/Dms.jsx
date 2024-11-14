@@ -9,8 +9,8 @@ import Calls from "../components/Calls";
 
 
 export default function DMArea({ socket, isMobile, theme }) {
-    const navigate = useNavigate(); 
-       const friend = localStorage.getItem('selectedFriend');
+    const navigate = useNavigate();
+    const friend = localStorage.getItem('selectedFriend');
     const storedMessages = JSON.parse(sessionStorage.getItem(`${friend}Message`))
     const storedUserDetails = JSON.parse(sessionStorage.getItem(`friend-${friend}`))
     const { friend_name } = useParams();
