@@ -28,7 +28,7 @@ export default function Navigation({ socket, isMobile, userInfo }) {
                 className="min-w-24 max-w-[100%]"
             >
                 <div className="w-auto h-auto">
-                    <img src="/Group.svg" alt="Group Icon" className="max-w-full" />
+                    <img src="/chat.png" alt="Group Icon" className="max-w-full" />
                 </div>
             </li>
 
@@ -37,7 +37,7 @@ export default function Navigation({ socket, isMobile, userInfo }) {
                 className="min-w-24 max-w-[100%]"
             >
                 <div className="w-auto h-auto">
-                    <img src="./group.png" alt="" />
+                    <img src="/nogro.png" alt="" />
                 </div>
             </li>
             <li
@@ -64,7 +64,7 @@ export default function Navigation({ socket, isMobile, userInfo }) {
                 className="min-w-24 max-w-[100%]"
             >
                 <div className="avatar w-auto h-auto">
-                    <div className="h-16 w-16 rounded-full bg-gray-400">
+                    <div className="h-16 w-16 rounded-full">
                         {userInfo.imageData ? (
                             <img
                                 src={userInfo.imageData}
@@ -72,18 +72,10 @@ export default function Navigation({ socket, isMobile, userInfo }) {
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <svg
-                                className="justify-self-center object-cover"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                width="24"
-                                height="24"
-                            >
-                                <path
-                                    fill="gray"
-                                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z"
-                                />
-                            </svg>
+                            <img
+                                className="h-auto w-full object-cover"
+                                src="/nopro.png"
+                                alt="no profile" />
                         )}
                     </div>
                 </div>
