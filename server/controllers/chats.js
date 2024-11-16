@@ -18,7 +18,7 @@ const readFile = async (filePath) => {
     try {
         const data = await fs.readFile(filePath);
         const fileData = data.toString('base64');
-        return fileData; 
+        return fileData;
     } catch (err) {
         console.error(err);
         return null;
@@ -104,8 +104,8 @@ const handlerChat = async (io) => {
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return socket.emit('group_message_error', 'Error saving group message');
                 const senderSocketId = userSockets.get(socket.user);
-                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message } ,messageType:'group'});
-                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message } ,messageType:'group'});
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message }, messageType: 'group' });
+                io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message }, messageType: 'group' });
             } catch (error) {
                 console.error('Error sending group message:', error);
             }
@@ -129,7 +129,7 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message,messageType:'dm' } });
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message, messageType: 'dm' } });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
                 io.to(senderSocketId).emit("message_sent", { newMessage: { ...newMessage._doc, message } });
             } catch (error) {
@@ -213,12 +213,12 @@ const handlerChat = async (io) => {
                     group: message.group,
                     type: message.type,
                     time: message.time,
-                    replyingTo:id
+                    replyingTo: id
                 });
                 const savedMessage = await newMessage.save();
                 if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
-                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message,replyingMessage: replying } });
+                socket.to(message.group).emit("receive_group_message", { message: { ...newMessage._doc, message: message.message, replyingMessage: replying } });
                 io.to(senderSocketId).emit("group_message_sent", { message: { ...newMessage._doc, message: message.message, replyingMessage: replying } });
             } catch (error) {
                 console.error('Error sending group message:', error);
@@ -381,45 +381,40 @@ const handlerChat = async (io) => {
         })
 
 
-        socket.on('call-offer', ({ offer, receiver,type }) => {
+        socket.on('call-offer', ({ offer, receiver, type }) => {
             try {
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) {
-                    io.to(receiverSocketId).emit('call-offer', { offer, sender: socket.user ,type});
-                } else {
-                    socket.emit('call_error', 'User not online');
-                }
+                if (receiverSocketId) io.to(receiverSocketId).emit('call-offer', { offer, sender: socket.user, type });
+                else io.to(socket.id).emit('call_error', 'User not online')
             } catch (error) {
                 console.error('Error handling call offer:', error);
-                socket.emit('call_error', 'Unable to send call offer');
+                io.to(socket.id).emit('call_error', 'Unable to send call offer');
             }
         });
 
         socket.on('answer_call', ({ answer, sender }) => {
             try {
                 const callerSocketId = userSockets.get(sender);
-                if (callerSocketId) {
-                    io.to(callerSocketId).emit('call-answer', { answer, receiver: socket.user });
-                } else {
-                    socket.emit('call_error', 'Caller not available');
-                }
+                if (callerSocketId) io.to(callerSocketId).emit('call-answer', { answer, receiver: socket.user });
+                else io.to(socket.id).emit('call_error', 'Caller not available');
+
             } catch (error) {
                 console.error('Error handling call answer:', error);
-                socket.emit('call_error', 'Unable to send call answer');
+                io.to(socket.id).emit('call_error', 'Unable to send call answer');
             }
         });
 
         socket.on('ice-candidate', ({ candidate, to }) => {
             try {
-                const targetSocketId = userSockets.get(to);
+                const targetSocketId = userSockets.get(to)
                 if (targetSocketId) {
-                    io.to(targetSocketId).emit('ice-candidate', { candidate, from: socket.user });
+                    io.to(targetSocketId).emit('ice-candidate', { candidate, from: socket.user })
                 } else {
-                    socket.emit('call_error', 'Target user not available for ICE candidate');
+                    io.to(socket.id).emit('call_error', 'Target user not available for ICE candidate')
                 }
             } catch (error) {
                 console.error('Error handling ICE candidate:', error);
-                socket.emit('call_error', 'Unable to send ICE candidate');
+                io.to(socket.id).emit('call_error', 'Unable to send ICE candidate');
             }
         });
 
@@ -431,7 +426,7 @@ const handlerChat = async (io) => {
                 }
             } catch (error) {
                 console.error('Error handling call end:', error);
-                socket.emit('call_error', 'Unable to end call');
+                io.to(socket.id).emit('call_error', 'Unable to end call');
             }
         });
 

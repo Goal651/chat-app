@@ -10,7 +10,6 @@ const CreateGroup = lazy(() => import("../screens/CreateGroup"));
 const Profile = lazy(() => import("./Profile"));
 const GroupContent = lazy(() => import("../screens/GroupContent"));
 const ChatContent = lazy(() => import("../screens/ChatContent"));
-const NotificationBanner = lazy(() => import("../components/Notification"));
 
 const useSocket = (url) => {
     const [socket, setSocket] = useState(null);
@@ -36,6 +35,7 @@ export default function Dashboard({ isMobile }) {
     const theme = localStorage.getItem("theme");
     const selectedFriend = localStorage.getItem('selectedFriend');
     const [notificationPrompt, setNotificationPrompt] = useState(false);
+    const [unreadMessages, setUnreadMessages] = useState([]);
 
     // Notification permission request
     useEffect(() => {
@@ -65,6 +65,7 @@ export default function Dashboard({ isMobile }) {
                 const data = await response.json();
                 if (response.ok) {
                     setUserInfo(data.user);
+                    setUnreadMessages(data.user.unreads)
                     sessionStorage.setItem('chatUser', JSON.stringify(data.user));
                 } else if (response.status === 401) Cookies.set("accessToken", data.newToken);
                 else navigate("/login");
@@ -309,7 +310,10 @@ export default function Dashboard({ isMobile }) {
                             socket={socket}
                             isMobile={isMobile}
                             theme={theme}
-                            userInfo={userInfo} />
+                            userInfo={userInfo} 
+                            unreadMessages={unreadMessages}
+                            />
+
                     </div>
                     <div
                         className={` ${isMobile ? "w-full h-full  rounded-none " : "text-black mr-4 my-2  w-[93%] rounded-3xl"} `}

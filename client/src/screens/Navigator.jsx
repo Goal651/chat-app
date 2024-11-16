@@ -2,7 +2,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import Cookies from "js-cookie";
 
-export default function Navigation({ socket, isMobile, userInfo }) {
+export default function Navigation({ socket, isMobile, userInfo, unreadMessages }) {
     const navigate = useNavigate();
     const { type } = useParams();
 
@@ -25,12 +25,25 @@ export default function Navigation({ socket, isMobile, userInfo }) {
         >
             <li
                 onClick={toChats}
-                className="min-w-24 max-w-[100%]"
+                className="min-w-24 max-w-[100%] flex items-center"
             >
-                <div className="w-auto h-auto">
-                    <img src="/chat.png" alt="Group Icon" className="max-w-full" />
+                <div className="relative">
+
+                    <img
+                        src="/chat.png"
+                        alt="no profile pic"
+                        className="w-16 h-16 object-cover rounded-full"
+                    />
+
+
+                    {unreadMessages && unreadMessages.length > 0 && (
+                        <span className="absolute top-0 right-0 h-7 w-7 bg-orange-400 text-white text-sm font-semibold flex items-center justify-center rounded-full border-0">
+                            {unreadMessages.length > 9 ? `9+` : unreadMessages.length}
+                        </span>
+                    )}
                 </div>
             </li>
+
 
             <li
                 onClick={toGroups}
@@ -75,7 +88,8 @@ export default function Navigation({ socket, isMobile, userInfo }) {
                             <img
                                 className="h-auto w-full object-cover"
                                 src="/nopro.png"
-                                alt="no profile" />
+                                alt="no profile"
+                            />
                         )}
                     </div>
                 </div>
