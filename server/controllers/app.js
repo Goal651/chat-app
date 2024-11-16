@@ -212,7 +212,8 @@ const getUserProfile = async (req, res) => {
             names: user.names,
             email: user.email,
             image: user.image,
-            imageData
+            imageData,
+            unreads: user.unreads
         }
         res.status(200).json({ user: userObject })
     } catch (err) { res.status(500).json({ message: 'Server error ' + err }) }
