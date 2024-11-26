@@ -76,54 +76,70 @@ export default function Login({ isMobile }) {
   };
 
   return (
-    <div className="flex h-screen max-w-screen overflow-hidden bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
-      {!isMobile && (
-        <div className="w-2/4 hidden lg:flex justify-center items-center bg-gray-200">
-          <img src="/welcome.jpg" alt="welcome" className="h-full object-cover opacity-75" />
-        </div>
-      )}
-      <div className={`form ${isMobile ? 'w-4/5 mx-auto' : 'w-1/3 p-8 mx-auto'} flex flex-col items-center`}>
-        <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4" autoComplete="off">
-          <h1 className="text-4xl font-bold text-center gradient bg-clip-text text-transparent">Log In</h1>
-          {wrongEmail && <div className="text-red-500 text-center">Invalid email address</div>}
-          <label className="relative input input-bordered flex items-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg p-2">
+    <div className="flex justify-center items-center min-h-screen bg-gray-800">
+      <div className="w-full max-w-md p-8 space-y-6 bg-gray-700 rounded-lg">
+        <h2 className="text-2xl font-bold text-center text-white">Login</h2>
+        {wrongEmail && (
+          <div className="p-4 text-red-400 bg-gray-800 border border-red-600 rounded">
+            Invalid email address
+          </div>
+        )}
+        {wrongPass && (
+          <div className="p-4 text-red-400 bg-gray-800 border border-red-600 rounded">
+            Incorrect password
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+              Email
+            </label>
             <input
               type="email"
-              placeholder="Email"
               id="email"
               name="email"
+              placeholder="john.doe@example.com"
               value={formData.email}
               onChange={handleChange}
-              className="flex-1 bg-transparent outline-none text-black"
+              className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             />
-          </label>
-          <label className="relative input input-bordered flex items-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg p-2" id="pass">
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              Password
+            </label>
             <input
               type="password"
-              placeholder="Password"
               id="password"
               name="password"
+              placeholder="********"
               value={formData.password}
               onChange={handleChange}
-              className="flex-1 bg-transparent outline-none text-black"
+              className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             />
-          </label>
-          {wrongPass && <div className="text-red-500 text-center">Incorrect Password</div>}
+          </div>
           {loading ? (
-            <div className="btn btn-primary btn-lg w-full flex justify-center items-center">
-              <ClipLoader color="white" />
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500"></div>
             </div>
           ) : (
             <button
               type="submit"
-              className="btn btn-primary btn-lg w-full text-white">
+              className="w-full py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+            >
               Login
             </button>
           )}
         </form>
-        <Link to="/signup" className="text-center mt-4 text-blue-500 hover:underline">
-          Create New Account
-        </Link>
+        <div className="flex justify-center mt-4">
+          <Link to="/signup">
+            <button className="w-full py-2 px-4 text-white bg-slate-600 hover:bg-slate-700 rounded-md">
+              Sign Up
+            </button>
+          </Link>
+        </div>
       </div>
     </div>
   );
