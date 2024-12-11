@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import GroupArea from "./GroupScreen";
+import GroupArea from "./Group";
 
 export default function GroupContent({ groups, socket, friends, isMobile, theme, userInfo, onlineUsers, dataFromGroupContent }) {
     const navigate = useNavigate();

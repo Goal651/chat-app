@@ -124,7 +124,7 @@ export default function Calls({ socket, type, endingCall }) {
             await pc.setLocalDescription(answer);
 
             socket.emit('call-answer', { answer, sender });
-            setIncomingCall(null); // Clear the incoming call notification
+            setIncomingCall(null);
         } catch (error) {
             console.error("Error answering call:", error);
             endCall();
@@ -161,6 +161,7 @@ export default function Calls({ socket, type, endingCall }) {
             socket.off('call-offer', handleCallOffer);
             socket.off('call-answer', handleCallAnswer);
             socket.off('ice-candidate', handleICECandidate);
+            socket.off('call_ended', endCall);
         };
     }, [socket, peerConnection]);
 

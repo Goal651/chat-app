@@ -121,32 +121,41 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                 return (
                                     <div onClick={() => chatNow(friend)}
                                         className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2                                          
-                                                ${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-200`}
+                                                ${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-100`}
                                         key={friend._id}>
                                         <div className="flex flex-row justify-between w-full mx-4">
-                                            <span className="flex items-center w-full h-fit">
-                                                <div className="flex h-14 w-14 ">
-                                                    <div className={`avatar ${isOnline ? 'online' : 'offline'}`}>
-                                                        <div className="h-12 w-12 rounded-lg bg-gray-200">{friend.imageData ?
+                                            <span className="grid grid-cols-2  items-center w-full h-fit">
+                                                <div className="flex">
+                                                    <div className="">
+                                                        <div className="bg-white rounded-full">
+                                                        {friend.imageData ?
                                                             <img
                                                                 src={friend.imageData}
                                                                 alt="Fetched Image"
-                                                                className="h-full w-full object-cover" />
+                                                                className="min-h-14 min-w-14 rounded-full object-cover" />
                                                             :
-                                                            <img src="/nopro.png" alt="User Icon" className="h-full w-full object-cover" />
-                                                        }</div>
+                                                            <img
+                                                                src="/welcome.jpg"
+                                                                alt="User Icon"
+                                                                className="min-h-14 min-w-14 rounded-full object-cover" />
+                                                        }
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="ml-4 w-full">
-                                                    <div className="w-1/2 text-sm font-bold"> {friend.username}</div>
-                                                    {isTyping(friend.email) ? (<div className="text-green-500 text-sm ">
-                                                        typing...
-                                                    </div>) : (<div className="text-xs text-gray-600 break-words line-clamp-1 w-48 ">
-                                                        {friend.latestMessage ? (friend.latestMessage.sender == currentUser ?
-                                                            (friend.latestMessage.type.startsWith(`${'image' || 'video'}`) ?
-                                                                'you: sent file' : `you: ${friend.latestMessage.message}`) : (friend.latestMessage.type.startsWith(`${'image' || 'video'}`)
-                                                                    ? 'sent file' : friend.latestMessage.message)) : 'Say hi to your new friend'}
-                                                    </div>)}
+                                                    <div className="ml-4 w-full">
+                                                        <div className="w-1/2 text-sm font-bold"> {friend.username}</div>
+                                                        {isTyping(friend.email) ? (
+                                                            <div className="text-green-500 text-sm ">
+                                                                typing...
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-xs text-gray-600 break-words line-clamp-1 w-48 ">
+                                                                {friend.latestMessage ? (friend.latestMessage.sender == currentUser ?
+                                                                    (friend.latestMessage.type.startsWith(`${'image' || 'video'}`) ?
+                                                                        'you: sent file' : `you: ${friend.latestMessage.message}`) : (friend.latestMessage.type.startsWith(`${'image' || 'video'}`)
+                                                                            ? 'sent file' : friend.latestMessage.message)) : 'Say hi to your new friend'}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 {unreadCount > 0 && (
                                                     <span className="badge h-7 w-7 ml-auto bg-orange-500 text-white text-sm font-semibold rounded-full border-0">

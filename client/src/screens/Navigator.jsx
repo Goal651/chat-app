@@ -19,45 +19,40 @@ export default function Navigation({ socket, isMobile, userInfo, unreadMessages 
     const toSetting = () => navigate("/setting");
 
     return (
-        <ul
-            className={` w-full h-full navigation text-sm  bg-transparent 
-            ${isMobile ? (type ? "hidden" : " flex justify-between items-center px-4 space-x-4") : "menu flex justify-between menu-lg rounded-box py-10"} `}
+        <div
+            className="grid grid-rows-5 grid-flow-row w-full   h-full overflow-x-hidden overflow-y-auto justify-items-center"
         >
-            <li
+            <div
                 onClick={toChats}
-                className="min-w-24 max-w-[100%] flex items-center"
+                className="pt-2"
             >
-                <div className="relative">
+                <img
+                    src="/chat.png"
+                    alt="no profile pic"
+                    className=" w-14 h-14 object-cover"
+                />
+                {unreadMessages && unreadMessages.length > 0 && (
+                    <span className="bg-slate-200 p-1 rounded-full relative z-50 left-10 bottom-14 text-xs border-2 border-black">
+                        {unreadMessages.length > 9 ? `9+` : unreadMessages.length}
+                    </span>
+                )}
+            </div>
 
-                    <img
-                        src="/chat.png"
-                        alt="no profile pic"
-                        className="w-16 h-16 object-cover rounded-full"
-                    />
-
-
-                    {unreadMessages && unreadMessages.length > 0 && (
-                        <span className="absolute top-0 right-0 h-7 w-7 bg-orange-400 text-white text-sm font-semibold flex items-center justify-center rounded-full border-0">
-                            {unreadMessages.length > 9 ? `9+` : unreadMessages.length}
-                        </span>
-                    )}
-                </div>
-            </li>
-
-
-            <li
+            <div
                 onClick={toGroups}
-                className="min-w-24 max-w-[100%]"
+                className=""
             >
-                <div className="w-auto h-auto">
-                    <img src="/nogro.png" alt="" />
-                </div>
-            </li>
-            <li
+                <img
+                    src="/nogro.png"
+                    alt=""
+                    className=" w-20 h-20 object-cover"
+                />
+            </div>
+            <div
                 onClick={toSetting}
-                className="min-w-24 max-w-[100%]"
+                className=""
             >
-                <div className="w-auto h-auto">
+                <div className="">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -65,43 +60,45 @@ export default function Navigation({ socket, isMobile, userInfo, unreadMessages 
                         height="50"
                     >
                         <path
-                            fill="blue"
+                            fill="lightgray"
                             d="M19.14 12.936a6.995 6.995 0 0 0 .06-.936 6.995 6.995 0 0 0-.06-.936l2.05-1.593a.5.5 0 0 0 .12-.646l-1.94-3.362a.5.5 0 0 0-.617-.226l-2.42.97a7.03 7.03 0 0 0-1.614-.936l-.36-2.556a.5.5 0 0 0-.498-.424h-3.88a.5.5 0 0 0-.498.424l-.36 2.556a7.03 7.03 0 0 0-1.614.936l-2.42-.97a.5.5 0 0 0-.617.226L2.66 9.825a.5.5 0 0 0 .12.646l2.05 1.593a6.995 6.995 0 0 0 0 1.872l-2.05 1.593a.5.5 0 0 0-.12.646l1.94 3.362a.5.5 0 0 0 .617.226l2.42-.97a7.03 7.03 0 0 0 1.614.936l.36 2.556a.5.5 0 0 0 .498.424h3.88a.5.5 0 0 0 .498-.424l.36-2.556a7.03 7.03 0 0 0 1.614-.936l2.42.97a.5.5 0 0 0 .617-.226l1.94-3.362a.5.5 0 0 0-.12-.646l-2.05-1.593zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
                         />
                     </svg>
                 </div>
-            </li>
+            </div>
 
-            <li
+            <div
                 onClick={toProfile}
-                className="min-w-24 max-w-[100%]"
+                className=""
             >
-                <div className="avatar w-auto h-auto">
-                    <div className="h-16 w-16 rounded-full">
+                <div className="">
+                    <div className="">
                         {userInfo.imageData ? (
                             <img
                                 src={userInfo.imageData}
                                 alt="Profile"
-                                className="h-full w-full object-cover"
+                                className="w-20 h-20 rounded-full object-cover"
                             />
                         ) : (
                             <img
-                                className="h-auto w-full object-cover"
+                                className="w-20 h-20 rounded-full  object-cover"
                                 src="/nopro.png"
                                 alt="no profile"
                             />
                         )}
                     </div>
                 </div>
-            </li>
-            <li
+            </div>
+            <div
                 onClick={logOut}
-                className=" min-w-24 max-w-[100%]"
+                className=""
             >
-                <div className="w-auto h-auto">
-                    <img src="./door.png" alt="" />
-                </div>
-            </li>
-        </ul>
+                <img
+                    src="/door.png"
+                    alt=""
+                    className=" w-16 h-16 object-cover"
+                />
+            </div>
+        </div>
     );
 }
