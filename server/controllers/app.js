@@ -190,7 +190,8 @@ const getUsers = async (req, res) => {
                 email: user.email,
                 image: user.image,
                 latestMessage: latestMessage ? { ...latestMessage, message: decryptedMessage } : null,
-                imageData
+                imageData,
+                lastActiveTime: user.lastActiveTime
             };
         }));
         res.status(200).json({ users: usersWithDetails });
