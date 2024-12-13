@@ -97,21 +97,18 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
         if (typingUsers.length === 0) return false
         return typingUsers.includes(data)
     }
+    if(!friends) return null
     return (
         <div className="flex flex-row">
             <div
                 style={{ height: '98vh' }}
                 className={`bg-transparent text-gray-800 flex flex-col overflow-y-auto overflow-x-hidden w-1/3 `}
             >
-                {isMobile && (
-                    <button
-                        className="btn "
-                        onClick={navigateBackward}
-                    >
-                        ←
-                    </button>
-                )}
-                <input type="text" onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
+                <input
+                    type="text"
+                    onChange={handleSearch}
+                    placeholder="Search friends..."
+                    className="p-2 m-2 border rounded input input-primary" />
                 <div>
                     {filteredFriends && filteredFriends.length > 0 ? (
                         filteredFriends

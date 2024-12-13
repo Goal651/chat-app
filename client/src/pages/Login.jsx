@@ -24,20 +24,7 @@ export default function Login({ isMobile }) {
     if (accessToken) navigate('/');
   }, [navigate]);
 
-  const shake = (element) => {
-    const duration = 200;
-    const distance = 20;
-    const startTime = Date.now();
-    const updatePosition = () => {
-      const elapsedTime = Date.now() - startTime;
-      const progress = elapsedTime / duration;
-      const offset = distance * Math.sin(progress * Math.PI * 2);
-      element.style.transform = `translateX(${offset}px)`;
-      if (elapsedTime < duration) requestAnimationFrame(updatePosition);
-      else element.style.transform = 'translateX(0)';
-    };
-    updatePosition();
-  };
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,22 +40,22 @@ export default function Login({ isMobile }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       });
-      if (response.status === 200) {
+      if (response.status == 200) {
         const data = await response.json();
         Cookies.set('accessToken', data.accessToken);
         Cookies.set('user', data.email);
         navigate("/chat");
-      } else if (response.status === 401) {
+      } else if (response.status == 401) {
         document.getElementById('password').focus();
         setWrongPass(true);
-        shake(document.getElementById('pass'));
         setWrongEmail(false);
-      } else if (response.status === 404) {
+      } else if (response.status == 404) {
         document.getElementById('email').focus();
         setWrongEmail(true);
         setWrongPass(false);
-      } else navigate('/error');
+      } 
     } catch (error) {
+      console.log(error)
       navigate('/error');
     } finally {
       setLoading(false);

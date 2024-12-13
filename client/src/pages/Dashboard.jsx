@@ -282,7 +282,7 @@ export default function Dashboard({ isMobile }) {
                         />
                     </div>
                     <div
-                        className='w-full lg:m-4 md:m-2 bg-white lg:rounded-xl '
+                        className='w-full lg:m-4 md:m-2 bg-white lg:rounded-xl md:rounded-lg'
                     >
                         {renderContent()}
                     </div>

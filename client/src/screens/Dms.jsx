@@ -28,15 +28,13 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
 
     useEffect(() => {
         const findUserDetails = () => {
-            if (!friends) return;
-            const currentUser = friends.find((user) => user.username === friend_name);
-            if (currentUser) {
-                setInfo(currentUser)
+            if (friends) {
+                const currentUser = friends.find((user) => user.email === friend);
+                if (currentUser) setInfo(currentUser)
             }
         }
         findUserDetails();
-    }, [friends])
-
+    }, [friends, navigate, friend, friend_name])
 
     useEffect(() => {
         setLoading(true)
@@ -50,7 +48,6 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
             lastActiveTime: ''
         })
         setHistory([])
-
     }, [friend_name])
 
 
@@ -240,26 +237,27 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
 
 
     if (!friend_name) return null
-    if(!info) return null
+    if (!info || !friends) return null
+
     return (
         <div className="flex flex-col h-full" >
             <div
                 className={` flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
-                    {isMobile && (
-                        <button onClick={navigateBackward} className="mr-4 text-gray-500 hover:text-gray-800">
-                            ←
-                        </button>)}
-                    <div className={`flex items-center ${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-gray-800 '}`}>
-                        <div className="avatar">
-                            <div className="h-14 w-14 rounded-lg ">
+                    <div className={`flex items-center `}>
+                        <div className="">
+                            <div className="h-14 w-14 rounded-full bg-inherit ">
                                 {info.imageData ? <img
                                     src={info.imageData}
                                     alt="Profile"
-                                    className="h-full w-full object-cover"
+                                    className="h-full w-full rounded-full object-cover"
                                 />
-                                    : <svg className="ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill={`${theme === 'dark-theme' ? 'white' : 'black'}`} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-7 9c0-2.67 5.33-4 7-4s7 1.33 7 4v1H5v-1z" /></svg>
-                                }
+                                    :
+                                    <img
+                                        src='/welcome.jpg'
+                                        alt="Profile"
+                                        className="h-full w-full rounded-full object-cover"
+                                    />}
                             </div>
                         </div>
                         <div className="ml-4">
