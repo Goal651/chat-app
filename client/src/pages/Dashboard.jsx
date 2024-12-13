@@ -39,6 +39,7 @@ export default function Dashboard({ isMobile }) {
 
     // Notification permission request
     useEffect(() => {
+        handleRequestNotificationPermission();
         if (Notification.permission === "default") setNotificationPrompt(true);
     }, []);
 
@@ -268,7 +269,7 @@ export default function Dashboard({ isMobile }) {
                 </div>
             }>
                 <div
-                    className='w-full h-screen flex '>
+                    className='w-full h-screen flex items-center'>
                     <div
                         className='h-full  p-4'
                     >
@@ -281,7 +282,7 @@ export default function Dashboard({ isMobile }) {
                         />
                     </div>
                     <div
-                        className='w-full'
+                        className='w-full lg:m-4 md:m-2 bg-white lg:rounded-xl '
                     >
                         {renderContent()}
                     </div>

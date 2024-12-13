@@ -12,7 +12,7 @@ const NotFound = lazy(() => import('./pages/Build'));
 export default function App() {
   const isMobile = useMediaQuery({ query: '(max-width: 800px)' });
   return (
-    <div className="h-screen">
+    <div className="h-screen overflow-hidden">
       <Router>
         <Suspense fallback={
           <div className='h-screen flex justify-center bg-slate-900'>

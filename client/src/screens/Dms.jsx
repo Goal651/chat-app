@@ -8,17 +8,15 @@ import Sender from "../components/Sender";
 import Calls from "../components/Calls";
 
 
-export default function DMArea({ socket, isMobile, theme }) {
+export default function DMArea({ socket, isMobile, theme, friends }) {
     const navigate = useNavigate();
     const friend = localStorage.getItem('selectedFriend');
     const storedMessages = JSON.parse(sessionStorage.getItem(`${friend}Message`))
-    const storedUserDetails = JSON.parse(sessionStorage.getItem(`friend-${friend}`))
     const { friend_name } = useParams();
-
     const [lastMessage, setLastMessage] = useState("");
     const [history, setHistory] = useState(storedMessages ? storedMessages : []);
     const [beingTyped, setBeingTyped] = useState(false);
-    const [info, setInfo] = useState(storedUserDetails ? storedUserDetails : null)
+    const [info, setInfo] = useState(null)
     const [loading, setLoading] = useState(true);
     const accessToken = Cookies.get('accessToken');
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -26,6 +24,18 @@ export default function DMArea({ socket, isMobile, theme }) {
     const [editingMessage, setEditingMessage] = useState(null)
     const [replying, setReplying] = useState(null)
     const [callType, setCallType] = useState('')
+
+
+    useEffect(() => {
+        const findUserDetails = () => {
+            if (!friends) return;
+            const currentUser = friends.find((user) => user.username === friend_name);
+            if (currentUser) {
+                setInfo(currentUser)
+            }
+        }
+        findUserDetails();
+    }, [friends])
 
 
     useEffect(() => {
@@ -95,33 +105,6 @@ export default function DMArea({ socket, isMobile, theme }) {
         }
         isLastMessage()
     }, [history, friend, friend_name, navigate])
-
-
-    useEffect(() => {
-        if (!friend_name) return;
-        const fetchUserDetails = async () => {
-            try {
-                const response = await fetch(`https://chat-app-production-2663.up.railway.app/getUser/${friend}`, {
-                    headers: { 'accessToken': `${accessToken}` },
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setInfo(data.user)
-                    const cleanUser = { ...data.user, imageData: null }
-                    sessionStorage.setItem(`friend-${friend}`, JSON.stringify(cleanUser))
-                }
-                else if (response.status === 401) Cookies.set("accessToken", data.newToken);
-                else if (response.status === 403) {
-                    Cookies.remove('accessToken')
-                    navigate("/login")
-                } else navigate('/error')
-            } catch (error) {
-                console.error("Error fetching user details:", error);
-            }
-        };
-        fetchUserDetails();
-    }, [friend, friend_name, navigate, accessToken]);
-
 
     useEffect(() => {
         if (!socket) return;
@@ -257,7 +240,7 @@ export default function DMArea({ socket, isMobile, theme }) {
 
 
     if (!friend_name) return null
-    if (loading) return <div className="loading loading-spinner"></div>
+    if(!info) return null
     return (
         <div className="flex flex-col h-full" >
             <div

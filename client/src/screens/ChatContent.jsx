@@ -98,18 +98,19 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
         return typingUsers.includes(data)
     }
     return (
-        <div className="flex flex-row rounded-xl bg-white">
-            <div id="mobile"
+        <div className="flex flex-row">
+            <div
                 style={{ height: '98vh' }}
-                className={`bg-transparent text-gray-800 flex flex-col  overflow-y-auto overflow-x-hidden 
-                    ${isMobile ? `${type ? `${friend_name ? 'hidden' : 'w-full'}` : 'hidden'}` : 'w-1/3'}`}
+                className={`bg-transparent text-gray-800 flex flex-col overflow-y-auto overflow-x-hidden w-1/3 `}
             >
                 {isMobile && (
                     <button
-                        className=" btn "
+                        className="btn "
                         onClick={navigateBackward}
-                    >←
-                    </button>)}
+                    >
+                        ←
+                    </button>
+                )}
                 <input type="text" onChange={handleSearch} placeholder="Search friends..." className="p-2 m-2 border rounded" />
                 <div>
                     {filteredFriends && filteredFriends.length > 0 ? (
@@ -128,17 +129,17 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                                 <div className="flex">
                                                     <div className="">
                                                         <div className="bg-white rounded-full">
-                                                        {friend.imageData ?
-                                                            <img
-                                                                src={friend.imageData}
-                                                                alt="Fetched Image"
-                                                                className="min-h-14 min-w-14 rounded-full object-cover" />
-                                                            :
-                                                            <img
-                                                                src="/welcome.jpg"
-                                                                alt="User Icon"
-                                                                className="min-h-14 min-w-14 rounded-full object-cover" />
-                                                        }
+                                                            {friend.imageData ?
+                                                                <img
+                                                                    src={friend.imageData}
+                                                                    alt="Fetched Image"
+                                                                    className="min-h-14 min-w-14 rounded-full object-cover" />
+                                                                :
+                                                                <img
+                                                                    src="/welcome.jpg"
+                                                                    alt="User Icon"
+                                                                    className="min-h-14 min-w-14 rounded-full object-cover" />
+                                                            }
                                                         </div>
                                                     </div>
                                                     <div className="ml-4 w-full">
@@ -172,15 +173,18 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                             <p className="text-center">No results found</p>
                         </div>
                     )}</div>
-            </div >
+            </div>
+
             <div
-                className={`overflow-hidden  ${isMobile ? `${friend_name ? 'w-full' : 'hidden '}` : '  w-2/3'}`}
+                className={`overflow-hidden w-full`}
                 style={{ height: '95vh' }}>
                 <ChatArea
                     socket={socket}
                     friend={friend}
                     isMobile={isMobile}
-                    theme={theme} />
+                    theme={theme}
+                    friends={friends}
+                />
             </div>
         </div >
     )

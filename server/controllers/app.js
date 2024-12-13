@@ -161,7 +161,7 @@ const login = async (req, res) => {
 const getUsers = async (req, res) => {
     try {
         const email = req.user;
-        const users = await User.find({ email: { $ne: email } }).select('email username names image privateKey'); // Projection to reduce fields
+        const users = await User.find({ email: { $ne: email } }).select('email username names image privateKey lastActiveTime'); // Projection to reduce fields
         const privateKeyMap = {};
 
         const usersWithDetails = await Promise.all(users.map(async (user) => {
