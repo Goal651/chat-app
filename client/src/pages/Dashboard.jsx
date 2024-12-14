@@ -140,11 +140,7 @@ export default function Dashboard({ isMobile }) {
                 if (!friend_name && newMessage.sender !== selectedFriend) {
                     socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender });
                 }
-                const senderUsername = friends.map((friend) => {
-                    if (friend.email == newMessage.sender) {
-                        return friend.username
-                    } else return 'unknown'
-                })
+                const senderUsername = friends.filter((friend) => friend.email == newMessage.sender)[0].username
                 NotificationBanner({
                     title: senderUsername,
                     body: newMessage.message
