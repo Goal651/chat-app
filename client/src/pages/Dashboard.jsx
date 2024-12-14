@@ -3,9 +3,9 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import Cookies from "js-cookie";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import Notification from "../components/Notification";
+import NotificationBanner from "../components/NotificationBanner";
 
-const NotificationPermissionModal = lazy(() => import('../components/NotificationPermissionModal'));
+const NotificationPermissionModal = lazy(() => import('../components/NotificationPermissionModal'))
 const Settings = lazy(() => import("./Setting"));
 const Navigation = lazy(() => import("../screens/Navigator"));
 const CreateGroup = lazy(() => import("../screens/CreateGroup"));
@@ -104,7 +104,7 @@ export default function Dashboard({ isMobile }) {
 
     // Notification permission check
     const checkNotificationAllowed = async () => {
-        if (permissionStatus === 'default') {
+        if (permissionStatus === 'default' && !isModalVisible) {
             setIsModalVisible(true);
         }
     };
@@ -149,7 +149,7 @@ export default function Dashboard({ isMobile }) {
                     socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender });
                 }
 
-                Notification({
+                NotificationBanner({
                     title: newMessage.sender,
                     body: newMessage.message
                 });
@@ -244,6 +244,7 @@ export default function Dashboard({ isMobile }) {
 
     return (
         <div className={`flex flex-row w-full h-screen text-sm bg-black`}>
+
             <Suspense fallback={
                 <div className='h-screen w-screen left-0 top-0 fixed flex justify-center bg-slate-900'>
                     <span className='loading loading-infinity h-screen bg-white'></span>

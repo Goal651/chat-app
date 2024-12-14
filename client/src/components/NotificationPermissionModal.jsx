@@ -1,10 +1,5 @@
 import PropTypes from 'prop-types';
 
-NotificationPermissionModal.propTypes = {
-    onClose: PropTypes.func.isRequired,
-    onAllow: PropTypes.func.isRequired,
-}
-
 const NotificationPermissionModal = ({ onClose, onAllow }) => {
     return (
         <div className="fixed top-0 left-0 w-full h-full bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
@@ -31,5 +26,8 @@ const NotificationPermissionModal = ({ onClose, onAllow }) => {
         </div>
     );
 };
-
+NotificationPermissionModal.propTypes = {
+    onClose: PropTypes.func.isRequired,
+    onAllow: PropTypes.func.isRequired,
+}
 export default NotificationPermissionModal;
