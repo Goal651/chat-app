@@ -41,9 +41,9 @@ export default function Dashboard({ isMobile }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
 
-    // Access token and socket https://chat-app-production-2663.up.railway.app/
+    // Access token and socket 
     const accessToken = Cookies.get("accessToken");
-    const socket = useSocket("http://localhost:3001/");
+    const socket = useSocket("https://chat-app-production-2663.up.railway.app/");
     const theme = localStorage.getItem("theme");
     const selectedFriend = localStorage.getItem('selectedFriend');
 

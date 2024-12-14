@@ -127,8 +127,7 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
                     const message = prevHistory.filter((message) => message._id === data.tmpId)[0]
                     if (message) {
                         const newMessage = { ...message, _id: data.id,isMessageSent: true }
-                        console.log(newMessage)
-                        return prevHistory.map((message) => message._id === data.id ? newMessage : message)
+                        return prevHistory.map((message) => message._id === data.tmpId ? newMessage : message)
                     } else {
                         return [...prevHistory]
                     }
