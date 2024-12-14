@@ -235,7 +235,7 @@ export default function Sender({ socket, editingMessage, replying, setSentMessag
 
     return (
         <>
-            {replyMode && (
+            {replyMode && replying && (
                 <div
                     className={'p-5 mx-4 border-t-slate-300 border-t-2 text-gray-800'}
                 >
