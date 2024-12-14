@@ -129,7 +129,7 @@ const handlerChat = async (io) => {
                 if (!savedMessage) return null;
                 const senderSocketId = userSockets.get(socket.user);
                 const receiverSocketId = userSockets.get(receiver);
-                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message, messageType: 'dm' } });
+                if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message },messageType: 'dm' });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
                 io.to(senderSocketId).emit("message_sent", { newMessage: { ...newMessage._doc, message } });
             } catch (error) {

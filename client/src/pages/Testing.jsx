@@ -1,14 +1,18 @@
-import { useState } from 'react';
-
+import NotificationBanner from "../components/Notification";
 export default function Testing() {
-    const [test, setTest] = useState(false);
 
+    const testNotification = () => {
+        NotificationBanner({
+            title: 'This is wigo',
+            body: 'and this ti',
+        });
+    }
     return (
         <div className="flex flex-col items-center p-4">
 
-            <button 
-            onClick={() => setTest(!test)}
-            className="btn btn-primary"
+            <button
+                onClick={testNotification}
+                className="btn btn-primary"
             >TESTING</button>
         </div>
     );
