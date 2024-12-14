@@ -460,12 +460,14 @@ export default function Messages(props) {
                     <div>{msg.edited ? 'edited' : ''}</div>
                     <div> {msg.time}</div>
                     <div>
-                      {msg.isMessageSent ? (
-                        <div className="text-slate-400 text-end text-xs font-black">✓</div>
+
+                      {msg.seen ? (<div className="text-green-400 text-end text-xs font-black">✓✓</div>
                       ) : (
-                        <div className="text-red-400 text-end text-xs font-black">✗</div>
-                      )}
-                      {msg.seen && (<div className="text-green-400 text-end text-xs font-black">✓✓</div>)}
+                        msg.isMessageSent ? (
+                          <div className="text-slate-400 text-end text-xs font-black">✓</div>
+                        ) : (
+                          <div className="text-red-400 text-end text-xs font-black">✗</div>
+                        ))}
                     </div>
                   </div>
                 </div>
