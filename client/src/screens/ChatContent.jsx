@@ -97,7 +97,7 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
         if (typingUsers.length === 0) return false
         return typingUsers.includes(data)
     }
-    if(!friends) return null
+    if (!friends) return null
     return (
         <div className="flex flex-row">
             <div
@@ -118,14 +118,13 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                 const isOnline = onlineUsers.includes(friend.email)
                                 return (
                                     <div onClick={() => chatNow(friend)}
-                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2                                          
-                                                ${selectedFriend === friend.email ? 'bg-gray-300 hover:bg-gray-400' : ''}hover:bg-gray-100`}
-                                        key={friend._id}>
+                                        className={`overflow-hidden flex justify-between mx-4 py-2 rounded-lg cursor-pointer my-2 ${selectedFriend === friend.email ? 'bg-gray-300  hover:bg-gray-400' : 'hover:bg-gray-200'}`}
+                                        key={friend.id}>
                                         <div className="flex flex-row justify-between w-full mx-4">
                                             <span className="grid grid-cols-2  items-center w-full h-fit">
                                                 <div className="flex">
-                                                    <div className="">
-                                                        <div className="bg-white rounded-full">
+                                                    <div className="h-14">
+                                                        <div className="bg-white rounded-full border-2 border-slate-300">
                                                             {friend.imageData ?
                                                                 <img
                                                                     src={friend.imageData}
@@ -138,20 +137,38 @@ export default function ChatContent({ friends, socket, isMobile, theme }) {
                                                                     className="min-h-14 min-w-14 rounded-full object-cover" />
                                                             }
                                                         </div>
+                                                        {isOnline && (
+                                                            <div className="relative w-4 h-4 border-2 border-white rounded-full bg-green-500 bottom-14 left-10">
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="ml-4 w-full">
                                                         <div className="w-1/2 text-sm font-bold"> {friend.username}</div>
                                                         {isTyping(friend.email) ? (
-                                                            <div className="text-green-500 text-sm ">
+                                                            <div className="text-green-500 text-sm w-48">
                                                                 typing...
                                                             </div>
                                                         ) : (
-                                                            <div className="text-xs text-gray-600 break-words line-clamp-1 w-48 ">
-                                                                {friend.latestMessage ? (friend.latestMessage.sender == currentUser ?
-                                                                    (friend.latestMessage.type.startsWith(`${'image' || 'video'}`) ?
-                                                                        'you: sent file' : `you: ${friend.latestMessage.message}`) : (friend.latestMessage.type.startsWith(`${'image' || 'video'}`)
-                                                                            ? 'sent file' : friend.latestMessage.message)) : 'Say hi to your new friend'}
+                                                            <div className="text-xs text-gray-600 break-words line-clamp-1 w-48">
+                                                                {friend.latestMessage ? (
+                                                                    friend.latestMessage.sender === currentUser ? (
+                                                                        friend.latestMessage.type.startsWith('image') ||
+                                                                            friend.latestMessage.type.startsWith('video') ||
+                                                                            friend.latestMessage.type.startsWith('audio') ?
+                                                                            'you: sent file' :
+                                                                            `you: ${friend.latestMessage.message}`
+                                                                    ) : (
+                                                                        friend.latestMessage.type.startsWith('image') ||
+                                                                            friend.latestMessage.type.startsWith('video') ||
+                                                                            friend.latestMessage.type.startsWith('audio') ?
+                                                                            'sent file' :
+                                                                            friend.latestMessage.message
+                                                                    )
+                                                                ) : (
+                                                                    'Say hi to your new friend'
+                                                                )}
                                                             </div>
+
                                                         )}
                                                     </div>
                                                 </div>

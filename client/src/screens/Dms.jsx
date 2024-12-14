@@ -12,11 +12,12 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
     const navigate = useNavigate();
     const friend = localStorage.getItem('selectedFriend');
     const storedMessages = JSON.parse(sessionStorage.getItem(`${friend}Message`))
+    const storedFriendData = JSON.parse(sessionStorage.getItem(`friend-${friend}`))
     const { friend_name } = useParams();
     const [lastMessage, setLastMessage] = useState("");
     const [history, setHistory] = useState(storedMessages ? storedMessages : []);
     const [beingTyped, setBeingTyped] = useState(false);
-    const [info, setInfo] = useState(null)
+    const [info, setInfo] = useState(storedFriendData ? storedFriendData : null);
     const [loading, setLoading] = useState(true);
     const accessToken = Cookies.get('accessToken');
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -28,9 +29,14 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
 
     useEffect(() => {
         const findUserDetails = () => {
+            setInfo(storedFriendData ? storedFriendData : null)
             if (friends) {
                 const currentUser = friends.find((user) => user.email === friend);
-                if (currentUser) setInfo(currentUser)
+                if (currentUser) {
+                    setInfo(currentUser)
+                    const cleanFriend = { ...currentUser, imageData: null }
+                    sessionStorage.setItem(`friend-${currentUser.email}`, JSON.stringify(cleanFriend))
+                }
             }
         }
         findUserDetails();
@@ -38,16 +44,6 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
 
     useEffect(() => {
         setLoading(true)
-        setInfo({
-            id: null,
-            username: loading,
-            names: '',
-            email: '',
-            image: '',
-            imageData: null,
-            lastActiveTime: ''
-        })
-        setHistory([])
     }, [friend_name])
 
 
@@ -82,10 +78,12 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
                 const lastActiveTime = Math.floor(difference)
                 if (lastActiveTime > 0) setLastActiveTime(`${lastActiveTime} minutes ago`)
                 else setLastActiveTime('a minute ago')
-            } else {
+            } else if (difference * 60 > 0) {
                 const lastActiveTime = Math.floor(difference * 60)
                 if (lastActiveTime > 0) setLastActiveTime(`${lastActiveTime} seconds ago`)
                 else setLastActiveTime('just now')
+            } else {
+                setLastActiveTime('')
             }
         };
         getTimeDifference()
@@ -241,37 +239,40 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
 
     return (
         <div className="flex flex-col h-full" >
-            <div
-                className={` flex items-center justify-between p-4 `}>
+            <div className={` flex items-center justify-between p-4 `}>
                 <div className="flex items-center">
-                    <div className={`flex items-center `}>
-                        <div className="">
-                            <div className="h-14 w-14 rounded-full bg-inherit ">
-                                {info.imageData ? <img
-                                    src={info.imageData}
-                                    alt="Profile"
-                                    className="h-full w-full rounded-full object-cover"
-                                />
-                                    :
-                                    <img
-                                        src='/welcome.jpg'
+                    {info && (
+                        <div className={`flex items-center `}>
+                            <div className="">
+                                <div className="h-14 w-14 rounded-full bg-inherit ">
+                                    {info.imageData ? <img
+                                        src={info.imageData}
                                         alt="Profile"
                                         className="h-full w-full rounded-full object-cover"
-                                    />}
+                                    />
+                                        :
+                                        <img
+                                            src='/welcome.jpg'
+                                            alt="Profile"
+                                            className="h-full w-full rounded-full object-cover"
+                                        />}
+                                </div>
                             </div>
-                        </div>
-                        <div className="ml-4">
-                            <div className="text-lg font-semibold">{info.username}</div>
-                            {onlineUsers.includes(info.email) ? (beingTyped ? (
-                                <div className="text-md text-green-600 ">typing ...</div>) :
-                                <div className="text-sm ">Online</div>) :
-                                (
+                            <div className="ml-4">
+                                <div className="text-lg font-semibold">
+                                    {info.username}
+                                </div>
+                                {onlineUsers.includes(info.email) ? (beingTyped ? (
+                                    <div className="text-md text-green-600 ">typing ...</div>) :
+                                    <div className="text-sm ">Online</div>
+                                ) : (
                                     <div className="text-sm font-semibold">
                                         last seen: {lastActiveTime}
                                     </div>
                                 )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
                 <div className="flex space-x-4">
                     <button

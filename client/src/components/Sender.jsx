@@ -6,7 +6,7 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import Cookies from 'js-cookie';
 import DocViewer from 'react-doc-viewer';
-import { ReactMediaRecorder } from 'react-media-recorder';
+import { useReactMediaRecorder } from 'react-media-recorder';
 
 export default function Sender({ socket, editingMessage, replying }) {
     const { friend_name, group_name } = useParams();
@@ -18,15 +18,20 @@ export default function Sender({ socket, editingMessage, replying }) {
     const [fileMessage, setFileMessage] = useState(null);
     const accessToken = Cookies.get('accessToken');
     const [isSendingFile, setIsSendingFile] = useState(false);
-    const [recordedAudio, setRecordedAudio] = useState(null);
     const [recording, setRecording] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [timeRemaining, setTimeRemaining] = useState(null);
     const [editMode, setEditMode] = useState(false);
     const [replyMode, setReplyMode] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null); // MediaRecorder for audio recording
-    const [audioChunks, setAudioChunks] = useState([]); // To store audio data chunks
     const chat_user = Cookies.get('user');
+
+
+    const { startRecording, stopRecording, mediaBlobUrl, } = useReactMediaRecorder({
+        audio: true,
+        onStop: (blobUrl, blob) => {
+            setFilePreview(blobUrl)
+            setFileMessage(blob)
+        },
+    });
+
 
     useEffect(() => {
         if (editingMessage) {
@@ -44,50 +49,49 @@ export default function Sender({ socket, editingMessage, replying }) {
         socket.emit('edit_message', { id, message, receiver: friend });
     };
 
-    const sendMessage = useCallback(
-        (e) => {
-            e.preventDefault();
-            if (!socket) return;
-            if (editMode) {
-                handleMessageEdition(editingMessage._id, message);
-                setEditMode(false);
-            } else {
-                if (message.trim() !== '') {
-                    if (friend_name) {
-                        if (replyMode)
-                            socket.emit('reply_message', {
-                                receiver: friend,
-                                message,
-                                id: replying._id,
-                                replying,
-                            });
-                        else socket.emit('send_message', { receiver: friend, message });
-                        socket.emit('not_typing', { receiver: friend });
-                    }
-                    if (group_name) {
-                        const newMessage = {
-                            type: 'text',
+    const sendMessage = useCallback((e) => {
+        e.preventDefault();
+        if (!socket) return;
+        if (editMode) {
+            handleMessageEdition(editingMessage._id, message);
+            setEditMode(false);
+        } else {
+            if (message.trim() !== '') {
+                if (friend_name) {
+                    if (replyMode)
+                        socket.emit('reply_message', {
+                            receiver: friend,
                             message,
-                            group: group_name,
-                            time: new Date().toISOString().slice(11, 16),
-                            seen: [],
-                        };
-                        if (replyMode)
-                            socket.emit('reply_group_message', {
-                                message: newMessage,
-                                id: replying._id,
-                                replying,
-                            });
-                        else socket.emit('send_group_message', { message: newMessage });
-                        socket.emit('member_not_typing', { group: group_name });
-                    }
+                            id: replying._id,
+                            replying,
+                        });
+                    else socket.emit('send_message', { receiver: friend, message });
+                    socket.emit('not_typing', { receiver: friend });
+                }
+                if (group_name) {
+                    const newMessage = {
+                        type: 'text',
+                        message,
+                        group: group_name,
+                        time: new Date().toISOString().slice(11, 16),
+                        seen: [],
+                    };
+                    if (replyMode)
+                        socket.emit('reply_group_message', {
+                            message: newMessage,
+                            id: replying._id,
+                            replying,
+                        });
+                    else socket.emit('send_group_message', { message: newMessage });
+                    socket.emit('member_not_typing', { group: group_name });
                 }
             }
-            setMessage('');
-            setShowEmojiPicker(false);
-            setReplyMode(false);
-            socket.emit('not_typing', { receiver: friend });
-        },
+        }
+        setMessage('');
+        setShowEmojiPicker(false);
+        setReplyMode(false);
+        socket.emit('not_typing', { receiver: friend });
+    },
         [message, socket, friend, friend_name, group_name]
     );
 
@@ -121,13 +125,8 @@ export default function Sender({ socket, editingMessage, replying }) {
                 )
                 .then((response) => {
                     const isLastChunk = currentChunk === totalChunks - 1;
-                    const progress = Math.round((currentChunk / totalChunks) * 100);
-                    setUploadProgress(progress);
-                    if (isLastChunk) {
-                        setFileName(response.data.finalFileName);
-                        setUploadProgress(100);
-                        setTimeRemaining(0);
-                    } else readAndUploadCurrentChunk(currentChunk + 1);
+                    if (isLastChunk) setFileName(response.data.finalFileName);
+                    else readAndUploadCurrentChunk(currentChunk + 1);
                 })
                 .catch((error) => {
                     console.error('Error uploading chunk:', error);
@@ -208,35 +207,6 @@ export default function Sender({ socket, editingMessage, replying }) {
     };
 
 
-    const onStartRecording = async () => {
-        setRecording(true);
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            setMediaRecorder(recorder);
-            recorder.start();
-            recorder.ondataavailable = (event) => {
-                setAudioChunks((prevChunks) => [...prevChunks, event.data]);
-            };
-        } catch (error) {
-            console.error("Error accessing microphone:", error);
-        }
-    };
-
-    const onStopRecording = () => {
-        setRecording(false);
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                setRecordedAudio(audioBlob);
-                setFilePreview(URL.createObjectURL(audioBlob));
-                setFileMessage(audioBlob);
-                setAudioChunks([]); 
-            };
-        }
-    };
-
     const addEmoji = (emoji) => {
         setMessage((prevMessage) => prevMessage + emoji.native);
     };
@@ -305,7 +275,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                         placeholder="Type a message"
                         value={message}
                         onChange={handleChange}
-                        className="flex-1 mx-4 rounded-lg w-12 break-words"
+                        className="flex-1 mx-4 bg-transparent w-12 break-words :focus:border-0 outline-none"
                         autoFocus={true}
                     />
                     <label className="text-gray-500 hover:text-gray-700 cursor-pointer">
@@ -331,38 +301,41 @@ export default function Sender({ socket, editingMessage, replying }) {
                         />
                     </label>
 
-                    <ReactMediaRecorder
-                        audio
-                        render={({ startRecording, stopRecording, mediaBlobUrl }) => (
-                            <div>
-                                <button
-                                    type="button"
-                                    className={'ml-4 text-white text-lg rounded-md'}
-                                    onClick={recording ? stopRecording : startRecording}
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke={`${recording ? 'red' : 'black'}`}
-                                        className="mic-normal"
-                                        width="18"
-                                        height="18"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="1"
-                                            d="M12 1a4 4 0 00-4 4v6a4 4 0 008 0V5a4 4 0 00-4-4zm1 18.93a8.001 8.001 0 007-7.93h-2a6 6 0 01-12 0H4a8.001 8.001 0 007 7.93V23h2v-3.07z"
-                                        />
-                                    </svg>
-                                </button>
-                                {mediaBlobUrl && (
-                                    <audio src={mediaBlobUrl} controls />
-                                )}
-                            </div>
-                        )}
-                    />
+                    <div className="flex items-center">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (recording) {
+                                    stopRecording();
+                                    setRecording(false);
+                                    if (mediaBlobUrl) setFilePreview(mediaBlobUrl);
+
+                                } else {
+                                    startRecording();
+                                    setRecording(true);
+                                }
+                            }}
+                            className="text-lg px-3 py-1 rounded bg-gray-200 text-gray-800 hover:bg-gray-300"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke={`${recording ? 'red' : 'black'}`}
+                                className="mic-normal"
+                                width="18"
+                                height="18"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1"
+                                    d="M12 1a4 4 0 00-4 4v6a4 4 0 008 0V5a4 4 0 00-4-4zm1 18.93a8.001 8.001 0 007-7.93h-2a6 6 0 01-12 0H4a8.001 8.001 0 007 7.93V23h2v-3.07z"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+
                     <button
                         type="submit"
                         className="ml-4 bg-transparent text-indigo-500 text-xl rounded-md btn btn-ghost"
@@ -423,7 +396,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                             </button>
                             <button onClick={sendFileMessage} className="btn btn-primary">
                                 {isSendingFile ? (
-                                    <div>{uploadProgress}%</div>
+                                    <div className='h-5 w-5 animate-spin rounded-full border-b-2 border-white'></div>
                                 ) : (
                                     'Send'
                                 )}
