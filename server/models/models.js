@@ -37,6 +37,7 @@ const messageSchema = mongoose.Schema({
     receiver: { type: String, required: true },
     seen: { type: Boolean, default: false },
     edited: { type: Boolean, default: false },
+    isMessageSent: { type: Boolean, default: true },
     reactions: [{
         reaction: String,
         reactor: String,
@@ -48,7 +49,8 @@ const messageSchema = mongoose.Schema({
     },
     type: { type: String, required: true },
     time: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
+    
 });
 
 const groupMessageSchema = mongoose.Schema({

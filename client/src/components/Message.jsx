@@ -5,7 +5,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import Cookies from 'js-cookie'
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
-import WaveSurfer from "wavesurfer.js";
 
 export default function Messages(props) {
   const { messages, info, group, onlineUsers, history, typingMembers, socket, editingMessage, replying } = props
@@ -276,25 +275,27 @@ export default function Messages(props) {
                     <div className="text-xs opacity-70 mt-1 text-right">{msg.time}</div>
                   </div>
                 )}
-              </div>)}
+              </div>
+            )}
             <div
               className={` chat chat-start rounded-lg p-2  `} >
               <div className="chat-image avatar">
                 <div
                   className="w-10 rounded-lg bg-gray-500 ">
-                  {info.imageData ? <img
-                    src={info.imageData}
-                    alt="Profile"
-                    className=""
-                  /> : <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    width="24px"
-                    height="24px"
-                    className="relative left-1 top-1 text-gray-100 "                        >
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                  </svg>}
+                  {info.imageData ?
+                    <img
+                      src={info.imageData}
+                      alt="Profile"
+                      className=""
+                    /> : <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      width="24px"
+                      height="24px"
+                      className="relative left-1 top-1 text-gray-100 "                        >
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>}
                 </div>
               </div>
               {msg.type === 'text' && (
@@ -459,8 +460,14 @@ export default function Messages(props) {
                     <div>{msg.edited ? 'edited' : ''}</div>
                     <div> {msg.time}</div>
                     <div>
+                      {msg.isMessageSent ? (
+                        <div className="text-slate-400 text-end text-xs font-black">✓</div>
+                      ) : (
+                        <div className="text-red-400 text-end text-xs font-black">✗</div>
+                      )}
                       {msg.seen && (<div className="text-green-400 text-end text-xs font-black">✓✓</div>)}
-                    </div>                </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {msg.type.startsWith('image') && (

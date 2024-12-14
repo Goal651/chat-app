@@ -8,30 +8,29 @@ import Cookies from 'js-cookie';
 import DocViewer from 'react-doc-viewer';
 import { useReactMediaRecorder } from 'react-media-recorder';
 
-export default function Sender({ socket, editingMessage, replying }) {
+export default function Sender({ socket, editingMessage, replying, setSentMessage }) {
     const { friend_name, group_name } = useParams();
     const friend = localStorage.getItem('selectedFriend');
+    const accessToken = Cookies.get('accessToken');
+    const chat_user = Cookies.get('user');
+
     const [fileName, setFileName] = useState(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [filePreview, setFilePreview] = useState(null);
     const [message, setMessage] = useState('');
     const [fileMessage, setFileMessage] = useState(null);
-    const accessToken = Cookies.get('accessToken');
     const [isSendingFile, setIsSendingFile] = useState(false);
     const [recording, setRecording] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [replyMode, setReplyMode] = useState(false);
-    const chat_user = Cookies.get('user');
 
-
-    const { startRecording, stopRecording, mediaBlobUrl, } = useReactMediaRecorder({
+    const { startRecording, stopRecording, mediaBlobUrl } = useReactMediaRecorder({
         audio: true,
         onStop: (blobUrl, blob) => {
-            setFilePreview(blobUrl)
-            setFileMessage(blob)
+            setFilePreview(blobUrl);
+            setFileMessage(blob);
         },
     });
-
 
     useEffect(() => {
         if (editingMessage) {
@@ -49,50 +48,77 @@ export default function Sender({ socket, editingMessage, replying }) {
         socket.emit('edit_message', { id, message, receiver: friend });
     };
 
-    const sendMessage = useCallback((e) => {
-        e.preventDefault();
-        if (!socket) return;
-        if (editMode) {
-            handleMessageEdition(editingMessage._id, message);
-            setEditMode(false);
-        } else {
-            if (message.trim() !== '') {
-                if (friend_name) {
-                    if (replyMode)
-                        socket.emit('reply_message', {
-                            receiver: friend,
+    const handleMessageSent = (id) => {
+        const newMessage = {
+            _id: id,
+            sender: chat_user,
+            receiver: friend,
+            type: 'text',
+            message,
+            time: new Date().toISOString().slice(11, 16),
+            seen: false,
+            reaction: [],
+            replyingTo: null,
+            timeStamp: Date.now(),
+            isMessageSent: false
+        };
+        setSentMessage(newMessage);
+    };
+
+    const sendMessage = useCallback(
+        (e) => {
+            e.preventDefault();
+            if (!socket) return;
+
+            if (editMode) {
+                handleMessageEdition(editingMessage._id, message);
+                setEditMode(false);
+            } else {
+                if (message.trim() !== '') {
+                    if (friend_name) {
+                        const id = Date.now() + Math.random()
+                        if (replyMode) {
+                            socket.emit('reply_message', {
+                                receiver: friend,
+                                message,
+                                id: replying._id,
+                                replying,
+                            });
+                        } else {
+                            socket.emit('send_message', { receiver: friend, message, tmpId: id });
+                        }
+                        handleMessageSent(id);
+                        socket.emit('not_typing', { receiver: friend });
+                    }
+
+                    if (group_name) {
+                        const newMessage = {
+                            type: 'text',
                             message,
-                            id: replying._id,
-                            replying,
-                        });
-                    else socket.emit('send_message', { receiver: friend, message });
-                    socket.emit('not_typing', { receiver: friend });
-                }
-                if (group_name) {
-                    const newMessage = {
-                        type: 'text',
-                        message,
-                        group: group_name,
-                        time: new Date().toISOString().slice(11, 16),
-                        seen: [],
-                    };
-                    if (replyMode)
-                        socket.emit('reply_group_message', {
-                            message: newMessage,
-                            id: replying._id,
-                            replying,
-                        });
-                    else socket.emit('send_group_message', { message: newMessage });
-                    socket.emit('member_not_typing', { group: group_name });
+                            group: group_name,
+                            time: new Date().toISOString().slice(11, 16),
+                            seen: [],
+                        };
+                        if (replyMode) {
+                            socket.emit('reply_group_message', {
+                                message: newMessage,
+                                id: replying._id,
+                                replying,
+                            });
+                        } else {
+                            socket.emit('send_group_message', { message: newMessage });
+                        }
+                        socket.emit('member_not_typing', { group: group_name });
+                    }
                 }
             }
-        }
-        setMessage('');
-        setShowEmojiPicker(false);
-        setReplyMode(false);
-        socket.emit('not_typing', { receiver: friend });
-    },
-        [message, socket, friend, friend_name, group_name]
+
+            setMessage('');
+            setShowEmojiPicker(false);
+            setReplyMode(false);
+            socket.emit('not_typing', { receiver: friend });
+        },
+        [message, socket, friend, friend_name, group_name, editMode, editingMessage, replyMode, replying]
     );
 
     const readAndUploadCurrentChunk = async (currentChunk = 0) => {
@@ -117,9 +143,9 @@ export default function Sender({ socket, editingMessage, replying }) {
                             accesstoken: accessToken,
                             name: encodeURIComponent(fileName),
                             type: fileMessage.type,
-                            currentChunk: currentChunk,
+                            currentChunk,
                             totalchunks: totalChunks,
-                            typeFolder: 'messages'
+                            typeFolder: 'messages',
                         },
                     }
                 )
@@ -132,6 +158,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                     console.error('Error uploading chunk:', error);
                 });
         };
+
         reader.readAsDataURL(blob);
     };
 
@@ -142,7 +169,7 @@ export default function Sender({ socket, editingMessage, replying }) {
                 const newFileMessage = {
                     group: group_name || undefined,
                     receiver: friend || undefined,
-                    fileType: fileType,
+                    fileType,
                     message: fileName,
                     preview: filePreview,
                     time: new Date().toISOString().slice(11, 16),
@@ -158,20 +185,12 @@ export default function Sender({ socket, editingMessage, replying }) {
             }
         };
         sendDetailsToSocket();
-    }, [
-        fileName,
-        socket,
-        friend_name,
-        group_name,
-        friend,
-        fileMessage,
-        filePreview,
-    ]);
+    }, [fileName, socket, friend_name, group_name, friend, fileMessage, filePreview]);
 
     const sendFileMessage = useCallback(
         async (e) => {
             e.preventDefault();
-            if (!socket && !fileMessage) return;
+            if (!socket || !fileMessage) return;
             const startTime = Date.now();
             await readAndUploadCurrentChunk(0, startTime);
             setIsSendingFile(true);
@@ -180,24 +199,24 @@ export default function Sender({ socket, editingMessage, replying }) {
         [fileMessage, socket, friend]
     );
 
-    const handleChange = useCallback((e) => {
-        const { name, files, value } = e.target;
-        if (name === 'media') {
-            const file = files[0];
-            if (file) {
-                setFilePreview(URL.createObjectURL(file));
-                setFileMessage(file);
-                socket.emit('typing', { receiver: friend });
+    const handleChange = useCallback(
+        (e) => {
+            const { name, files, value } = e.target;
+            if (name === 'media') {
+                const file = files[0];
+                if (file) {
+                    setFilePreview(URL.createObjectURL(file));
+                    setFileMessage(file);
+                    socket.emit('typing', { receiver: friend });
+                }
+            } else {
+                socket.emit(value.trim() ? 'member_typing' : 'member_not_typing', {
+                    group: group_name,
+                });
+                setMessage(value);
+                socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
             }
-        } else {
-            socket.emit(
-                value.trim() ? 'member_typing' : 'member_not_typing',
-                { group: group_name }
-            );
-            setMessage(value);
-            socket.emit(value.trim() ? 'typing' : 'not_typing', { receiver: friend });
-        }
-    },
+        },
         [socket, friend, group_name]
     );
 
@@ -205,7 +224,6 @@ export default function Sender({ socket, editingMessage, replying }) {
         setFileMessage(null);
         setFilePreview(null);
     };
-
 
     const addEmoji = (emoji) => {
         setMessage((prevMessage) => prevMessage + emoji.native);
@@ -219,7 +237,7 @@ export default function Sender({ socket, editingMessage, replying }) {
         <>
             {replyMode && (
                 <div
-                    className={`p-5 mx-4 border-t-slate-300 border-t-2 text-gray-800 `}
+                    className={'p-5 mx-4 border-t-slate-300 border-t-2 text-gray-800'}
                 >
                     <div className="float-right">
                         <button

@@ -22,7 +22,6 @@ const useSocket = (url) => {
             extraHeaders: { "x-access-token": `${Cookies.get("accessToken")}` }
         });
         setSocket(newSocket);
-
         return () => newSocket.disconnect();
     }, [url]);
     return socket;
@@ -42,9 +41,9 @@ export default function Dashboard({ isMobile }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
 
-    // Access token and socket
+    // Access token and socket https://chat-app-production-2663.up.railway.app/
     const accessToken = Cookies.get("accessToken");
-    const socket = useSocket("https://chat-app-production-2663.up.railway.app/");
+    const socket = useSocket("http://localhost:3001/");
     const theme = localStorage.getItem("theme");
     const selectedFriend = localStorage.getItem('selectedFriend');
 
@@ -127,30 +126,27 @@ export default function Dashboard({ isMobile }) {
 
     useEffect(() => {
         if (!accessToken) return;
-
         fetchUserDetails();
-        if (friends.length || groups.length) {
-            setLoading(false);
-        } else {
-            fetchInitialData();
-        }
+        if (friends.length || groups.length) setLoading(false);
+        else fetchInitialData();
     }, []);
 
     useEffect(() => {
         if (!socket) return;
-
         const handleOnlineUsers = (data) => setOnlineUsers(data);
-
         const handleIncomingMessage = (message) => {
             const { newMessage, messageType } = message;
-
             if (messageType === 'dm') {
                 if (!friend_name && newMessage.sender !== selectedFriend) {
                     socket.emit('message_not_seen', { message: newMessage.message, sender: newMessage.sender });
                 }
-
+                const senderUsername = friends.map((friend) => {
+                    if (friend.email == newMessage.sender) {
+                        return friend.username
+                    } else return 'unknown'
+                })
                 NotificationBanner({
-                    title: newMessage.sender,
+                    title: senderUsername,
                     body: newMessage.message
                 });
 

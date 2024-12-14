@@ -119,8 +119,22 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
             if (sender === friend) setBeingTyped(false);
         };
 
-        const handleMessageSent = ({ newMessage }) => {
-            setHistory((prevHistory) => [...prevHistory, newMessage]);
+        const handleMessageSent = (data) => {
+            if (!data) return
+            if (data.receiver === friend) {
+                console.log(data)
+                setHistory((prevHistory) => {
+                    const message = prevHistory.filter((message) => message._id === data.tmpId)[0]
+                    if (message) {
+                        const newMessage = { ...message, _id: data.id,isMessageSent: true }
+                        console.log(newMessage)
+                        return prevHistory.map((message) => message._id === data.id ? newMessage : message)
+                    } else {
+                        return [...prevHistory]
+                    }
+                });
+                socket.emit('message_seen', { receiver: friend, messageId: data._id });
+            }
         };
 
         const handleMessageSeen = ({ id, sender }) => {
@@ -210,12 +224,10 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
         fetchMessages();
     }, [friend, friend_name, navigate, accessToken]);
 
-
-    const navigateBackward = () => {
-        localStorage.removeItem('selectedFriend');
-        navigate('/chat');
-    };
-
+    const handleSentMessage = (data) => {
+        if (!data) return
+        setHistory((prevHistory) => [...prevHistory, data])
+    }
 
     const handleEditMessage = (id) => {
         if (!id) return
@@ -312,6 +324,7 @@ export default function DMArea({ socket, isMobile, theme, friends }) {
                 editingMessage={editingMessage}
                 socket={socket}
                 replying={replying}
+                setSentMessage={handleSentMessage}
             />
 
             <Calls
