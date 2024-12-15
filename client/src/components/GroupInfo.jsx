@@ -1,7 +1,8 @@
-/* eslint-disable react/prop-types */
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
+import PropTypes from 'prop-types';
+
 
 export default function  GroupInfo  ({ theme, groupInfo,  })  {
     const { group_name } = useParams();
@@ -149,4 +150,8 @@ export default function  GroupInfo  ({ theme, groupInfo,  })  {
                 </div>)}
         </div>
     );
+}
+GroupInfo.propTypes={
+    theme:PropTypes.string,
+    groupInfo:PropTypes.any
 }

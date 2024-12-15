@@ -1,10 +1,8 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react/prop-types */
-
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import GroupInfo from "./GroupInfo";
+
 
 export default function Details({ onlineUsers, reloadProfile }) {
     const { group_name } = useParams();

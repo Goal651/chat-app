@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 
 export default function Calls({ socket, type, endingCall }) {
     const friend = localStorage.getItem('selectedFriend');
@@ -263,4 +263,9 @@ export default function Calls({ socket, type, endingCall }) {
             )}
         </div>
     );
+}
+Calls.propTypes = {
+    socket: PropTypes.func.isRequired,
+    type: PropTypes.string.isRequired,
+    endingCall: PropTypes.func
 }

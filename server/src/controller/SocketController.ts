@@ -1,9 +1,9 @@
-const { Message, GMessage, User, Group } = require('../models/models');
-const cookie = require('cookie');
-const jwt = require('jsonwebtoken');
-const fs = require('fs').promises;
-const crypto = require('crypto');
-
+import fs from 'fs/promises';
+import path from 'path';
+import crypto from 'crypto';
+import model from '../model/model';
+import { Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
 
 
 const userSockets = new Map();
@@ -14,7 +14,7 @@ const formatTime = () => {
     return now.toISOString().slice(11, 16);
 };
 
-const readFile = async (filePath) => {
+const readFile = async (filePath: string) => {
     try {
         const data = await fs.readFile(filePath);
         const fileData = data.toString('base64');
@@ -25,7 +25,7 @@ const readFile = async (filePath) => {
     }
 }
 
-const encryptMessage = (publicKey, message) => {
+const encryptMessage = (publicKey: string, message: string) => {
     const encryptedData = crypto.publicEncrypt(
         {
             key: publicKey,
@@ -36,7 +36,7 @@ const encryptMessage = (publicKey, message) => {
     return encryptedData.toString('base64');
 };
 
-const decryptPrivateKey = (data) => {
+const decryptPrivateKey = (data: { aesKey: string, iv: string, encryptedPrivateKey: string }) => {
     const ivBuffer = Buffer.from(data.iv, 'hex')
     const aesKeyBuffer = Buffer.from(data.aesKey, 'hex')
     const encryptedPrivateKeyBuffer = Buffer.from(data.encryptedPrivateKey, 'hex');
@@ -46,7 +46,7 @@ const decryptPrivateKey = (data) => {
     return decryptedPrivateKey
 }
 
-const encryptGroupMessage = (data) => {
+const encryptGroupMessage = (data: { iv: string, privateKey: string, message: string }) => {
     const key = Buffer.from(data.privateKey, 'hex')
     const iv = Buffer.from(data.iv, 'hex')
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
@@ -56,13 +56,13 @@ const encryptGroupMessage = (data) => {
 }
 
 
-const handlerChat = async (io) => {
+const handlerChat = async (io: Socket) => {
     io.use((socket, next) => {
         const cookies = socket.handshake.headers;
         if (!cookies) return next(new Error('Invalid token'));
         const accessToken = cookies['x-access-token'];
         if (!accessToken) return next(new Error('Invalid token'));
-        jwt.verify(accessToken, process.env.JWT_SECRET, (err, user) => {
+        jwt.verify(accessToken, process.env.JWT_SECRET as string, (err, user) => {
             if (err) return next(new Error('Invalid token'))
             socket.user = user.email
             next()
@@ -75,7 +75,7 @@ const handlerChat = async (io) => {
     io.on('connection', async (socket) => {
         userSockets.set(socket.user, socket.id)
         io.emit('online_users', Array.from(userSockets.keys()));
-        await User.updateOne({ email: socket.user }, { lastActiveTime: Date.now() })
+        await model.User.updateOne({ email: socket.user }, { lastActiveTime: Date.now() })
         for (const groupName of Object.keys(rooms)) {
             rooms[groupName].add(socket.user)
             socket.join(groupName)
@@ -131,7 +131,7 @@ const handlerChat = async (io) => {
                 const receiverSocketId = userSockets.get(receiver);
                 if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", { newMessage: { ...newMessage._doc, message }, messageType: 'dm' });
                 else await User.updateOne({ email: receiver }, { $push: { unreads: { message: encryptedMessage, sender: socket.user } } });
-                io.to(senderSocketId).emit("message_sent", { tmpId, receiver,id:savedMessage._id});
+                io.to(senderSocketId).emit("message_sent", { tmpId, receiver, id: savedMessage._id });
             } catch (error) {
                 console.error('Error sending message:', error);
             }
