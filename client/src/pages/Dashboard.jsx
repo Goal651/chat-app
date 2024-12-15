@@ -128,7 +128,7 @@ export default function Dashboard({ isMobile }) {
         if (!accessToken) return;
         fetchUserDetails();
         if (friends.length || groups.length) setLoading(false);
-        else fetchInitialData();
+        fetchInitialData();
     }, []);
 
     useEffect(() => {

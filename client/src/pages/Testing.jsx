@@ -1,4 +1,4 @@
-import NotificationBanner from "../components/Notification";
+import NotificationBanner from "../components/NotificationBanner";
 export default function Testing() {
 
     const testNotification = () => {
