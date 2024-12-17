@@ -1,28 +1,15 @@
-/* eslint-disable no-undef */
-module.exports = {
+/** @type {import('tailwindcss').Config} */
+import daisyui from 'daisyui'
+export default {
   content: [
-    "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
+    "./index.html", 
+    "./src/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
     extend: {},
   },
-  plugins: [require("daisyui")],
-  daisyui: {
-    themes: [
-      {
-        mytheme: {
-          "primary": "#5c6bc0",
-          "secondary": "#f5f5f5",
-          "accent": "#ff4081",
-          "neutral": "#2e3a59",
-          "base-100": "#ffffff",
-          "info": "#2094f3",
-          "success": "#009485",
-          "warning": "#ff9900",
-          "error": "#ff5724",
-        },
-      },
-    ],
-  },
+  plugins: [
+    daisyui
+  ],
 }
+
