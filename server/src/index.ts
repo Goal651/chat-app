@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import routes from './routes/routes'
+import SocketController from './controller/SocketController'
 
 
 const app = express();
@@ -22,7 +23,7 @@ app.use(cors({
 app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
 app.use(bodyParser.json({ limit: '5mb' }));
 app.use(cookieParser());
-app.use('/api',routes);
+app.use('/api', routes);
 
 
 const server = http.createServer(app);
@@ -37,6 +38,10 @@ const io = new Server(server, {
 // Connect to MongoDB
 mongoose.connect(process.env.test_uri as string)
     .then(async () => {
-        server.listen(3001, () => console.log('Server is running on port 3001'));
+        server.listen(3001, () => {
+            console.log('Server is running on port 3001');
+        });
+        SocketController(io)
+        
     })
     .catch(err => console.log(err));
