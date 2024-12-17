@@ -1,17 +1,21 @@
 import Joi from "joi"
 
 const loginSchema = Joi.object({
-    email: Joi.string().email().required().messages({
-        'string.email': 'Provide valid email',
+    email: Joi.string().email().required().empty('').messages({
+        'string.email': 'Invalid email or password',
         'any.required': 'Email is required',
+        'string.empty': 'Email is required',
     }),
-    password: Joi.string().required()
+    password: Joi.string().required().messages({
+        'any.required': 'Password is required',
+    })
 })
 
 const registerSchema = Joi.object({
-    email: Joi.string().email().required().messages({
+    email: Joi.string().email().required().empty('').messages({
         'string.email': 'Provide valid email',
         'any.required': 'Email is required',
+        'string.empty':''
     }),
     names: Joi.string().required().messages({
         'any.required': 'Names are required'

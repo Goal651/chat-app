@@ -1,41 +1,42 @@
-import express, { Request, Response } from 'express'
-
+import express from 'express'
 import controller from '../controller/AppController'
 import messageController from '../controller/MessageController'
-import checkUser from '../controller/AuthController'
-
+import auth from '../auth/AuthController'
+import mediaController from '../controller/MultimediaController'
 
 const router = express.Router()
 
-
-
 //Authentication
+router.get('/auth', auth.checkToken,auth.checkUser)
 router.post('/login', controller.login)
+
+//pinging server
+router.get('/ping', controller.ping)
 
 //creation of groups and users
 router.post('/signup', controller.signup)
-router.post('/create-group', checkUser, controller.createGroup)
+router.post('/create-group', auth.checkToken, controller.createGroup)
 
 //getting users and groups
-router.get('/getUserProfile', checkUser, controller.getUserProfile);
-router.get('/getUser/:email', checkUser, controller.getUser)
-router.get('/getUsers', checkUser, controller.getUsers)
-router.get('/getGroups', checkUser, controller.getGroups);
-router.get('/getGroup/:name', checkUser, controller.getGroup);
+router.get('/getUserProfile', auth.checkToken, controller.getUserProfile);
+router.get('/getUser/:email', auth.checkToken, controller.getUser)
+router.get('/getUsers', auth.checkToken, controller.getUsers)
+router.get('/getGroups', auth.checkToken, controller.getGroups);
+router.get('/getGroup/:name', auth.checkToken, controller.getGroup);
 
 //getting messages
-router.get('/gmessage/:group', checkUser, messageController.getGMessage)
-router.get('/message', checkUser, messageController.getMessage)
+router.get('/gmessage/:group', auth.checkToken, messageController.getGMessage)
+router.get('/message', auth.checkToken, messageController.getMessage)
 
 //updating user,groups and messages
-router.put('/editUserProfile', checkUser, controller.updateUserPhoto)
-router.put('/editGroupProfile/:group', checkUser, controller.updateGroup)
-router.put('/editUser/', checkUser, controller.updateUser)
-router.put('/updateGroupProfile/:group', checkUser, controller.updateGroup)
-router.post('/addMember', checkUser, controller.addMember)
+router.put('/editUserProfile', auth.checkToken, controller.updateUserPhoto)
+router.put('/editGroupProfile/:group', auth.checkToken, controller.updateGroup)
+router.put('/editUser/', auth.checkToken, controller.updateUser)
+router.put('/updateGroupProfile/:group', auth.checkToken, controller.updateGroup)
+router.post('/addMember', auth.checkToken, controller.addMember)
 
 //file uploads
-router.post('/uploadFile', checkUser, controller.fileUpload)
+router.post('/uploadFile', auth.checkToken, mediaController.fileUpload)
 
 
 export default router;

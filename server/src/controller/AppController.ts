@@ -178,22 +178,22 @@ const login = async (req: Request, res: Response) => {
         const { email, password } = value as User
         const user = await model.User.findOne({ email: email }).select('email password');
         if (!user) {
-            res.status(400).json({ message: 'User does not exist' })
+            res.status(400).json({ message: 'Invalid email or password' })
             return
         };
         const validated = bcrypt.compareSync(password, user.password);
         if (!validated) {
-            res.status(401).json({ message: 'Invalid password' })
+            res.status(400).json({ message: 'Invalid email or password' })
             return
         };
         const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
         if (!accessToken) {
-            res.sendStatus(500)
+            res.status(500).json({ message: 'Internal server error' })
             return
         };
         res.status(200).json({ accessToken });
     } catch (err) {
-        res.sendStatus(500);
+        res.status(500).json({ message: 'Internal server error' })
         console.error(err)
     }
 }
@@ -348,7 +348,7 @@ const createGroup = async (req: Request, res: Response) => {
 const getGroups = async (req: Request, res: Response) => {
     try {
         const { userId } = res.locals.user;
-        const page=req.headers.page as unknown as number
+        const page = req.headers.page as unknown as number
         const numberOfGroupsToSkip = 10 * page
         const user = await model.User.findById(userId)
             .select('groups')
@@ -361,7 +361,7 @@ const getGroups = async (req: Request, res: Response) => {
             .limit(10)
             .skip(numberOfGroupsToSkip)
 
- 
+
         const groups = user?.toObject().groups as unknown as Group[]
         if (!groups) {
             res.status(404).json({ message: 'group not found' })
@@ -504,53 +504,8 @@ const addMember = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server error' + err });
     }
 }
-
-const fileUpload = async (req: Request, res: Response) => {
-    try {
-        const { userId } = res.locals.user
-        const { name, totalchunks, currentchunk, typefolder } = req.headers as unknown as { name: string, totalchunks: string, currentchunk: string, typefolder: string };
-        const filename = decodeURIComponent(name)
-        const { file } = req.body as { file: string }
-        await fs.promises.mkdir(path.join(__dirname, `../uploads/${typefolder}/`), { recursive: true });
-        const firstChunk = parseInt(currentchunk) === 0;
-        const lastChunk = parseInt(currentchunk) === parseInt(totalchunks) - 1;
-        const ext = filename.split('.').pop();
-        const data = file.split(',')[1];
-        const buffer = Buffer.from(data, 'base64');
-        const tmpFilename = 'tmp_' + bcrypt.hash(filename, 10) + '.' + ext;
-        const tmpFilepath = path.join(__dirname, `../uploads/${typefolder}/`, tmpFilename);
-        if (firstChunk && fs.existsSync(tmpFilepath)) fs.unlinkSync(tmpFilepath);
-        fs.appendFileSync(tmpFilepath, buffer);
-        if (lastChunk) {
-            const hashFileName = await bcrypt.hash(Date.now().toString().slice(0, 6) + userId, 10)
-            const finalFileName = hashFileName.slice(0, 6) + filename;
-            const finalFilepath = path.join(__dirname, `../uploads/${typefolder}/`, finalFileName);
-            fs.renameSync(tmpFilepath, finalFilepath);
-            res.status(200).json({ finalFileName: finalFilepath });
-            return
-        }
-        res.status(200).json({ message: 'Chunk ' + currentchunk + ' received' });
-    }
-    catch (err) {
-        res.status(500).json({ message: 'Server error' + err });
-    }
-};
-
-const sendFileStream = async (req: Request, res: Response) => {
-    try {
-        const fileName = req.params.fileName;
-        if (!fileName) return res.status(404).json({ message: 'File not found' });
-        const filePath = path.join(__dirname, `../uploads/messages/${fileName}`);
-        const stat = fs.statSync(filePath);
-        const fileSize = stat.size;
-        const range = req.headers.range;
-        if (range) {
-            const parts = range.replace(/bytes=/, "").split("-");
-        }
-
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' + err });
-    }
+const ping = async (req: Request, res: Response) => {
+    res.status(204).send()
 }
 
 
@@ -567,5 +522,6 @@ export default {
     updateUser,
     updateGroup,
     addMember,
-    fileUpload,
+
+    ping
 };
