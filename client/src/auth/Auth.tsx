@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
+import LoadingPage from "../main/LoadingPage";
 
 export default function Auth() {
     const savedToken = localStorage.getItem("token");
@@ -67,13 +68,13 @@ export default function Auth() {
         };
 
         checkAuth();
-    }, [token, navigate]); // Token and navigate are dependencies
+    }, [token, navigate]); 
 
     return (
         <div>
             {loading && (
                 <div className="w-screen h-screen flex justify-center items-center z-50 bg-slate-950">
-                    <div className="loading-infinity"></div>
+                    <LoadingPage />
                 </div>
             )}
             {error && (
