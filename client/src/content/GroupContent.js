@@ -1,0 +1,4 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+export default function GroupContent() {
+    return (_jsxs("div", { className: "bg-transparent h-full p-4 flex flex-col space-y-4 overflow-y-auto", children: [_jsx("div", { className: "text-white font-semibold text-xl", children: "Groups" }), _jsx("div", { className: "w-full ", children: _jsxs("div", { className: "flex justify-between", children: [_jsxs("div", { className: "flex space-x-4", children: [_jsx("div", { className: "bg-transparent rounded-full", children: _jsx("img", { src: "/b.jpg", alt: "", className: "w-14 h-14 rounded-full object-cover" }) }), _jsxs("div", { children: [_jsx("div", { className: "text-white font-semibold text-lg", children: "Friends Reunion" }), _jsx("div", { className: "text-gray-400", children: "Hey guys. wassup" })] })] }), _jsx("div", { children: _jsx("div", { children: "Today, 5:27pm" }) })] }) })] }));
+}
