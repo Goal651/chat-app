@@ -24,7 +24,7 @@ export default function App() {
           <Route path="/no-internet" element={<NetworkChecker />} />
           <Route path="/login" element={<LoginPage serverUrl={serverUrl} />} />
           <Route path='/signup' element={<SignUpPage serverUrl={serverUrl} />} />
-          <Route path='/test' element={<FileUploaderTest serverUrl={serverUrl} />} />
+          <Route path='/test' element={<FileUploaderTest />} />
           <Route path='*' element={<PageNotFound />} />
         </Routes>
       </Suspense>

@@ -10,7 +10,7 @@ export default function Dashboard({ socket }: { socket: Socket }) {
     console.log(socket)
     return (
         <div className="bg-slate-700 h-screen p-5 flex space-x-6 overflow-hidden">
-            <div className="md:w-1/6 bg-blue-600 md:p-2 rounded-2xl">
+            <div className="w-fit sm:w-fit xl:w-64 bg-blue-600 p-4 sm:p-8  rounded md:rounded-2xl overflow-y-auto ">
                 <Navigator />
             </div>
             <div className="w-1/3 bg-transparent rounded-2xl flex flex-col space-y-12">
@@ -61,11 +61,11 @@ export default function Dashboard({ socket }: { socket: Socket }) {
                     </div>
                 </div>
 
-                <div className="h-full flex flex-col ">
+                <div className="h-full flex flex-col space-y-4 ">
                     <div className="h-4/6">
                         <Messages />
                     </div>
-                    <div className="h-2/6 items-center">
+                    <div className="h-1/6 flex items-center">
                         <Sender />
                     </div>
                 </div>
