@@ -19,7 +19,7 @@ export default function Navigator() {
                 </div>
                 <div className="flex space-x-4">
                     <div className="w-8 h-8">
-                        <iconsBi.FiMessageCircle size={'100%'} className="text-slate-200" />
+                        <iconsFa.FaRegCommentDots size={'100%'} className="text-slate-200" />
                     </div>
                     <div className="hidden xl:block text-slate-200 font-semibold text-xl">Home</div>
                 </div>

@@ -1,12 +1,23 @@
 
-const Tester = ({ serverUrl }: { serverUrl: string }) => {
-    console.log(serverUrl)
+export default function Tester() {
     return (
-        <div>
-            <div className='text-3xl'>Testing socket</div>
+        <div className="h-screen bg-gray-900 flex flex-col p-4">
+            <div className="chat chat-start">
+                <div className="chat-header">
+                    Obi-Wan Kenobi
+                    <time className="text-xs opacity-50">2 hours ago</time>
+                </div>
+                <div className="chat-bubble">You were the Chosen One!</div>
+                <div className="chat-footer opacity-50">Seen</div>
+            </div>
+            <div className="chat chat-start">
+                <div className="chat-header">
+                    Obi-Wan Kenobi
+                    <time className="text-xs opacity-50">2 hour ago</time>
+                </div>
+                <div className="chat-bubble">I loved you.</div>
+                <div className="chat-footer opacity-50">Delivered</div>
+            </div>
         </div>
-    )
-
+    );
 };
-
-export default Tester
