@@ -48,7 +48,8 @@ const NetworkChecker: React.FC = () => {
             window.removeEventListener("online", checkInternetStatus);
             window.removeEventListener("offline", checkInternetStatus);
         };
-    }, []); // Empty dependency array ensures this effect runs only once when the component is mounted
+    }, []); 
+    // Empty dependency array ensures this effect runs only once when the component is mounted
 
     useEffect(() => {
         if (isOnline && serverStatus === "up") {
