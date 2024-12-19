@@ -1,11 +1,12 @@
-import { FaCamera, FaLink, FaMicrophone, FaPaperPlane} from "react-icons/fa"
+import { FaCamera, FaLink, FaMicrophone, FaPaperPlane } from "react-icons/fa"
 import { FaFaceLaugh } from "react-icons/fa6"
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useState } from "react"
 import FileMessagePreview from "../utilities/FileMessagePreview"
+import { Socket } from "socket.io-client"
 
-export default function Sender() {
+export default function Sender({ socket }: { socket: Socket }) {
 
     const [message, setMessage] = useState('')
     const [fileData, setFileData] = useState<File[] | null>(null)
@@ -29,11 +30,19 @@ export default function Sender() {
         setMessage((prev) => (prev + data.native))
     }
 
+    const sendMessage = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!message && !fileData) return;
+        socket.emit("message", { message, fileData });
+        setMessage('');
+        setFileData(null);
+    }
+
     return (
         <div className="flex w-full space-x-4">
 
             <div className=" bg-slate-700 w-full p-4 rounded-lg space-y-4">
-                <div className="flex space-x-4">
+                <form onSubmit={sendMessage} className="flex space-x-4">
                     <div>
                         <label className="cursor-pointer"
                             htmlFor="fileInput">
@@ -65,14 +74,14 @@ export default function Sender() {
                         <FaCamera
                             className="text-white" />
                     </div>
-                </div>
+                </form>
                 <div className="flex space-x-2 w-full overflow-x-auto">
                     {fileData && fileData.length > 0 && (
                         fileData.map((file, index) => (
                             <FileMessagePreview
-                                key={index} 
+                                key={index}
                                 data={file}
-                                cancelFile={cancelFile} 
+                                cancelFile={cancelFile}
                             />
                         ))
                     )}
@@ -81,7 +90,9 @@ export default function Sender() {
             </div>
             <div className="flex items-center">
                 {message || fileData ? (
-                    <button className="btn bg-blue-500 border-0 flex items-center">
+                    <button
+                        onClick={sendMessage}
+                        className="btn bg-blue-500 border-0 flex items-center">
                         <FaPaperPlane className=" text-xl text-black" />
                     </button>
                 ) : (

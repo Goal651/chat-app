@@ -20,7 +20,7 @@ export default function App() {
       <Suspense fallback={<div><LoadingPage /></div>}>
         <Routes>
           <Route path="/" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard socket={socket} />} />
+          <Route path="/dashboard" element={<Dashboard serverUrl={serverUrl} socket={socket} />} />
           <Route path="/no-internet" element={<NetworkChecker />} />
           <Route path="/login" element={<LoginPage serverUrl={serverUrl} />} />
           <Route path='/signup' element={<SignUpPage serverUrl={serverUrl} />} />

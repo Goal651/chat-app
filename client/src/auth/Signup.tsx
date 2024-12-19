@@ -73,20 +73,18 @@ export default function SignUp({ serverUrl }: { serverUrl: string }) {
 
     useEffect(() => {
         const validateEmail = () => setIsEmailValid(emailRegex.test(formData.email || ''));
-        const validatePasswordMatch = () =>
-            setIsPasswordMatch(formData.password === formData.confirmPassword);
-
+        const validatePasswordMatch = () => setIsPasswordMatch(formData.password === formData.confirmPassword);
         validateEmail();
         validatePasswordMatch();
     }, [formData]);
 
     useEffect(() => {
         setIsFormReadyToSubmit(
-            formData.names === "" &&
-            formData.username === "" &&
-            formData.email === "" &&
-            formData.password === "" &&
-            formData.confirmPassword === "" &&
+            formData.names !== "" &&
+            formData.username !== "" &&
+            formData.email !== "" &&
+            formData.password !== "" &&
+            formData.confirmPassword !== "" &&
             isPasswordMatch &&
             isEmailValid
         );
@@ -149,7 +147,7 @@ export default function SignUp({ serverUrl }: { serverUrl: string }) {
         try {
             const response = await axios.post(`${serverUrl}/api/signUp`, formData);
 
-            if (response.status === 200) navigate('/login');
+            if (response.status === 201) navigate('/login');
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 if (!error.response) {
@@ -157,7 +155,7 @@ export default function SignUp({ serverUrl }: { serverUrl: string }) {
                     return;
                 }
                 if (error.response.status === 400) setIsEmailAlreadyUsed(true)
-                else navigate('/error');
+                else console.error(error);
 
             }
         } finally {

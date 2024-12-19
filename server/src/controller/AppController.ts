@@ -522,6 +522,5 @@ export default {
     updateUser,
     updateGroup,
     addMember,
-
     ping
 };

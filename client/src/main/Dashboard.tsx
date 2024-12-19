@@ -5,13 +5,32 @@ import GroupContent from "../content/GroupContent"
 import FriendContent from "../content/FriendContent"
 import Messages from "../content/Messages"
 import Sender from "../content/Sender"
+import { initialDataApi, getInitialUserData } from "../api/initialDataApi"
+import { useEffect, useState } from "react"
+import { User } from "../interfaces/interfaces"
 
-export default function Dashboard({ socket }: { socket: Socket }) {
-    console.log(socket)
+export default function Dashboard({ socket, serverUrl }: { socket: Socket, serverUrl: string }) {
+
+    const [initialUsers, setInitialUsers] = useState<User[] >([])
+    const [initialCurrentUser, setInitialCurrentUser] = useState<User | null>(null)
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            const result = await initialDataApi(serverUrl)
+            const result2 = await getInitialUserData(serverUrl)
+            setInitialUsers(result.users)
+            setInitialCurrentUser(result2.data)
+            
+
+        }
+        fetchInitialData()
+
+    }, [])
+
     return (
         <div className="bg-slate-700 h-screen p-5 flex space-x-6 overflow-hidden">
             <div className="w-fit sm:w-fit xl:w-64 bg-blue-600 p-4 sm:p-8  rounded md:rounded-2xl overflow-y-auto ">
-                <Navigator />
+                <Navigator initialCurrentUser={initialCurrentUser} />
             </div>
             <div className="w-1/3 bg-transparent rounded-2xl flex flex-col space-y-12">
                 <div className="flex bg-black w-full h-fit rounded-xl md:p-1 lg:p-2 xl:p-3 space-x-6">
@@ -31,7 +50,7 @@ export default function Dashboard({ socket }: { socket: Socket }) {
                         <GroupContent />
                     </div>
                     <div className="bg-black rounded-2xl ">
-                        <FriendContent />
+                        <FriendContent initialFriends={initialUsers} />
                     </div>
 
                 </div>
@@ -66,7 +85,7 @@ export default function Dashboard({ socket }: { socket: Socket }) {
                         <Messages />
                     </div>
                     <div className="h-1/6 flex items-center">
-                        <Sender />
+                        <Sender socket={socket} />
                     </div>
                 </div>
                 <div>

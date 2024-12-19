@@ -5,6 +5,7 @@ import axios from "axios";
 export default function Login({ serverUrl }: { serverUrl: string }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
@@ -18,7 +19,7 @@ export default function Login({ serverUrl }: { serverUrl: string }) {
           const res = await axios.get(`${serverUrl}/api/auth`, {
             headers: { accesstoken: token },
           });
-          if (res.status === 200) navigate("/chat");
+          if (res.status === 200) navigate("/dashboard");
         } catch {
           localStorage.clear();
           sessionStorage.clear();
@@ -37,7 +38,7 @@ export default function Login({ serverUrl }: { serverUrl: string }) {
   };
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email);
   };
 
@@ -79,13 +80,14 @@ export default function Login({ serverUrl }: { serverUrl: string }) {
     try {
       const { data } = await axios.post(`${serverUrl}/api/login`, formData);
       localStorage.setItem("token", data.accessToken);
-      navigate("/chat");
+      navigate("/dashboard");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (!error.response) {
           navigate("/no-internet");
           return;
         }
+        setErrorMessage(error.response.data.message);
       }
     } finally {
       setLoading(false);
@@ -96,6 +98,9 @@ export default function Login({ serverUrl }: { serverUrl: string }) {
     <div className="flex justify-center items-center min-h-screen bg-gray-800">
       <div className="w-full max-w-md p-8 space-y-6 bg-gray-700 rounded-lg">
         <h2 className="text-2xl font-bold text-center text-white">Login</h2>
+        {errorMessage && (
+          <div className="text-red-500 rounded border-2 border-red-500 text-center w-full p-2">{errorMessage}</div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-300">

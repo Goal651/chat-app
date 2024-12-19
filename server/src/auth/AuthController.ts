@@ -57,5 +57,6 @@ const checkUser = async (req: Request, res: Response) => {
 
 export default {
     checkToken,
-    checkUser
+    checkUser,
+    refreshToken
 }
